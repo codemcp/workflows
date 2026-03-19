@@ -44,7 +44,8 @@ export class ProceedToPhaseHandler extends ConversationRequiredToolHandler<
     // Validate required arguments
     validateRequiredArgs(args, ['target_phase', 'review_state']);
 
-    const { target_phase, reason = '', review_state } = args;
+    const { reason = '', review_state } = args;
+    const target_phase = args.target_phase.toLowerCase();
     const conversationId = conversationContext.conversationId;
     const currentPhase = conversationContext.currentPhase;
 

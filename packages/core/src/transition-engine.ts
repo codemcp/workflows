@@ -326,8 +326,11 @@ Once you've defined these criteria, we can begin development. Throughout the pro
       reason,
     });
 
+    // Normalize targetPhase to lowercase for case-insensitive matching
+    const normalizedTargetPhase = targetPhase.toLowerCase();
+
     // Validate that the target phase exists in the state machine
-    if (!stateMachine.states[targetPhase]) {
+    if (!stateMachine.states[normalizedTargetPhase]) {
       const validPhases = Object.keys(stateMachine.states);
       const errorMsg = `Invalid target phase: "${targetPhase}". Valid phases are: ${validPhases.join(', ')}`;
       logger.error('Invalid target phase', new Error(errorMsg));
@@ -335,7 +338,7 @@ Once you've defined these criteria, we can begin development. Throughout the pro
     }
 
     // Get default instructions from the target state
-    const targetState = stateMachine.states[targetPhase];
+    const targetState = stateMachine.states[normalizedTargetPhase];
     const instructions = targetState.default_instructions;
     const transitionInfo = {
       instructions: instructions,
@@ -345,13 +348,13 @@ Once you've defined these criteria, we can begin development. Throughout the pro
 
     logger.info('Explicit phase transition processed', {
       fromPhase: currentPhase,
-      toPhase: targetPhase,
+      toPhase: normalizedTargetPhase,
       reason: transitionInfo.transitionReason,
       isModeled: transitionInfo.isModeled,
     });
 
     return {
-      newPhase: targetPhase,
+      newPhase: normalizedTargetPhase,
       instructions: transitionInfo.instructions,
       transitionReason: reason || transitionInfo.transitionReason,
       isModeled: transitionInfo.isModeled,

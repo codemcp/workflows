@@ -1,0 +1,24 @@
+{
+  "conversationId": "responsible-vibe-fix-proceed-to-phase-uedcpw",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe",
+  "epicId": "responsible-vibe-15",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "responsible-vibe-15.1"
+    },
+    {
+      "phaseId": "implement",
+      "phaseName": "Implement",
+      "taskId": "responsible-vibe-15.2"
+    },
+    {
+      "phaseId": "finalize",
+      "phaseName": "Finalize",
+      "taskId": "responsible-vibe-15.3"
+    }
+  ],
+  "createdAt": "2026-03-19T07:11:43.828Z",
+  "updatedAt": "2026-03-19T07:11:43.828Z"
+}
