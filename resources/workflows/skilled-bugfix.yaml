@@ -1,0 +1,182 @@
+---
+name: 'skilled-bugfix'
+description: 'A focused workflow for bug fixing: Reproduce, Analyze, Fix, Verify - optimized for debugging and fixing existing issues'
+initial_state: 'reproduce'
+
+# Enhanced metadata for better discoverability
+metadata:
+  domain: 'skilled'
+  complexity: 'medium'
+  bestFor:
+    - 'Bug fixes'
+    - 'Issue resolution'
+    - 'Error debugging'
+    - 'Performance problems'
+  useCases:
+    - 'Fixing a crash or error'
+    - 'Resolving incorrect behavior'
+    - 'Performance optimization'
+  examples:
+    - 'Fix login authentication error'
+    - 'Resolve memory leak issue'
+    - 'Fix incorrect calculation in reports'
+
+# States with default instructions and transitions
+states:
+  reproduce:
+    description: 'Reproduce and understand the bug'
+    default_instructions: |
+      Gather specific information to reliably reproduce the reported bug:
+      - What are the exact OS, browser/runtime versions, and hardware specs?
+      - What is the precise sequence of actions that trigger the bug?
+      - What error messages, logs, or stack traces are available?
+      - Does this happen every time or intermittently?
+      - How many users are affected and what is the business impact?
+
+      Create test cases that demonstrate the problem. Document your findings and create tasks as needed.
+    transitions:
+      - trigger: 'bug_reproduced'
+        to: 'analyze'
+        transition_reason: 'Bug reproduced successfully, ready to analyze root cause'
+
+      - trigger: 'bug_not_reproducible'
+        to: 'reproduce'
+        instructions: >
+          Unable to reproduce the bug with current information. Gather more details about the environment,
+          conditions, or steps that might be missing. Contact the reporter for additional information if needed.
+          Continue attempting reproduction with new information.
+        transition_reason: 'Bug could not be reproduced, need more information'
+
+  analyze:
+    description: 'Analyze the bug and identify root cause'
+    default_instructions: |
+      Examine the code paths involved in the bug, identify the root cause, and understand why the issue occurs. Use debugging tools, add logging, and trace through the problematic code.
+
+      - Use the **architecture** skill to understand the architectural conventions of this project
+      - Use the **application-design** skill to understand authentication, routing, error handling, or form patterns that may be involved
+
+      Document your analysis and create tasks as needed.
+    transitions:
+      - trigger: 'need_more_reproduction'
+        to: 'reproduce'
+        additional_instructions: 'Analysis revealed need for additional reproduction scenarios. Focus on reproducing the specific conditions identified during analysis.'
+        transition_reason: 'Analysis revealed need for additional reproduction work'
+
+      - trigger: 'root_cause_identified'
+        to: 'fix'
+        additional_instructions: 'Document the root cause approach and update task progress.'
+        transition_reason: 'Root cause identified, ready to implement fix'
+        review_perspectives:
+          - perspective: 'architect'
+            prompt: "Review root cause analysis and ensure the proposed fix doesn't introduce architectural issues or technical debt. Consider the broader system impact of the proposed solution."
+          - perspective: 'security_expert'
+            prompt: "Evaluate if the bug has security implications and ensure the fix doesn't introduce new vulnerabilities. Review the security aspects of the proposed solution."
+
+      - trigger: 'abandon_bug'
+        to: 'reproduce'
+        additional_instructions: 'Bug analysis abandoned. Clean up any analysis work and prepare for new bug reports.'
+        transition_reason: 'Bug analysis abandoned'
+
+  fix:
+    description: 'Implement the bug fix'
+    default_instructions: |
+      Implement the solution based on your analysis:
+
+      - Check whether there is a design document in the project and follow it
+      - Use the **coding** skill to implement the fix. Apply this skill to all coding tasks of this phase!
+      - Use the **testing** skill to write targeted tests that cover the bug scenario. Apply this skill to all test tasks of this phase!
+
+      Before implementing, assess the approach:
+      - How critical is this system? What is the blast radius if the fix causes issues?
+      - Should this be a minimal fix or a more comprehensive solution?
+
+      Make targeted changes that address the root cause without introducing new issues. Be careful to maintain existing functionality while fixing the bug.
+    transitions:
+      - trigger: 'need_more_analysis'
+        to: 'analyze'
+        additional_instructions: 'Fix implementation revealed additional complexity or issues. Focus on analyzing the newly discovered aspects of the problem.'
+        transition_reason: 'Fix work revealed need for additional analysis'
+
+      - trigger: 'fix_implemented'
+        to: 'verify'
+        additional_instructions: 'Document the fix approach and update task progress.'
+        transition_reason: 'Fix implemented, ready for verification'
+        review_perspectives:
+          - perspective: 'senior_software_developer'
+            prompt: 'Review fix implementation, code quality, and ensure the solution properly addresses the root cause. Check for potential side effects and code maintainability.'
+          - perspective: 'performance_engineer'
+            prompt: "Verify that the fix doesn't introduce performance regressions or new bottlenecks. Assess the performance impact of the implemented solution."
+
+      - trigger: 'abandon_bug'
+        to: 'reproduce'
+        additional_instructions: 'Bug fix abandoned. Clean up any fix work and prepare for new bug reports.'
+        transition_reason: 'Bug fix abandoned'
+
+  verify:
+    description: 'Verify the fix and ensure no regressions'
+    default_instructions: |
+      Test the fix thoroughly to ensure the original bug is resolved and no new issues were introduced.
+
+      - Use the **testing** skill to run existing tests and write new ones covering the bug scenario
+      - Verify the solution is robust and handles edge cases
+    transitions:
+      - trigger: 'fix_needs_adjustment'
+        to: 'fix'
+        additional_instructions: 'Verification revealed issues with the current fix. Focus on addressing the specific problems identified during verification.'
+        transition_reason: 'Verification found issues requiring fix adjustments'
+
+      - trigger: 'need_more_analysis'
+        to: 'analyze'
+        additional_instructions: "Verification revealed the fix doesn't fully address the root cause. Focus on deeper analysis of the remaining issues."
+        transition_reason: 'Verification revealed need for additional analysis'
+
+      - trigger: 'bug_fixed'
+        to: 'finalize'
+        transition_reason: 'Bug fix complete and verified, ready for next issue'
+
+      - trigger: 'abandon_bug'
+        to: 'reproduce'
+        additional_instructions: 'Bug verification abandoned. Clean up any verification work and prepare for new bug reports.'
+        transition_reason: 'Bug verification abandoned'
+
+  finalize:
+    description: 'Code cleanup and documentation finalization'
+    default_instructions: |
+      Ensure code quality and documentation accuracy through systematic cleanup and review.
+
+      **STEP 1: Code Cleanup**
+      Systematically clean up development artifacts:
+      - Remove all temporary debug output statements used during bug investigation (console logging, print statements, debug output functions)
+      - Address each TODO/FIXME comment by either implementing the solution or documenting why it's deferred
+      - Remove completed TODOs and convert remaining ones to proper issue tracking if needed
+      - Remove temporary debugging code, test code blocks, and commented-out code
+      - Ensure proper error handling replaces temporary debug logging
+
+      **STEP 2: Documentation Review**
+      Review and update documentation to reflect the bug fix:
+      - Check whether there is a design document in the project and update it if the fix changed any design details
+      - Compare documentation against the actual bug fix implementation
+      - Update only the documentation sections that have functional changes
+      - Remove references to investigation iterations, progress notes, and temporary decisions
+      - Ensure documentation describes the final fixed state, not the debugging process
+      - Ask the user to review document updates
+
+      **STEP 3: Final Validation**
+      - Use the **testing** skill to run and verify all tests
+      - Verify documentation accuracy with a final review
+      - Ensure bug fix is ready for production
+      - Update task progress and mark completed work as you finalize the bug fix
+    transitions:
+      - trigger: 'need_fix_changes'
+        to: 'fix'
+        additional_instructions: 'Finalization revealed issues with the bug fix. Focus on addressing the specific problems identified during final review.'
+        transition_reason: 'Finalization revealed issues requiring fix changes'
+
+      - trigger: 'finalization_complete'
+        to: 'reproduce'
+        transition_reason: 'Bug fix complete and finalized, ready for next issue'
+
+      - trigger: 'abandon_bug'
+        to: 'reproduce'
+        additional_instructions: 'Bug finalization abandoned. Clean up any finalization work and prepare for new bug reports.'
+        transition_reason: 'Bug finalization abandoned'
