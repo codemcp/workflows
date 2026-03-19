@@ -1,0 +1,171 @@
+---
+name: 'skilled-epcc'
+description: "A comprehensive development workflow based on Anthropic's best practices: Explore, Plan, Code, Commit - ideal for smaller features and iterative development"
+initial_state: 'explore'
+
+# Enhanced metadata for better discoverability
+metadata:
+  domain: 'skilled'
+  complexity: 'medium'
+  bestFor:
+    - 'Medium-sized features'
+    - 'Iterative development'
+    - 'Research-heavy tasks'
+    - 'Exploratory coding'
+  useCases:
+    - 'Adding a new API endpoint'
+    - 'Implementing a new algorithm'
+    - 'Integrating a third-party service'
+  examples:
+    - 'Add user profile management'
+    - 'Implement search functionality'
+    - 'Create data export feature'
+
+# States with default instructions and transitions
+states:
+  explore:
+    description: 'Research and exploration phase - understanding the problem space'
+    default_instructions: |
+      Research the codebase to understand existing patterns and gather context about the problem space.
+
+      - If uncertain about conventions or rules, ask the user about them
+      - Read relevant files and documentation
+      - Check whether there is a requirements document in the project and if so, read it carefully
+      - If the project is still empty, use the **starting-project** skill to understand how to set it up correctly
+      - Use the **architecture** skill to understand the architectural conventions of this project
+
+      Focus on understanding without writing code yet. Document your findings and create tasks as needed.
+    transitions:
+      - trigger: 'exploration_complete'
+        to: 'plan'
+        additional_instructions: 'Present the plan to the user, describing the impact of the changes.'
+        transition_reason: 'Sufficient understanding gained, ready to create implementation plan'
+
+  plan:
+    description: 'Planning phase - creating a detailed implementation strategy'
+    default_instructions: |
+      Create a detailed implementation strategy based on your exploration:
+
+      - Check whether there is a requirements document in the project and base your strategy on it
+      - Check whether there is a design document in the project and adhere to it; if not, elaborate design options and present them to the user
+      - Use the **architecture** skill to ensure architectural decisions align with SAB conventions
+      - Use the **application-design** skill when planning authentication, routing, error handling, or forms
+
+      Break down the work into specific, actionable tasks. Consider edge cases, dependencies, and potential challenges. Document the planning work thoroughly and create implementation tasks as part of the code phase as needed.
+    transitions:
+      - trigger: 'need_more_exploration'
+        to: 'explore'
+        additional_instructions: 'Focus on the specific areas that need clarification and ask the user about needs and preferences.'
+        transition_reason: 'Planning work revealed need for more exploration'
+
+      - trigger: 'plan_complete'
+        to: 'code'
+        transition_reason: 'Implementation plan is complete and ready for coding'
+        review_perspectives:
+          - perspective: 'architect'
+            prompt: 'Review implementation strategy, design decisions, and integration approach for soundness and maintainability. Ensure the plan aligns with existing system architecture and follows best practices.'
+          - perspective: 'security_expert'
+            prompt: 'Assess security considerations and potential risks in the planned implementation approach. Review data handling, authentication, and potential vulnerabilities.'
+
+      - trigger: 'abandon_feature'
+        to: 'explore'
+        instructions: >
+          Feature development abandoned during planning. Return to exploration state for new tasks.
+          Task history will remain for future reference.
+        additional_instructions: 'Feature development abandoned during planning. Clean up any planning work and prepare for new tasks.'
+        transition_reason: 'User decided to abandon feature during planning phase'
+
+  code:
+    description: 'Implementation phase - writing and building the solution'
+    default_instructions: |
+      Follow your plan to build the solution:
+
+      - Check whether there is a design document in the project and follow it; if not, elaborate design options and present them to the user
+      - Check whether there is a requirements document in the project and ensure all requirements are met
+      - Use the **coding** skill to implement components, styling, and coding patterns. Apply this skill to all coding tasks of this phase!
+      - Use the **testing** skill to write and run tests. Apply this skill to all test tasks of this phase!
+
+      Write clean, well-structured code with proper error handling. Prevent regression by building, linting, and executing existing tests. Stay flexible and adapt the plan as you learn more during implementation. Update task progress and create new tasks as needed.
+    transitions:
+      - trigger: 'need_replanning'
+        to: 'plan'
+        additional_instructions: "Consider what you've learned during coding and adjust the plan accordingly. Document the changes and reasons."
+        transition_reason: 'Implementation work revealed need to revise the plan'
+
+      - trigger: 'need_more_exploration'
+        to: 'explore'
+        additional_instructions: 'Focus on the specific areas that are blocking implementation progress.'
+        transition_reason: 'Implementation work revealed need for more exploration'
+
+      - trigger: 'code_complete'
+        to: 'commit'
+        transition_reason: 'Core implementation is complete, ready for finalization'
+        review_perspectives:
+          - perspective: 'senior_software_developer'
+            prompt: 'Review code quality, best practices, testing coverage, and readiness for production deployment. Ensure the implementation follows coding standards and is maintainable.'
+          - perspective: 'performance_engineer'
+            prompt: 'Evaluate performance impact, resource efficiency, and scalability of the implemented solution. Check for potential bottlenecks or optimization opportunities.'
+
+      - trigger: 'abandon_feature'
+        to: 'explore'
+        instructions: >
+          Feature development abandoned during implementation. Clean up any incomplete code and return to exploration.
+          Task history and any completed work will remain for future reference.
+        additional_instructions: 'Clean up any incomplete code and prepare for new tasks.'
+        transition_reason: 'User decided to abandon feature during implementation'
+
+  commit:
+    description: 'Code cleanup and documentation finalization'
+    default_instructions: >
+      Ensure code quality and documentation accuracy through systematic cleanup and review.
+
+      **STEP 1: Code Cleanup**
+
+      Systematically clean up development artifacts:
+
+      1. **Remove Debug Output**: Search for and remove all temporary debug output statements used during development.
+         Look for language-specific debug output methods (console logging, print statements, debug output functions).
+         Remove any debugging statements that were added for development purposes.
+
+      2. **Review TODO/FIXME Comments**:
+         - Address each TODO/FIXME comment by either implementing the solution or documenting why it's deferred
+         - Remove completed TODOs
+         - Convert remaining TODOs to proper issue tracking if needed
+
+      3. **Remove Debugging Code Blocks**:
+         - Remove temporary debugging code, test code blocks, and commented-out code
+         - Clean up any experimental code that's no longer needed
+         - Ensure proper error handling replaces temporary debug logging
+
+      **STEP 2: Documentation Review**
+
+      Review and update documentation to reflect final implementation:
+
+      1. Check whether there is a requirements, architecture, or design document in the project and update any that are affected by the implementation
+      2. **Compare Against Implementation**: Review documentation against actual implemented functionality
+      3. **Update Changed Sections**: Only modify documentation sections that have functional changes
+      4. **Remove Development Progress**: Remove references to development iterations, progress notes, and temporary decisions
+      5. **Focus on Final State**: Ensure documentation describes the final implemented state, not the development process
+      6. **Ask User to Review Document Updates**
+
+      **STEP 3: Final Validation**
+
+      - Use the **testing** skill to run and verify all tests
+      - Verify documentation accuracy with a final review
+      - Ensure code is ready for production/delivery
+
+      Update task progress and mark completed work as you finalize the feature.
+    transitions:
+      - trigger: 'need_code_changes'
+        to: 'code'
+        additional_instructions: 'Focus on the problems identified during final review.'
+        transition_reason: 'Final review found issues requiring code changes'
+
+      - trigger: 'commit_complete'
+        to: 'explore'
+        transition_reason: 'Feature delivery complete, ready for next task'
+
+      - trigger: 'abandon_feature'
+        to: 'explore'
+        additional_instructions: 'Clean up any finalization artifacts and prepare for new tasks.'
+        transition_reason: 'User decided to abandon feature during finalization'
