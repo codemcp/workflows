@@ -366,7 +366,11 @@ class OpencodeConfigGenerator extends ConfigGenerator {
           mode: 'primary',
           prompt: systemPrompt,
           tools: {
-            'workflows*': true,
+            'workflows*': false,
+            workflows_whats_next: true,
+            workflows_conduct_review: true,
+            workflows_list_workflows: true,
+            workflows_get_tool_info: true,
           },
           permission: {
             workflows_reset_development: 'ask',
