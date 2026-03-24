@@ -141,6 +141,31 @@ export abstract class SkillGenerator {
   }
 
   /**
+   * Copy all skill templates to the output directory
+   */
+  protected async copySkillTemplates(outputDir: string): Promise<void> {
+    const skillTemplates = [
+      'starting-project.md',
+      'architecture.md',
+      'application-design.md',
+      'coding.md',
+      'testing.md',
+      'task-handling.md',
+    ];
+
+    for (const template of skillTemplates) {
+      try {
+        const templatePath = this.resolveSkillTemplatePath(template);
+        const content = await readFile(templatePath, 'utf-8');
+        const outputPath = join(outputDir, 'skills', template);
+        await this.writeFile(outputPath, content);
+      } catch (error) {
+        console.warn(`⚠ Could not copy skill template ${template}: ${error}`);
+      }
+    }
+  }
+
+  /**
    * Get the system prompt using existing generation logic
    * Same approach as config-generator.ts
    */
@@ -249,6 +274,9 @@ class ClaudeSkillGenerator extends SkillGenerator {
 
     // Generate MCP config
     await this.writeMcpConfig(paths);
+
+    // Copy skill templates
+    await this.copySkillTemplates(outputDir);
   }
 }
 
@@ -264,6 +292,9 @@ class GeminiSkillGenerator extends SkillGenerator {
 
     // Generate MCP config
     await this.writeMcpConfig(paths);
+
+    // Copy skill templates
+    await this.copySkillTemplates(outputDir);
   }
 }
 
@@ -279,6 +310,9 @@ class OpenCodeSkillGenerator extends SkillGenerator {
 
     // Generate MCP config with OpenCode-specific format
     await this.writeOpencodeMcpConfig(paths);
+
+    // Copy skill templates
+    await this.copySkillTemplates(outputDir);
   }
 
   /**
@@ -321,6 +355,9 @@ class CopilotSkillGenerator extends SkillGenerator {
 
     // Generate MCP config
     await this.writeMcpConfig(paths);
+
+    // Copy skill templates
+    await this.copySkillTemplates(outputDir);
   }
 }
 
@@ -339,6 +376,9 @@ class KiroSkillGenerator extends SkillGenerator {
 
     // Kiro bundles MCP config inside the power directory (command + args format)
     await this.writeKiroMcpConfig(paths);
+
+    // Copy skill templates
+    await this.copySkillTemplates(outputDir);
   }
 
   /**
@@ -369,6 +409,9 @@ class KiroCliSkillGenerator extends SkillGenerator {
 
     // Generate MCP config with Kiro-specific format (command + args)
     await this.writeKiroMcpConfig(paths);
+
+    // Copy skill templates
+    await this.copySkillTemplates(outputDir);
   }
 
   /**

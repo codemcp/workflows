@@ -33,7 +33,7 @@ states:
       - How will you measure product success?
       - Have you validated this need with potential users?
 
-      Use the **starting-project** skill to understand how SAB projects are set up and what conventions and tooling to expect.
+      Use your **starting-project** skill if available, or ask the user about their project setup practices and conventions.
 
       Don't discuss technical implementation yet - focus purely on understanding the problem space and requirements. Check whether there is a requirements document in the project and if so, read it carefully. Create tasks as needed.
     transitions:
@@ -55,7 +55,7 @@ states:
       - Challenge their choices by presenting alternatives
       - Evaluate pros and cons of different tech stacks, frameworks, and architectural patterns
       - Consider non-functional requirements like scalability, performance, maintainability, and deployment
-      - Use the **architecture** skill to understand SAB architectural conventions and apply them to your design
+      - Use your **architecture** skill if available, or ask the user about their architectural conventions
 
       Check whether there is an architecture document in the project and if so, read and build on it. Don't start coding yet - focus on technical design decisions.
     transitions:
@@ -87,7 +87,7 @@ states:
     default_instructions: |
       Create a detailed implementation strategy based on your completed architecture and requirements.
 
-      - Use the **application-design** skill when planning authentication, routing, error handling, or forms
+      - Use your **application-design** skill if available, or ask the user about their application design practices
       - Check whether there is a design document in the project and adhere to it
 
       **STEP 1: Break Down Work**
@@ -128,8 +128,8 @@ states:
 
       - Check whether there is a design document in the project and follow it
       - Check whether there is a requirements document in the project and ensure all requirements you are currently working on are met
-      - Use the **coding** skill to implement components, styling, and coding patterns. Apply this skill to all coding tasks of this phase!
-      - Use the **testing** skill to write and run tests. Apply this skill to all test tasks of this phase!
+      - Use your **coding** skill if available, or ask the user about their coding practices and patterns
+      - Use your **testing** skill if available, or ask the user about their testing practices
       - Write clean, well-structured code with proper error handling
       - Prevent regression by building, linting, and executing existing tests
       - Stay flexible and adapt the plan as you learn more during implementation, but maintain alignment with your architecture decisions
@@ -186,7 +186,7 @@ states:
       Ensure project has complete documentation for newcomers including setup, usage, architecture overview, and contribution guidelines.
 
       **STEP 4: Final Validation**
-      - Use the **testing** skill to run and verify all tests
+      - Use your **testing** skill if available, or ask the user about their testing practices
       - Verify documentation accuracy with a final review
       - Ensure project is ready for users and contributors
       - Update task progress and mark completed work as you finalize the project

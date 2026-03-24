@@ -1,0 +1,29 @@
+{
+  "conversationId": "responsible-vibe-ship-skills-24ig1j",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe",
+  "epicId": "responsible-vibe-16",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "responsible-vibe-16.1"
+    },
+    {
+      "phaseId": "plan",
+      "phaseName": "Plan",
+      "taskId": "responsible-vibe-16.2"
+    },
+    {
+      "phaseId": "code",
+      "phaseName": "Code",
+      "taskId": "responsible-vibe-16.3"
+    },
+    {
+      "phaseId": "commit",
+      "phaseName": "Commit",
+      "taskId": "responsible-vibe-16.4"
+    }
+  ],
+  "createdAt": "2026-03-24T19:14:05.462Z",
+  "updatedAt": "2026-03-24T19:14:05.462Z"
+}

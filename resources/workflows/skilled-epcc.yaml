@@ -31,8 +31,8 @@ states:
       - If uncertain about conventions or rules, ask the user about them
       - Read relevant files and documentation
       - Check whether there is a requirements document in the project and if so, read it carefully
-      - If the project is still empty, use the **starting-project** skill to understand how to set it up correctly
-      - Use the **architecture** skill to understand the architectural conventions of this project
+      - If the project is still empty, use your **starting-project** skill if available, or ask the user about their project setup practices
+      - Use your **architecture** skill if available, or ask the user about their architectural conventions
 
       Focus on understanding without writing code yet. Document your findings and create tasks as needed.
     transitions:
@@ -48,8 +48,8 @@ states:
 
       - Check whether there is a requirements document in the project and base your strategy on it
       - Check whether there is a design document in the project and adhere to it; if not, elaborate design options and present them to the user
-      - Use the **architecture** skill to ensure architectural decisions align with SAB conventions
-      - Use the **application-design** skill when planning authentication, routing, error handling, or forms
+      - Use your **architecture** skill if available, or ask the user about their architectural conventions
+      - Use your **application-design** skill if available, or ask the user about their application design practices
 
       Break down the work into specific, actionable tasks. Consider edge cases, dependencies, and potential challenges. Document the planning work thoroughly and create implementation tasks as part of the code phase as needed.
     transitions:
@@ -82,8 +82,8 @@ states:
 
       - Check whether there is a design document in the project and follow it; if not, elaborate design options and present them to the user
       - Check whether there is a requirements document in the project and ensure all requirements are met
-      - Use the **coding** skill to implement components, styling, and coding patterns. Apply this skill to all coding tasks of this phase!
-      - Use the **testing** skill to write and run tests. Apply this skill to all test tasks of this phase!
+      - Use your **coding** skill if available, or ask the user about their coding practices and patterns
+      - Use your **testing** skill if available, or ask the user about their testing practices
 
       Write clean, well-structured code with proper error handling. Prevent regression by building, linting, and executing existing tests. Stay flexible and adapt the plan as you learn more during implementation. Update task progress and create new tasks as needed.
     transitions:
@@ -150,7 +150,7 @@ states:
 
       **STEP 3: Final Validation**
 
-      - Use the **testing** skill to run and verify all tests
+      - Use your **testing** skill if available, or ask the user about their testing practices
       - Verify documentation accuracy with a final review
       - Ensure code is ready for production/delivery
 
