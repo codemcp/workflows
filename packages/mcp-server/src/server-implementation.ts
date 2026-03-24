@@ -83,7 +83,8 @@ export class ResponsibleVibeMCPServer {
         this.components.mcpServer,
         toolRegistry,
         responseRenderer,
-        this.components.context
+        this.components.context,
+        this.config
       );
 
       registerMcpResources(

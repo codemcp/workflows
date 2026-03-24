@@ -132,4 +132,12 @@ export interface ServerConfig {
   enableLogging?: boolean;
   /** Task backend configuration override (for testing) */
   taskBackend?: TaskBackendConfig;
+  /**
+   * Tools to defer from initial registration to save context window space.
+   * Deferred tools are not registered at startup; use the `load_tools` meta-tool
+   * to register them on demand. Defaults to ['reset_development', 'list_workflows',
+   * 'get_tool_info', 'setup_project_docs', 'no_idea'].
+   * Pass an empty array to register all tools immediately.
+   */
+  deferredTools?: string[];
 }

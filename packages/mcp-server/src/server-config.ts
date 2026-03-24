@@ -228,21 +228,65 @@ function createToolHandler(
 }
 
 /**
+ * Default set of tool names to defer from initial registration.
+ * These tools are infrequently used and save significant context window space
+ * when not registered upfront.
+ */
+export const DEFAULT_DEFERRED_TOOLS = [
+  'reset_development',
+  'list_workflows',
+  'get_tool_info',
+  'setup_project_docs',
+  'no_idea',
+] as const;
+
+/**
  * Register MCP tools with the server
  */
 export async function registerMcpTools(
   mcpServer: McpServer,
   toolRegistry: ToolRegistry,
   responseRenderer: ResponseRenderer,
-  context: ServerContext
+  context: ServerContext,
+  config: ServerConfig = {}
 ): Promise<void> {
   logger.debug('Registering MCP tools');
 
   // Initialize notification service
   notificationService.setMcpServer(mcpServer);
 
+  // Determine which tools to defer
+  const deferredToolNames: ReadonlySet<string> = new Set(
+    config.deferredTools !== undefined
+      ? config.deferredTools
+      : DEFAULT_DEFERRED_TOOLS
+  );
+
+  // Storage for deferred tool registration functions
+  const deferredRegistrations = new Map<string, () => void>();
+
+  /**
+   * Register a tool immediately, or store its registration function for later
+   * if the tool name is in the deferred set.
+   */
+  const registerTool = (
+    name: string,
+    definition: Parameters<McpServer['registerTool']>[1],
+    handler: Parameters<McpServer['registerTool']>[2]
+  ) => {
+    if (deferredToolNames.has(name)) {
+      deferredRegistrations.set(name, () => {
+        logger.info('Registering deferred tool on demand', { name });
+        mcpServer.registerTool(name, definition, handler);
+        deferredRegistrations.delete(name);
+      });
+    } else {
+      mcpServer.registerTool(name, definition, handler);
+    }
+  };
+
   // Register whats_next tool
-  mcpServer.registerTool(
+  registerTool(
     'whats_next',
     {
       description:
@@ -290,7 +334,7 @@ export async function registerMcpTools(
   );
 
   // Register proceed_to_phase tool
-  mcpServer.registerTool(
+  registerTool(
     'proceed_to_phase',
     {
       description:
@@ -330,7 +374,7 @@ export async function registerMcpTools(
   );
 
   // Register conduct_review tool
-  mcpServer.registerTool(
+  registerTool(
     'conduct_review',
     {
       description:
@@ -354,7 +398,7 @@ export async function registerMcpTools(
   );
 
   // Register start_development tool
-  mcpServer.registerTool(
+  registerTool(
     'start_development',
     {
       description:
@@ -397,7 +441,7 @@ export async function registerMcpTools(
   );
 
   // Register resume_workflow tool
-  mcpServer.registerTool(
+  registerTool(
     'resume_workflow',
     {
       description:
@@ -427,7 +471,7 @@ export async function registerMcpTools(
   );
 
   // Register reset_development tool
-  mcpServer.registerTool(
+  registerTool(
     'reset_development',
     {
       description:
@@ -460,7 +504,7 @@ export async function registerMcpTools(
   );
 
   // Register list_workflows tool
-  mcpServer.registerTool(
+  registerTool(
     'list_workflows',
     {
       description:
@@ -478,7 +522,7 @@ export async function registerMcpTools(
   );
 
   // Register get_tool_info tool
-  mcpServer.registerTool(
+  registerTool(
     'get_tool_info',
     {
       description:
@@ -501,7 +545,7 @@ export async function registerMcpTools(
   const templateManager = new TemplateManager();
   const availableTemplates = await templateManager.getAvailableTemplates();
 
-  mcpServer.registerTool(
+  registerTool(
     'setup_project_docs',
     {
       description:
@@ -559,7 +603,7 @@ export async function registerMcpTools(
   );
 
   // Register no_idea tool
-  mcpServer.registerTool(
+  registerTool(
     'no_idea',
     {
       description:
@@ -581,8 +625,86 @@ export async function registerMcpTools(
     createToolHandler('no_idea', toolRegistry, responseRenderer, context)
   );
 
+  // Register load_tools meta-tool only when there are deferred tools
+  if (deferredRegistrations.size > 0) {
+    mcpServer.registerTool(
+      'load_tools',
+      {
+        description:
+          'Load additional tools that are deferred to save context window space. ' +
+          'Call without arguments to list available deferred tools, or pass tool names to register them. ' +
+          'After loading, the newly registered tools will be available for use. ' +
+          `Currently deferred tools: ${Array.from(deferredRegistrations.keys()).join(', ')}.`,
+        inputSchema: {
+          tools: z
+            .array(z.string())
+            .optional()
+            .describe(
+              'Names of deferred tools to load. Omit to list all available deferred tools.'
+            ),
+        },
+        annotations: {
+          title: 'Tool Loader',
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async (args: { tools?: string[] }) => {
+        const { tools: toolsToLoad } = args;
+
+        if (!toolsToLoad || toolsToLoad.length === 0) {
+          return responseRenderer.renderToolResponse({
+            success: true,
+            data: {
+              available_deferred_tools: Array.from(
+                deferredRegistrations.keys()
+              ),
+              message:
+                'Call load_tools with tool names to register them in this session.',
+            },
+          });
+        }
+
+        const loaded: string[] = [];
+        const already_active: string[] = [];
+        const not_found: string[] = [];
+
+        for (const toolName of toolsToLoad) {
+          const register = deferredRegistrations.get(toolName);
+          if (register) {
+            register();
+            loaded.push(toolName);
+          } else if (deferredToolNames.has(toolName)) {
+            already_active.push(toolName);
+          } else {
+            not_found.push(toolName);
+          }
+        }
+
+        logger.info('Deferred tools loaded on demand', {
+          loaded,
+          already_active,
+          not_found,
+        });
+
+        return responseRenderer.renderToolResponse({
+          success: true,
+          data: {
+            loaded,
+            already_active,
+            not_found,
+            remaining_deferred: Array.from(deferredRegistrations.keys()),
+          },
+        });
+      }
+    );
+  }
+
   logger.info('MCP tools registered successfully', {
     tools: toolRegistry.list(),
+    deferred: Array.from(deferredRegistrations.keys()),
   });
 }
 
