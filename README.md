@@ -11,11 +11,11 @@ Transform any AI coding agent into a structured development partner with battle-
 ## ⚡ Quick Start
 
 ```bash
-# Setup your coding agent
-npx @codemcp/workflows setup config kiro  # or claude, gemini, opencode, copilot
+# Setup your coding agent (config mode is the default)
+npx @codemcp/workflows setup kiro  # or claude, gemini, opencode, copilot
 
 # Or use skills (agentskills.io format) for on-demand loading
-npx @codemcp/workflows setup skill claude  # or gemini, opencode, copilot, kiro
+npx @codemcp/workflows setup claude --mode skill  # or gemini, opencode, copilot, kiro
 ```
 
 Head over to a new empty dir and ask your agent: _"Build a UNO-like card game"_ – and instantly experience how your agent doesn't just shoot, but starts engineering – with YOU in the driver seat!

@@ -35,7 +35,7 @@ A connection to the workflows server that provides the actual tools:
 The CLI generates both the system prompt and MCP configuration for your agent:
 
 ```bash
-npx @codemcp/workflows setup <mode> <target>
+npx @codemcp/workflows setup <target> [--mode config|skill]
 ```
 
 ### Modes
@@ -62,16 +62,16 @@ npx @codemcp/workflows setup <mode> <target>
 ### Examples
 
 ```bash
-# Config mode - embeds system prompt
-npx @codemcp/workflows setup config claude
-npx @codemcp/workflows setup config kiro
+# Config mode - embeds system prompt (default)
+npx @codemcp/workflows setup claude
+npx @codemcp/workflows setup kiro
 
 # Skill mode - on-demand loading
-npx @codemcp/workflows setup skill copilot
-npx @codemcp/workflows setup skill gemini
+npx @codemcp/workflows setup copilot --mode skill
+npx @codemcp/workflows setup gemini --mode skill
 
 # List all available targets
-npx @codemcp/workflows setup
+npx @codemcp/workflows setup list
 ```
 
 ## Manual Setup
