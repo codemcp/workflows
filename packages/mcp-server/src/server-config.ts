@@ -697,6 +697,10 @@ export async function registerMcpTools(
             already_active,
             not_found,
             remaining_deferred: Array.from(deferredRegistrations.keys()),
+            note:
+              loaded.length > 0
+                ? 'Tools registered and client notified via notifications/tools/list_changed. The newly loaded tools will be available from your next turn.'
+                : undefined,
           },
         });
       }
