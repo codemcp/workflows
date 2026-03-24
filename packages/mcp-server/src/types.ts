@@ -136,7 +136,7 @@ export interface ServerConfig {
    * Tools to defer from initial registration to save context window space.
    * Deferred tools are not registered at startup; use the `load_tools` meta-tool
    * to register them on demand. Defaults to ['reset_development', 'list_workflows',
-   * 'get_tool_info', 'setup_project_docs', 'no_idea'].
+   * 'get_tool_info', 'setup_project_docs', 'no_idea', 'resume_workflow'].
    * Pass an empty array to register all tools immediately.
    */
   deferredTools?: string[];

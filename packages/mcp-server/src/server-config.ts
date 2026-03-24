@@ -238,6 +238,7 @@ export const DEFAULT_DEFERRED_TOOLS = [
   'get_tool_info',
   'setup_project_docs',
   'no_idea',
+  'resume_workflow',
 ] as const;
 
 /**
