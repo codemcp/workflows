@@ -93,7 +93,7 @@ async function parseCliArgs(): Promise<{ shouldExit: boolean }> {
       handleSetupList();
       return { shouldExit: true };
     } else if (subcommand) {
-      const mode = parseFlag(args, '--mode') ?? 'skill';
+      const mode = parseFlag(args, '--mode') ?? 'config';
       if (mode !== 'skill' && mode !== 'config') {
         console.error('❌ Error: --mode must be "skill" or "config"');
         process.exit(1);
@@ -453,7 +453,9 @@ function handleSetupList(): void {
   }
 
   console.log('\n💡 Usage:');
-  console.log('   setup <target>              Generate skill files (default)');
+  console.log(
+    '   setup <target>              Generate full agent configuration (default)'
+  );
   console.log(
     '   setup <target> --mode config  Generate full agent configuration'
   );
@@ -610,7 +612,7 @@ USAGE:
   npx @codemcp/workflows             Start the interactive visualizer (default)
 
 SETUP COMMANDS:
-  setup <target>                Generate skill files for a coding tool (default mode)
+  setup <target>                Generate full agent configuration (default mode)
   setup <target> --mode config  Generate full agent configuration
   setup <target> --mode skill   Generate skill files only
   setup list                    List available targets
