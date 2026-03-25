@@ -1,10 +1,12 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    "responsible-vibe-mcp": {
-      "command": ["npx", "responsible-vibe-mcp"],
+    "workflows": {
       "type": "local",
-      "enabled": true
+      "command": [
+        "npx",
+        "@codemcp/workflows-server@latest"
+      ]
     }
   },
   "agent": {
@@ -13,9 +15,9 @@
       "mode": "primary",
       "prompt": "\nYou are an AI assistant that helps users develop software features using the workflows server.\n\nIMPORTANT: Call whats_next() after each user message to get phase-specific instructions and maintain the development workflow.\n\nEach tool call returns a JSON response with an \"instructions\" field. Follow these instructions immediately after you receive them.\n\nUse the development plan which you will retrieve via whats_next() to record important insights and decisions as per the structure of the plan.\n\nDo not use your own task management tools.",
       "permission": {
-        "responsible-vibe-mcp_reset_development": "ask",
-        "responsible-vibe-mcp_start_development": "ask",
-        "responsible-vibe-mcp_proceed_to_phase": "ask"
+        "workflows_reset_development": "ask",
+        "workflows_start_development": "ask",
+        "workflows_proceed_to_phase": "ask"
       }
     }
   }
