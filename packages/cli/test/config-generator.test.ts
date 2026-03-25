@@ -103,7 +103,6 @@ describe('Config Generator', () => {
       const config = JSON.parse(readFileSync(configPath, 'utf-8'));
       expect(config.mcp['workflows']).toBeDefined();
       expect(config.agent.vibe).toBeDefined();
-      expect(config.agent.vibe.tools['workflows*']).toBe(true);
     });
   });
 

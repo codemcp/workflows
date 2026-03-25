@@ -365,13 +365,6 @@ class OpencodeConfigGenerator extends ConfigGenerator {
             'Responsible vibe development agent with structured workflows',
           mode: 'primary',
           prompt: systemPrompt,
-          tools: {
-            'workflows*': false,
-            workflows_whats_next: true,
-            workflows_conduct_review: true,
-            workflows_list_workflows: true,
-            workflows_get_tool_info: true,
-          },
           permission: {
             workflows_reset_development: 'ask',
             workflows_start_development: 'ask',
