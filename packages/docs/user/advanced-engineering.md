@@ -115,7 +115,7 @@ When your AI reads this commit, it can reference the plan file to understand the
 **Responsible Vibe** provides **HOW of the process** (what phase, what to focus on)  
 **Rule files** provide **HOW of the deliverables** (coding standards, conventions)
 
-**Example Rule File** (`.amazonq/rules/comments.md`):
+**Example Rule File** (`.kiro/rules/comments.md`):
 
 ```markdown
 **Use** comments to explain the purpose of a variable/method/function/class.
@@ -179,7 +179,7 @@ git checkout -b feature-payment
 # AI automatically:
 # 1. Creates development-plan-feature-payment.md for this branch's context
 # 2. Can reference existing .vibe/docs/architecture.md via workflow variables
-# 3. Follows your .amazonq/rules/ coding standards
+# 3. Follows your .kiro/rules/ coding standards
 # 4. Maintains separate conversation context for this branch
 
 # Document decisions in plan file during development

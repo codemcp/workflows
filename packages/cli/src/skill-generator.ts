@@ -550,7 +550,7 @@ SkillGeneratorRegistry.register({
 SkillGeneratorRegistry.register({
   name: 'kiro-cli',
   description: 'Generate skill for Kiro/Amazon Q CLI (SKILL.md + mcp.json)',
-  aliases: ['amazonq', 'amazonq-cli'],
+  aliases: [],
   generatorClass: KiroCliSkillGenerator,
 });
 

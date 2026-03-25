@@ -40,8 +40,7 @@ describe('Skill Generator', () => {
       expect(SkillGeneratorRegistry.exists('gemini-cli')).toBe(true);
       expect(SkillGeneratorRegistry.exists('github-copilot')).toBe(true);
       // kiro-cli aliases
-      expect(SkillGeneratorRegistry.exists('amazonq')).toBe(true);
-      expect(SkillGeneratorRegistry.exists('amazonq-cli')).toBe(true);
+      expect(SkillGeneratorRegistry.exists('kiro-cli')).toBe(true);
     });
   });
 
@@ -312,32 +311,6 @@ describe('Skill Generator', () => {
       expect(config.mcpServers['workflows'].args).toContain(
         '@codemcp/workflows-server@latest'
       );
-    });
-
-    it('should work with amazonq alias', async () => {
-      await generateSkill('amazonq', tempDir);
-
-      const skillPath = join(
-        tempDir,
-        '.kiro',
-        'skills',
-        'responsible-vibe',
-        'SKILL.md'
-      );
-      expect(existsSync(skillPath)).toBe(true);
-    });
-
-    it('should work with amazonq-cli alias', async () => {
-      await generateSkill('amazonq-cli', tempDir);
-
-      const skillPath = join(
-        tempDir,
-        '.kiro',
-        'skills',
-        'responsible-vibe',
-        'SKILL.md'
-      );
-      expect(existsSync(skillPath)).toBe(true);
     });
   });
 

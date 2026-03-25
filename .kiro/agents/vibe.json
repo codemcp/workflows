@@ -1,0 +1,47 @@
+{
+  "name": "vibe",
+  "description": "Responsible vibe development",
+  "prompt": "\nYou are an AI assistant that helps users develop software features using the workflows server.\n\nIMPORTANT: Call whats_next() after each user message to get phase-specific instructions and maintain the development workflow.\n\nEach tool call returns a JSON response with an \"instructions\" field. Follow these instructions immediately after you receive them.\n\nUse the development plan which you will retrieve via whats_next() to record important insights and decisions as per the structure of the plan.\n\nDo not use your own task management tools.",
+  "mcpServers": {
+    "workflows": {
+      "command": "npx",
+      "args": ["@codemcp/workflows-server@latest"]
+    }
+  },
+  "tools": [
+    "execute_bash",
+    "fs_read",
+    "fs_write",
+    "report_issue",
+    "knowledge",
+    "thinking",
+    "use_aws",
+    "@workflows"
+  ],
+  "allowedTools": [
+    "fs_read",
+    "fs_write",
+    "@workflows/whats_next",
+    "@workflows/conduct_review",
+    "@workflows/list_workflows",
+    "@workflows/get_tool_info"
+  ],
+  "toolsSettings": {
+    "execute_bash": {
+      "alwaysAllow": [
+        {
+          "preset": "readOnly"
+        }
+      ]
+    },
+    "use_aws": {
+      "alwaysAllow": [
+        {
+          "preset": "readOnly"
+        }
+      ]
+    }
+  },
+  "resources": ["file://README.md", "file://.kiro/rules/**/*.md"],
+  "hooks": {}
+}

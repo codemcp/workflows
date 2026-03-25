@@ -48,6 +48,6 @@
       ]
     }
   },
-  "resources": ["file://README.md", "file://.amazonq/rules/**/*.md"],
+  "resources": ["file://README.md", "file://.kiro/rules/**/*.md"],
   "hooks": {}
 }
