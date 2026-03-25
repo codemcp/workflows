@@ -44,8 +44,8 @@ states:
     default_instructions: |
       Examine the code paths involved in the bug, identify the root cause, and understand why the issue occurs. Use debugging tools, add logging, and trace through the problematic code.
 
-      - Use your **architecture** skill if available, or ask the user about their architectural conventions
-      - Use your **application-design** skill if available, or ask the user about their application design practices
+      - **Apply your architecture skill.** If unavailable, ask user about architectural conventions.
+      - **Apply your application-design skill.** If unavailable, ask user about application design practices.
 
       Document your analysis and create tasks as needed.
     transitions:
@@ -74,9 +74,9 @@ states:
     default_instructions: |
       Implement the solution based on your analysis:
 
+      - **Apply your coding skill.** If unavailable, ask user about coding practices.
+      - **Apply your testing skill.** If unavailable, ask user about testing practices.
       - Check whether there is a design document in the project and follow it
-      - Use your **coding** skill if available, or ask the user about their coding practices and patterns
-      - Use your **testing** skill if available, or ask the user about their testing practices
 
       Before implementing, assess the approach:
       - How critical is this system? What is the blast radius if the fix causes issues?
@@ -109,7 +109,7 @@ states:
     default_instructions: |
       Test the fix thoroughly to ensure the original bug is resolved and no new issues were introduced.
 
-      - Use your **testing** skill if available, or ask the user about their testing practices
+      - **Apply your testing skill.** If unavailable, ask user about testing practices.
       - Verify the solution is robust and handles edge cases
     transitions:
       - trigger: 'fix_needs_adjustment'
@@ -154,7 +154,7 @@ states:
       - Ask the user to review document updates
 
       **STEP 3: Final Validation**
-      - Use your **testing** skill if available, or ask the user about their testing practices
+      - **Apply your testing skill.** If unavailable, ask user about testing practices.
       - Verify documentation accuracy with a final review
       - Ensure bug fix is ready for production
       - Update task progress and mark completed work as you finalize the bug fix

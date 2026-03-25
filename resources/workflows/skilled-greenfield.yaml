@@ -28,12 +28,13 @@ states:
     description: 'Deep requirements discovery and PRD creation phase'
     default_instructions: |
       Understand WHAT the system should do, WHO will use it, WHY it's needed, and WHAT'S in/out of scope by exploring:
+
+      **Apply your starting-project skill.** If unavailable, ask user about project setup practices.
+
       - Are there existing solutions? What gaps do they have?
       - What technologies must/cannot be used? Why?
       - How will you measure product success?
       - Have you validated this need with potential users?
-
-      Use your **starting-project** skill if available, or ask the user about their project setup practices and conventions.
 
       Don't discuss technical implementation yet - focus purely on understanding the problem space and requirements. Check whether there is a requirements document in the project and if so, read it carefully. Create tasks as needed.
     transitions:
@@ -51,11 +52,11 @@ states:
     default_instructions: |
       Design the technical solution based on the requirements discovered during ideation.
 
+      - **Apply your architecture skill.** If unavailable, ask user about architectural conventions.
       - Ask about the user's technical preferences and experience
       - Challenge their choices by presenting alternatives
       - Evaluate pros and cons of different tech stacks, frameworks, and architectural patterns
       - Consider non-functional requirements like scalability, performance, maintainability, and deployment
-      - Use your **architecture** skill if available, or ask the user about their architectural conventions
 
       Check whether there is an architecture document in the project and if so, read and build on it. Don't start coding yet - focus on technical design decisions.
     transitions:
@@ -87,7 +88,7 @@ states:
     default_instructions: |
       Create a detailed implementation strategy based on your completed architecture and requirements.
 
-      - Use your **application-design** skill if available, or ask the user about their application design practices
+      - **Apply your application-design skill.** If unavailable, ask user about application design practices.
       - Check whether there is a design document in the project and adhere to it
 
       **STEP 1: Break Down Work**
@@ -126,10 +127,10 @@ states:
     default_instructions: |
       Build the solution following your plan and architecture.
 
+      - **Apply your coding skill.** If unavailable, ask user about coding practices.
+      - **Apply your testing skill.** If unavailable, ask user about testing practices.
       - Check whether there is a design document in the project and follow it
       - Check whether there is a requirements document in the project and ensure all requirements you are currently working on are met
-      - Use your **coding** skill if available, or ask the user about their coding practices and patterns
-      - Use your **testing** skill if available, or ask the user about their testing practices
       - Write clean, well-structured code with proper error handling
       - Prevent regression by building, linting, and executing existing tests
       - Stay flexible and adapt the plan as you learn more during implementation, but maintain alignment with your architecture decisions
@@ -186,7 +187,7 @@ states:
       Ensure project has complete documentation for newcomers including setup, usage, architecture overview, and contribution guidelines.
 
       **STEP 4: Final Validation**
-      - Use your **testing** skill if available, or ask the user about their testing practices
+      - **Apply your testing skill.** If unavailable, ask user about testing practices.
       - Verify documentation accuracy with a final review
       - Ensure project is ready for users and contributors
       - Update task progress and mark completed work as you finalize the project
