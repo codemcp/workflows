@@ -28,11 +28,11 @@ states:
     default_instructions: |
       Research the codebase to understand existing patterns and gather context about the problem space.
 
+      - **Apply your starting-project skill.** If unavailable, ask user about project setup practices.
+      - **Apply your architecture skill.** If unavailable, ask user about architectural conventions.
       - If uncertain about conventions or rules, ask the user about them
       - Read relevant files and documentation
-      - Check whether there is a requirements document in the project and if so, read it carefully
-      - If the project is still empty, use your **starting-project** skill if available, or ask the user about their project setup practices
-      - Use your **architecture** skill if available, or ask the user about their architectural conventions
+      - Check whether there is a requirements document in the project and if so, read it carefully)
 
       Focus on understanding without writing code yet. Document your findings and create tasks as needed.
     transitions:
@@ -46,10 +46,10 @@ states:
     default_instructions: |
       Create a detailed implementation strategy based on your exploration:
 
+      - **Apply your architecture skill.** If unavailable, ask user about architectural conventions.
+      - **Apply your application-design skill.** If unavailable, ask user about application design practices.
       - Check whether there is a requirements document in the project and base your strategy on it
       - Check whether there is a design document in the project and adhere to it; if not, elaborate design options and present them to the user
-      - Use your **architecture** skill if available, or ask the user about their architectural conventions
-      - Use your **application-design** skill if available, or ask the user about their application design practices
 
       Break down the work into specific, actionable tasks. Consider edge cases, dependencies, and potential challenges. Document the planning work thoroughly and create implementation tasks as part of the code phase as needed.
     transitions:
@@ -80,10 +80,10 @@ states:
     default_instructions: |
       Follow your plan to build the solution:
 
+      - **Apply your coding skill.** If unavailable, ask user about coding practices.
+      - **Apply your testing skill.** If unavailable, ask user about testing practices.
       - Check whether there is a design document in the project and follow it; if not, elaborate design options and present them to the user
       - Check whether there is a requirements document in the project and ensure all requirements are met
-      - Use your **coding** skill if available, or ask the user about their coding practices and patterns
-      - Use your **testing** skill if available, or ask the user about their testing practices
 
       Write clean, well-structured code with proper error handling. Prevent regression by building, linting, and executing existing tests. Stay flexible and adapt the plan as you learn more during implementation. Update task progress and create new tasks as needed.
     transitions:
@@ -150,7 +150,7 @@ states:
 
       **STEP 3: Final Validation**
 
-      - Use your **testing** skill if available, or ask the user about their testing practices
+      - **Apply your testing skill.** If unavailable, ask user about testing practices.
       - Verify documentation accuracy with a final review
       - Ensure code is ready for production/delivery
 
