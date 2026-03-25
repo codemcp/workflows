@@ -30,7 +30,7 @@ describe('Config Generator', () => {
     it('should generate Amazon Q configuration file', async () => {
       await generateConfig('kiro', tempDir);
 
-      const configPath = join(tempDir, '.amazonq', 'cli-agents', 'vibe.json');
+      const configPath = join(tempDir, '.kiro', 'agents', 'vibe.json');
       expect(existsSync(configPath)).toBe(true);
 
       const config = JSON.parse(readFileSync(configPath, 'utf-8'));
@@ -199,9 +199,9 @@ describe('Config Generator', () => {
       });
     });
 
-    describe('Amazon Q / Kiro', () => {
+    describe('Kiro', () => {
       it('should merge with existing vibe.json', async () => {
-        const configDir = join(tempDir, '.amazonq', 'cli-agents');
+        const configDir = join(tempDir, '.kiro', 'agents');
         mkdirSync(configDir, { recursive: true });
         const configPath = join(configDir, 'vibe.json');
 
@@ -213,7 +213,6 @@ describe('Config Generator', () => {
         };
         writeFileSync(configPath, JSON.stringify(existingConfig, null, 2));
 
-        // Generate config using 'kiro' (primary name, amazonq-cli is alias)
         await generateConfig('kiro', tempDir);
 
         // Read result

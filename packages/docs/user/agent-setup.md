@@ -51,13 +51,13 @@ npx @codemcp/workflows setup <target> [--mode config|skill]
 
 ### Targets
 
-| Target     | Aliases                                      | Description         |
-| ---------- | -------------------------------------------- | ------------------- |
-| `kiro`     | `amazonq-cli`, `amazonq`                     | Kiro / Amazon Q CLI |
-| `claude`   | `claude-code`, `claude-desktop`              | Claude Code         |
-| `gemini`   | `gemini-cli`                                 | Gemini CLI          |
-| `opencode` | -                                            | OpenCode CLI        |
-| `copilot`  | `copilot-vscode`, `vscode`, `github-copilot` | GitHub Copilot      |
+| Target     | Aliases                                      | Description     |
+| ---------- | -------------------------------------------- | --------------- |
+| `kiro`     | `kiro-cli`.                                  | Kiro / Kiro CLI |
+| `claude`   | `claude-code`, `claude-desktop`              | Claude Code     |
+| `gemini`   | `gemini-cli`                                 | Gemini CLI      |
+| `opencode` | -                                            | OpenCode CLI    |
+| `copilot`  | `copilot-vscode`, `vscode`, `github-copilot` | GitHub Copilot  |
 
 ### Examples
 

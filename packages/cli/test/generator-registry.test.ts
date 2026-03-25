@@ -11,14 +11,7 @@ import { GeneratorRegistry } from '../src/config-generator.js';
  */
 describe('GeneratorRegistry', () => {
   // Test with the actual built-in generators
-  const builtInGenerators = [
-    'kiro',
-    'kiro-cli',
-    'claude',
-    'gemini',
-    'opencode',
-    'copilot',
-  ];
+  const builtInGenerators = ['kiro', 'claude', 'gemini', 'opencode', 'copilot'];
 
   beforeAll(() => {
     // Verify the registry is properly initialized
@@ -37,10 +30,8 @@ describe('GeneratorRegistry', () => {
       expect(GeneratorRegistry.exists('copilot')).toBe(true);
       expect(GeneratorRegistry.exists('copilot-vscode')).toBe(true);
       expect(GeneratorRegistry.exists('vscode')).toBe(true);
-      // 'amazonq-cli' and 'amazonq' are aliases for 'kiro'
       expect(GeneratorRegistry.exists('kiro')).toBe(true);
-      expect(GeneratorRegistry.exists('amazonq-cli')).toBe(true);
-      expect(GeneratorRegistry.exists('amazonq')).toBe(true);
+      expect(GeneratorRegistry.exists('kiro-cli')).toBe(true);
     });
 
     it('should handle case-insensitive lookups', () => {
@@ -163,8 +154,6 @@ describe('GeneratorRegistry', () => {
       expect(names).not.toContain('vscode');
       expect(names).not.toContain('copilot-vscode');
       expect(names).toContain('copilot');
-      // 'amazonq-cli' is an alias for 'kiro'
-      expect(names).not.toContain('amazonq-cli');
       expect(names).toContain('kiro');
     });
   });
@@ -186,7 +175,7 @@ describe('GeneratorRegistry', () => {
       }
 
       // Check for key descriptions
-      expect(helpText).toContain('.amazonq/cli-agents/vibe.json');
+      expect(helpText).toContain('.kiro/agents/vibe.json');
       expect(helpText).toContain('CLAUDE.md');
       expect(helpText).toContain('GEMINI.md');
       expect(helpText).toContain('opencode.json');
@@ -219,9 +208,8 @@ describe('GeneratorRegistry', () => {
       expect(GeneratorRegistry.exists('vscode')).toBe(true);
       expect(GeneratorRegistry.exists('copilot-vscode')).toBe(true);
       expect(GeneratorRegistry.exists('copilot')).toBe(true);
-      // 'amazonq-cli' and 'amazonq' are aliases for 'kiro'
-      expect(GeneratorRegistry.exists('amazonq-cli')).toBe(true);
-      expect(GeneratorRegistry.exists('amazonq')).toBe(true);
+      // 'kiro-cli' is an alias for 'kiro'
+      expect(GeneratorRegistry.exists('kiro-cli')).toBe(true);
       expect(GeneratorRegistry.exists('kiro')).toBe(true);
     });
 

@@ -18,6 +18,7 @@ on:
       - '.crowd/**'
       - '.windsurf/**'
       - '.amazonq/**'
+      - '.kiro/**'
       - 'examples/**'
       - 'packages/docs/**'
 

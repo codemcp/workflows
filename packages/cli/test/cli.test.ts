@@ -28,7 +28,7 @@ const mocks = vi.hoisted(() => ({
     ),
     getHelpText: vi.fn(
       () =>
-        `  kiro                Generate .amazonq/cli-agents/vibe.json (Kiro/Amazon Q)
+        `  kiro                Generate .kiro/agents/vibe.json (Kiro)
   claude               Generate CLAUDE.md, .mcp.json, settings.json
   gemini               Generate settings.json, GEMINI.md
   opencode             Generate opencode.json

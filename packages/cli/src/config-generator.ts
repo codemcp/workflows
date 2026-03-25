@@ -160,7 +160,7 @@ abstract class ConfigGenerator {
  * Generates a single comprehensive JSON file
  * Merges with existing configuration instead of overwriting
  */
-class AmazonQConfigGenerator extends ConfigGenerator {
+class KiroConfigGenerator extends ConfigGenerator {
   async generate(outputDir: string): Promise<void> {
     const systemPrompt = this.getSystemPrompt();
     const mcpServers = this.getDefaultMcpConfig();
@@ -204,15 +204,15 @@ class AmazonQConfigGenerator extends ConfigGenerator {
           ],
         },
       },
-      resources: ['file://README.md', 'file://.amazonq/rules/**/*.md'],
+      resources: ['file://README.md', 'file://.kiro/rules/**/*.md'],
       hooks: {},
     };
 
-    // Create .amazonq/cli-agents directory
-    const amazonqDir = join(outputDir, '.amazonq', 'cli-agents');
-    await mkdir(amazonqDir, { recursive: true });
+    // Create .kiro/agents directory
+    const kiroDir = join(outputDir, '.kiro', 'agents');
+    await mkdir(kiroDir, { recursive: true });
 
-    const configPath = join(amazonqDir, 'vibe.json');
+    const configPath = join(kiroDir, 'vibe.json');
     const finalConfig = await this.mergeWithExistingConfig(
       configPath,
       newConfig
@@ -506,15 +506,9 @@ class GeneratorRegistry {
 // Register all available generators
 GeneratorRegistry.register({
   name: 'kiro',
-  description: 'Generate .amazonq/cli-agents/vibe.json (Kiro/Amazon Q)',
-  aliases: ['amazonq-cli', 'amazonq'],
-  generatorClass: AmazonQConfigGenerator,
-});
-
-GeneratorRegistry.register({
-  name: 'kiro-cli',
-  description: 'Generate .amazonq/cli-agents/vibe.json (Kiro/Amazon Q CLI)',
-  generatorClass: AmazonQConfigGenerator,
+  description: 'Generate .kiro/agents/vibe.json (Kiro)',
+  aliases: ['kiro-cli'],
+  generatorClass: KiroConfigGenerator,
 });
 
 GeneratorRegistry.register({
