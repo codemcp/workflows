@@ -39,14 +39,6 @@ states:
         to: 'analyze'
         transition_reason: 'Bug reproduced successfully, ready to analyze root cause'
 
-      - trigger: 'bug_not_reproducible'
-        to: 'reproduce'
-        instructions: >
-          Unable to reproduce the bug with current information. Gather more details about the environment,
-          conditions, or steps that might be missing. Contact the reporter for additional information if needed.
-          Continue attempting reproduction with new information.
-        transition_reason: 'Bug could not be reproduced, need more information'
-
   analyze:
     description: 'Analyze the bug and identify root cause'
     default_instructions: |
