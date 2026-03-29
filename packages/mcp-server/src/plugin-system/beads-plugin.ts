@@ -52,6 +52,13 @@ export class BeadsPlugin implements IPlugin {
   private loggerFactory?: LoggerFactory;
   private planSyncer: BeadsPlanSyncer;
 
+  /**
+   * Plan file path captured from the most recent hook context.
+   * Set by afterStartDevelopment and beforePhaseTransition so the watcher
+   * always has the correct path without touching GitManager.
+   */
+  private activePlanFilePath: string | null = null;
+
   /** Debounce timer for the JSONL file watcher */
   private syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -132,6 +139,7 @@ export class BeadsPlugin implements IPlugin {
     currentPhase: string,
     targetPhase: string
   ): Promise<void> {
+    this.activePlanFilePath = context.planFilePath;
     this.logger.info(
       'BeadsPlugin: Validating task completion before phase transition',
       {
@@ -183,6 +191,8 @@ export class BeadsPlugin implements IPlugin {
     args: StartDevelopmentArgs,
     _result: StartDevelopmentResult
   ): Promise<void> {
+    this.activePlanFilePath = context.planFilePath;
+
     this.logger.info('BeadsPlugin: Setting up beads integration', {
       conversationId: context.conversationId,
       workflow: args.workflow,
@@ -710,14 +720,17 @@ Complete tasks: \`bd close <id>\``;
         }
         this.syncDebounceTimer = setTimeout(() => {
           this.syncDebounceTimer = null;
-          this.planSyncer.sync(this.projectPath).catch(err => {
-            this.logger.warn(
-              'BeadsPlugin: Error during watcher-triggered plan sync',
-              {
-                error: err instanceof Error ? err.message : String(err),
-              }
-            );
-          });
+          if (!this.activePlanFilePath) return; // no conversation started yet
+          this.planSyncer
+            .sync(this.activePlanFilePath, this.projectPath)
+            .catch(err => {
+              this.logger.warn(
+                'BeadsPlugin: Error during watcher-triggered plan sync',
+                {
+                  error: err instanceof Error ? err.message : String(err),
+                }
+              );
+            });
         }, 300);
       });
 

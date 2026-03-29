@@ -9,8 +9,8 @@
  */
 
 import { readFile, writeFile, access } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
-import { createLogger, GitManager } from '@codemcp/workflows-core';
+import { join } from 'node:path';
+import { createLogger } from '@codemcp/workflows-core';
 
 const logger = createLogger('BeadsPlanSyncer');
 
@@ -34,21 +34,17 @@ interface BeadsIssue {
  */
 export class BeadsPlanSyncer {
   /**
-   * Sync the current branch's development plan with the latest beads tasks.
+   * Sync the given plan file with the latest beads tasks.
    *
-   * Derives the plan file path from the active git branch using the same
-   * naming convention as ConversationManager. No-ops when the plan file
-   * doesn't exist yet, when no phase IDs are resolved, or when
-   * .beads/issues.jsonl is absent. Never throws.
+   * No-ops when the plan file doesn't exist yet, when no phase IDs are
+   * resolved, or when .beads/issues.jsonl is absent. Never throws.
    */
-  async sync(projectPath: string): Promise<void> {
+  async sync(planFilePath: string, projectPath: string): Promise<void> {
     try {
       const issues = await this.readIssues(projectPath);
       if (issues === null) {
         return; // .beads/issues.jsonl not present yet
       }
-
-      const planFilePath = this.resolvePlanFilePath(projectPath);
 
       let planContent: string;
       try {
@@ -67,23 +63,10 @@ export class BeadsPlanSyncer {
     } catch (error) {
       this.logger.warn('BeadsPlanSyncer: sync failed', {
         error: error instanceof Error ? error.message : String(error),
+        planFilePath,
         projectPath,
       });
     }
-  }
-
-  /**
-   * Derive the plan file path for the current branch, mirroring the logic in
-   * ConversationManager so we always target the right file.
-   */
-  private resolvePlanFilePath(projectPath: string): string {
-    const gitBranch = GitManager.getCurrentBranch(projectPath);
-    const sanitizedBranch = gitBranch.replace(/[/\\]/g, '-');
-    const planFileName =
-      gitBranch === 'main' || gitBranch === 'master'
-        ? 'development-plan.md'
-        : `development-plan-${sanitizedBranch}.md`;
-    return resolve(projectPath, '.vibe', planFileName);
   }
 
   /**
