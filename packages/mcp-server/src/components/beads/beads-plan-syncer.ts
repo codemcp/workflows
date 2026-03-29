@@ -8,7 +8,7 @@
  * and triggers on any change to .beads/issues.jsonl.
  */
 
-import { readFile, writeFile, access } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createLogger } from '@codemcp/workflows-core';
 
@@ -49,8 +49,9 @@ export class BeadsPlanSyncer {
       let planContent: string;
       try {
         planContent = await readFile(planFilePath, 'utf-8');
-      } catch {
-        return; // Plan file doesn't exist yet — nothing to sync
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
+        throw err; // unexpected error — let outer catch log it
       }
 
       const updated = this.updatePlanContent(planContent, issues);
@@ -75,13 +76,14 @@ export class BeadsPlanSyncer {
    */
   private async readIssues(projectPath: string): Promise<BeadsIssue[] | null> {
     const jsonlPath = join(projectPath, '.beads', 'issues.jsonl');
+    let raw: string;
     try {
-      await access(jsonlPath);
-    } catch {
-      return null;
+      raw = await readFile(jsonlPath, 'utf-8');
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw err; // unexpected error — let outer catch log it
     }
 
-    const raw = await readFile(jsonlPath, 'utf-8');
     const issues: BeadsIssue[] = [];
 
     for (const line of raw.split('\n')) {
@@ -107,13 +109,6 @@ export class BeadsPlanSyncer {
         dep => dep.depends_on_id === phaseId && dep.type === 'parent-child'
       )
     );
-  }
-
-  /**
-   * Map a beads status to a markdown checkbox state.
-   */
-  private isCompleted(status: string): boolean {
-    return status === 'closed';
   }
 
   /**
@@ -149,7 +144,7 @@ export class BeadsPlanSyncer {
         } else {
           const taskLines = children
             .map(task => {
-              const checkbox = this.isCompleted(task.status) ? '[x]' : '[ ]';
+              const checkbox = task.status === 'closed' ? '[x]' : '[ ]';
               return `- ${checkbox} \`${task.id}\` ${task.title}`;
             })
             .join('\n');

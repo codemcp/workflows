@@ -88,8 +88,13 @@ export class BeadsPlugin implements IPlugin {
     this.planManager = new PlanManager();
     this.planSyncer = new BeadsPlanSyncer();
 
-    // Start watching .beads/issues.jsonl immediately. The plan file may not
-    // exist yet — sync() handles that gracefully.
+    // Register exit handler once here, regardless of watcher start outcome
+    process.once('exit', () => {
+      this.jsonlWatcher?.close();
+    });
+
+    // Start watching .beads/ directory immediately. The plan file and
+    // issues.jsonl may not exist yet — both are handled gracefully.
     this.startJsonlWatcher();
     this.logger.debug('BeadsPlugin initialized', {
       projectPath: this.projectPath,
@@ -705,15 +710,16 @@ Complete tasks: \`bd close <id>\``;
   }
 
   /**
-   * Start watching .beads/issues.jsonl for changes.
-   * On change, debounces 300ms then syncs the plan file.
-   * Registers a process.exit handler to close the watcher on shutdown.
+   * Start watching the .beads/ directory for changes to issues.jsonl.
+   * Watching the directory (not the file) means the watcher works even when
+   * issues.jsonl doesn't exist yet. On change, debounces 300ms then syncs.
    */
   private startJsonlWatcher(): void {
-    const jsonlPath = join(this.projectPath, '.beads', 'issues.jsonl');
+    const beadsDir = join(this.projectPath, '.beads');
 
     try {
-      this.jsonlWatcher = watch(jsonlPath, () => {
+      this.jsonlWatcher = watch(beadsDir, (_event, filename) => {
+        if (filename !== 'issues.jsonl') return;
         // Debounce: beads may write the file multiple times in quick succession
         if (this.syncDebounceTimer) {
           clearTimeout(this.syncDebounceTimer);
@@ -734,19 +740,11 @@ Complete tasks: \`bd close <id>\``;
         }, 300);
       });
 
-      // Clean up on process exit
-      process.once('exit', () => {
-        this.jsonlWatcher?.close();
-      });
-
-      this.logger.info('BeadsPlugin: Started JSONL file watcher', {
-        jsonlPath,
-      });
+      this.logger.info('BeadsPlugin: Started JSONL file watcher', { beadsDir });
     } catch (error) {
-      // Non-critical: issues.jsonl may not exist yet (fresh project)
       this.logger.warn('BeadsPlugin: Could not start JSONL file watcher', {
         error: error instanceof Error ? error.message : String(error),
-        jsonlPath,
+        beadsDir,
       });
     }
   }
