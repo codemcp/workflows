@@ -30,7 +30,10 @@ import {
   TaskBackendManager,
   getPathBasename,
 } from '@codemcp/workflows-core';
+import { watch, type FSWatcher } from 'node:fs';
+import { join } from 'node:path';
 import { BeadsTaskBackendClient } from '../components/beads/beads-task-backend-client.js';
+import { BeadsPlanSyncer } from '../components/beads/beads-plan-syncer.js';
 
 /**
  * BeadsPlugin class implementing the IPlugin interface
@@ -47,6 +50,16 @@ export class BeadsPlugin implements IPlugin {
   private planManager: PlanManager;
   private logger: ILogger;
   private loggerFactory?: LoggerFactory;
+  private planSyncer: BeadsPlanSyncer;
+
+  /** Stored after start_development so the file watcher can use them */
+  private activePlanFilePath: string | null = null;
+
+  /** Debounce timer for the JSONL file watcher */
+  private syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Active fs.watch watcher (closed on process exit) */
+  private jsonlWatcher: FSWatcher | null = null;
 
   constructor(options: { projectPath: string; loggerFactory?: LoggerFactory }) {
     this.projectPath = options.projectPath;
@@ -69,6 +82,7 @@ export class BeadsPlugin implements IPlugin {
         : undefined
     );
     this.planManager = new PlanManager();
+    this.planSyncer = new BeadsPlanSyncer();
 
     this.logger.debug('BeadsPlugin initialized', {
       projectPath: this.projectPath,
@@ -319,6 +333,10 @@ export class BeadsPlugin implements IPlugin {
         phaseCount: phaseTasks?.length || 0,
         planFilePath: context.planFilePath,
       });
+
+      // Start watching .beads/issues.jsonl so the plan file stays in sync
+      // whenever the user runs bd commands outside of AI conversations.
+      this.startJsonlWatcher(context.planFilePath);
     } catch (error) {
       // Catch-all for unexpected errors: log and continue
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -677,6 +695,63 @@ Complete tasks: \`bd close <id>\``;
         }
       );
       // Graceful degradation: continue without beads state validation
+    }
+  }
+
+  /**
+   * Start watching .beads/issues.jsonl for changes.
+   * On change, debounces 300ms then syncs the plan file.
+   * Registers a process.exit handler to close the watcher on shutdown.
+   */
+  private startJsonlWatcher(planFilePath: string): void {
+    this.activePlanFilePath = planFilePath;
+
+    // Close any previously active watcher (e.g. on restart)
+    if (this.jsonlWatcher) {
+      this.jsonlWatcher.close();
+      this.jsonlWatcher = null;
+    }
+
+    const jsonlPath = join(this.projectPath, '.beads', 'issues.jsonl');
+
+    try {
+      this.jsonlWatcher = watch(jsonlPath, () => {
+        // Debounce: beads may write the file multiple times in quick succession
+        if (this.syncDebounceTimer) {
+          clearTimeout(this.syncDebounceTimer);
+        }
+        this.syncDebounceTimer = setTimeout(() => {
+          this.syncDebounceTimer = null;
+          if (this.activePlanFilePath) {
+            this.planSyncer
+              .sync(this.activePlanFilePath, this.projectPath)
+              .catch(err => {
+                logger.warn(
+                  'BeadsPlugin: Error during watcher-triggered plan sync',
+                  {
+                    error: err instanceof Error ? err.message : String(err),
+                  }
+                );
+              });
+          }
+        }, 300);
+      });
+
+      // Clean up on process exit
+      process.once('exit', () => {
+        this.jsonlWatcher?.close();
+      });
+
+      logger.info('BeadsPlugin: Started JSONL file watcher', {
+        jsonlPath,
+        planFilePath,
+      });
+    } catch (error) {
+      // Watcher setup failure is non-critical (file may not exist yet)
+      logger.warn('BeadsPlugin: Could not start JSONL file watcher', {
+        error: error instanceof Error ? error.message : String(error),
+        jsonlPath,
+      });
     }
   }
 
