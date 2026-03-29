@@ -12,18 +12,15 @@ import {
   type YamlStateMachine,
   ProjectDocsManager,
 } from '@codemcp/workflows-core';
-import { BeadsPlanSyncer } from './beads-plan-syncer.js';
 
 /**
  * Beads-specific instruction generator
  */
 export class BeadsInstructionGenerator implements IInstructionGenerator {
   private projectDocsManager: ProjectDocsManager;
-  private planSyncer: BeadsPlanSyncer;
 
   constructor() {
     this.projectDocsManager = new ProjectDocsManager();
-    this.planSyncer = new BeadsPlanSyncer();
   }
 
   /**
@@ -40,15 +37,6 @@ export class BeadsInstructionGenerator implements IInstructionGenerator {
     baseInstructions: string,
     context: InstructionContext
   ): Promise<GeneratedInstructions> {
-    // Safety-net sync: ensure the plan file reflects the latest beads task state
-    // before instructions are generated (primary sync is the file watcher in BeadsPlugin).
-    if (context.instructionSource === 'whats_next') {
-      await this.planSyncer.sync(
-        context.conversationContext.planFilePath,
-        context.conversationContext.projectPath
-      );
-    }
-
     // Apply variable substitution to base instructions
     const substitutedInstructions = this.applyVariableSubstitution(
       baseInstructions,

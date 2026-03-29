@@ -1,17 +1,16 @@
 /**
  * Beads Plan Syncer
  *
- * Reads tasks from .beads/issues.jsonl and syncs them back into the plan file,
+ * Reads tasks from .beads/issues.jsonl and syncs them back into plan files,
  * making each phase's Tasks section reflect the current state of beads tasks.
  *
- * This is the single source of sync logic, used by both:
- * - BeadsPlugin file watcher (real-time, triggers on any bd command)
- * - BeadsInstructionGenerator (safety-net sync before whats_next reads the plan)
+ * Used by BeadsPlugin's file watcher, which starts on plugin initialization
+ * and triggers on any change to .beads/issues.jsonl.
  */
 
 import { readFile, writeFile, access } from 'node:fs/promises';
-import { join } from 'node:path';
-import { createLogger } from '@codemcp/workflows-core';
+import { join, resolve } from 'node:path';
+import { createLogger, GitManager } from '@codemcp/workflows-core';
 
 const logger = createLogger('BeadsPlanSyncer');
 
@@ -35,41 +34,56 @@ interface BeadsIssue {
  */
 export class BeadsPlanSyncer {
   /**
-   * Sync all phases in the plan file with current beads task state.
-   * Silently no-ops if .beads/issues.jsonl or the plan file is missing.
-   * Never throws — errors are logged as warnings.
+   * Sync the current branch's development plan with the latest beads tasks.
+   *
+   * Derives the plan file path from the active git branch using the same
+   * naming convention as ConversationManager. No-ops when the plan file
+   * doesn't exist yet, when no phase IDs are resolved, or when
+   * .beads/issues.jsonl is absent. Never throws.
    */
-  async sync(planFilePath: string, projectPath: string): Promise<void> {
+  async sync(projectPath: string): Promise<void> {
     try {
       const issues = await this.readIssues(projectPath);
       if (issues === null) {
-        // .beads/issues.jsonl not found — nothing to sync
-        return;
+        return; // .beads/issues.jsonl not present yet
       }
+
+      const planFilePath = this.resolvePlanFilePath(projectPath);
 
       let planContent: string;
       try {
-        await access(planFilePath);
         planContent = await readFile(planFilePath, 'utf-8');
       } catch {
-        // Plan file doesn't exist yet
-        return;
+        return; // Plan file doesn't exist yet — nothing to sync
       }
 
       const updated = this.updatePlanContent(planContent, issues);
-
       if (updated !== planContent) {
         await writeFile(planFilePath, updated, 'utf-8');
-        logger.debug('Plan file synced with beads tasks', { planFilePath });
+        this.logger.debug('Plan file synced with beads tasks', {
+          planFilePath,
+        });
       }
     } catch (error) {
-      logger.warn('Failed to sync beads tasks to plan file', {
+      this.logger.warn('BeadsPlanSyncer: sync failed', {
         error: error instanceof Error ? error.message : String(error),
-        planFilePath,
         projectPath,
       });
-      // Graceful degradation — never break the workflow
     }
+  }
+
+  /**
+   * Derive the plan file path for the current branch, mirroring the logic in
+   * ConversationManager so we always target the right file.
+   */
+  private resolvePlanFilePath(projectPath: string): string {
+    const gitBranch = GitManager.getCurrentBranch(projectPath);
+    const sanitizedBranch = gitBranch.replace(/[/\\]/g, '-');
+    const planFileName =
+      gitBranch === 'main' || gitBranch === 'master'
+        ? 'development-plan.md'
+        : `development-plan-${sanitizedBranch}.md`;
+    return resolve(projectPath, '.vibe', planFileName);
   }
 
   /**
