@@ -143,6 +143,9 @@ describe('BeadsPlanSyncer', () => {
 
       const result = await readPlan(planPath);
       expect(result).toContain(`<!-- beads-synced: ${TODAY} -->`);
+      expect(result).toContain(
+        '*Auto-synced — do not edit here, use `bd` CLI instead.*'
+      );
       expect(result).toContain('- [x] `proj-1.1.1` Collect user stories');
       expect(result).toContain('- [ ] `proj-1.1.2` Write acceptance criteria');
       expect(result).toContain('- [ ] `proj-1.1.3` Review with stakeholders');
@@ -200,8 +203,9 @@ describe('BeadsPlanSyncer', () => {
 
       const result = await readPlan(planPath);
       expect(result).toContain(`<!-- beads-synced: ${TODAY} -->`);
-      // Design phase has no children — placeholder expected
-      expect(result).toContain('*Tasks managed via `bd` CLI*');
+      expect(result).toContain(
+        '*Auto-synced — do not edit here, use `bd` CLI instead.*'
+      );
     });
 
     it('is idempotent — re-syncing produces the same output', async () => {

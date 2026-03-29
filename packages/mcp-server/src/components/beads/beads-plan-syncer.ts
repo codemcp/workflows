@@ -137,10 +137,11 @@ export class BeadsPlanSyncer {
         const children = this.getChildTasks(issues, phaseId);
 
         const today = new Date().toISOString().split('T')[0];
+        const header = `<!-- beads-synced: ${today} -->\n*Auto-synced — do not edit here, use \`bd\` CLI instead.*\n`;
         let tasksBody: string;
 
         if (children.length === 0) {
-          tasksBody = `<!-- beads-synced: ${today} -->\n*Tasks managed via \`bd\` CLI*\n`;
+          tasksBody = `${header}\n`;
         } else {
           const taskLines = children
             .map(task => {
@@ -148,7 +149,7 @@ export class BeadsPlanSyncer {
               return `- ${checkbox} \`${task.id}\` ${task.title}`;
             })
             .join('\n');
-          tasksBody = `<!-- beads-synced: ${today} -->\n${taskLines}\n`;
+          tasksBody = `${header}\n${taskLines}\n`;
         }
 
         return `${phaseHeaderAndId}${betweenIdAndTasks}${tasksHeader}${tasksBody}`;
