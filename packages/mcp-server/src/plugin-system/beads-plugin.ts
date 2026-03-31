@@ -15,8 +15,13 @@ import type {
   PluginHookContext,
   StartDevelopmentArgs,
   StartDevelopmentResult,
+  GeneratedInstructions,
 } from './plugin-interfaces.js';
-import type { YamlState } from '@codemcp/workflows-core';
+import type {
+  YamlState,
+  ILogger,
+  LoggerFactory,
+} from '@codemcp/workflows-core';
 import {
   BeadsStateManager,
   BeadsIntegration,
@@ -26,8 +31,6 @@ import {
   getPathBasename,
 } from '@codemcp/workflows-core';
 import { BeadsTaskBackendClient } from '../components/beads/beads-task-backend-client.js';
-
-const logger = createLogger('BeadsPlugin');
 
 /**
  * BeadsPlugin class implementing the IPlugin interface
@@ -42,16 +45,34 @@ export class BeadsPlugin implements IPlugin {
   private beadsStateManager: BeadsStateManager;
   private beadsTaskBackendClient: BeadsTaskBackendClient;
   private planManager: PlanManager;
+  private logger: ILogger;
+  private loggerFactory?: LoggerFactory;
 
-  constructor(options: { projectPath: string }) {
+  constructor(options: { projectPath: string; loggerFactory?: LoggerFactory }) {
     this.projectPath = options.projectPath;
+    this.loggerFactory = options.loggerFactory;
+    this.logger = options.loggerFactory
+      ? options.loggerFactory('BeadsPlugin')
+      : createLogger('BeadsPlugin');
 
-    // Initialize internal beads components
-    this.beadsStateManager = new BeadsStateManager(this.projectPath);
-    this.beadsTaskBackendClient = new BeadsTaskBackendClient(this.projectPath);
+    // Initialize internal beads components (pass logger to avoid stderr output)
+    this.beadsStateManager = new BeadsStateManager(
+      this.projectPath,
+      options.loggerFactory
+        ? options.loggerFactory('BeadsStateManager')
+        : undefined
+    );
+    this.beadsTaskBackendClient = new BeadsTaskBackendClient(
+      this.projectPath,
+      options.loggerFactory
+        ? options.loggerFactory('BeadsTaskBackendClient')
+        : undefined
+    );
     this.planManager = new PlanManager();
 
-    logger.debug('BeadsPlugin initialized', { projectPath: this.projectPath });
+    this.logger.debug('BeadsPlugin initialized', {
+      projectPath: this.projectPath,
+    });
   }
 
   getName(): string {
@@ -65,10 +86,11 @@ export class BeadsPlugin implements IPlugin {
   isEnabled(): boolean {
     // Use TaskBackendManager to properly detect beads backend,
     // which supports both explicit TASK_BACKEND env var and auto-detection
-    const taskBackendConfig = TaskBackendManager.detectTaskBackend();
+    // Pass our logger so logs go to the right place
+    const taskBackendConfig = TaskBackendManager.detectTaskBackend(this.logger);
     const enabled =
       taskBackendConfig.backend === 'beads' && taskBackendConfig.isAvailable;
-    logger.debug('BeadsPlugin enablement check', {
+    this.logger.debug('BeadsPlugin enablement check', {
       backend: taskBackendConfig.backend,
       isAvailable: taskBackendConfig.isAvailable,
       autoDetected: !process.env['TASK_BACKEND'],
@@ -82,6 +104,8 @@ export class BeadsPlugin implements IPlugin {
       afterStartDevelopment: this.handleAfterStartDevelopment.bind(this),
       beforePhaseTransition: this.handleBeforePhaseTransition.bind(this),
       afterPlanFileCreated: this.handleAfterPlanFileCreated.bind(this),
+      afterInstructionsGenerated:
+        this.handleAfterInstructionsGenerated.bind(this),
     };
   }
 
@@ -94,7 +118,7 @@ export class BeadsPlugin implements IPlugin {
     currentPhase: string,
     targetPhase: string
   ): Promise<void> {
-    logger.info(
+    this.logger.info(
       'BeadsPlugin: Validating task completion before phase transition',
       {
         conversationId: context.conversationId,
@@ -111,7 +135,7 @@ export class BeadsPlugin implements IPlugin {
         context.projectPath
       );
 
-      logger.info(
+      this.logger.info(
         'BeadsPlugin: Task validation passed, allowing phase transition',
         {
           conversationId: context.conversationId,
@@ -120,7 +144,7 @@ export class BeadsPlugin implements IPlugin {
         }
       );
     } catch (error) {
-      logger.info(
+      this.logger.info(
         'BeadsPlugin: Task validation failed, blocking phase transition',
         {
           conversationId: context.conversationId,
@@ -145,7 +169,7 @@ export class BeadsPlugin implements IPlugin {
     args: StartDevelopmentArgs,
     _result: StartDevelopmentResult
   ): Promise<void> {
-    logger.info('BeadsPlugin: Setting up beads integration', {
+    this.logger.info('BeadsPlugin: Setting up beads integration', {
       conversationId: context.conversationId,
       workflow: args.workflow,
       projectPath: context.projectPath,
@@ -153,15 +177,20 @@ export class BeadsPlugin implements IPlugin {
 
     // Verify we have the required state machine information
     if (!context.stateMachine) {
-      logger.error('BeadsPlugin: State machine not provided in plugin context');
-      logger.warn(
+      this.logger.error(
+        'BeadsPlugin: State machine not provided in plugin context'
+      );
+      this.logger.warn(
         'BeadsPlugin: Beads integration disabled - continuing without beads'
       );
       return; // Graceful degradation: continue without beads
     }
 
     try {
-      const beadsIntegration = new BeadsIntegration(context.projectPath);
+      const beadsIntegration = new BeadsIntegration(
+        context.projectPath,
+        this.loggerFactory ? this.loggerFactory('BeadsIntegration') : undefined
+      );
       const projectName = getPathBasename(
         context.projectPath,
         'Unknown Project'
@@ -175,7 +204,7 @@ export class BeadsPlugin implements IPlugin {
         );
         goalDescription = this.extractGoalFromPlan(planFileContent);
       } catch (error) {
-        logger.warn('BeadsPlugin: Could not extract goal from plan file', {
+        this.logger.warn('BeadsPlugin: Could not extract goal from plan file', {
           error: error instanceof Error ? error.message : String(error),
           planFilePath: context.planFilePath,
         });
@@ -196,7 +225,7 @@ export class BeadsPlugin implements IPlugin {
         );
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn(
+        this.logger.warn(
           'BeadsPlugin: Failed to create beads project epic - continuing without beads integration',
           {
             error: errorMsg,
@@ -221,7 +250,7 @@ export class BeadsPlugin implements IPlugin {
         );
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn(
+        this.logger.warn(
           'BeadsPlugin: Failed to create beads phase tasks - continuing without phase tracking',
           {
             error: errorMsg,
@@ -237,7 +266,7 @@ export class BeadsPlugin implements IPlugin {
         await beadsIntegration.createPhaseDependencies(phaseTasks);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn(
+        this.logger.warn(
           'BeadsPlugin: Failed to create phase dependencies - continuing without dependencies',
           {
             error: errorMsg,
@@ -255,7 +284,7 @@ export class BeadsPlugin implements IPlugin {
         );
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn(
+        this.logger.warn(
           'BeadsPlugin: Failed to update plan file with beads task IDs - continuing without plan file updates',
           {
             error: errorMsg,
@@ -274,7 +303,7 @@ export class BeadsPlugin implements IPlugin {
         );
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn(
+        this.logger.warn(
           'BeadsPlugin: Failed to create beads state - continuing without state persistence',
           {
             error: errorMsg,
@@ -284,7 +313,7 @@ export class BeadsPlugin implements IPlugin {
         // Graceful degradation: continue without state persistence
       }
 
-      logger.info('BeadsPlugin: Beads integration setup complete', {
+      this.logger.info('BeadsPlugin: Beads integration setup complete', {
         conversationId: context.conversationId,
         epicId,
         phaseCount: phaseTasks?.length || 0,
@@ -293,7 +322,7 @@ export class BeadsPlugin implements IPlugin {
     } catch (error) {
       // Catch-all for unexpected errors: log and continue
       const errorMsg = error instanceof Error ? error.message : String(error);
-      logger.warn(
+      this.logger.warn(
         'BeadsPlugin: Unexpected error during beads integration setup - continuing application without beads',
         {
           error: errorMsg,
@@ -320,22 +349,178 @@ export class BeadsPlugin implements IPlugin {
     planFilePath: string,
     content: string
   ): Promise<string> {
-    logger.debug('BeadsPlugin: afterPlanFileCreated hook invoked', {
+    this.logger.debug('BeadsPlugin: afterPlanFileCreated hook invoked', {
       planFilePath,
       contentLength: content.length,
     });
 
-    // The plan file is already created with TBD placeholders by BeadsPlanManager
-    // No additional modifications needed at this stage.
-    // The beads task IDs will be added by afterStartDevelopment hook
-    // which calls updatePlanFileWithPhaseTaskIds.
-    //
-    // This hook currently returns content unchanged, but could be extended in the
-    // future for additional beads-specific plan enhancements such as:
-    // - Adding beads CLI usage instructions
-    // - Adding task templates
-    // - Adding workflow guidance
-    return content;
+    // Transform standard plan file to beads-optimized format:
+    // 1. Replace markdown checkbox tasks with beads CLI reference
+    // 2. Add beads-phase-id placeholders after phase headers
+    // 3. Update footer to mention beads CLI
+
+    let transformed = content;
+
+    // Replace task checkbox sections with beads CLI reference
+    // Match "### Tasks\n- [ ] *Tasks will be added..." or similar patterns
+    transformed = transformed.replace(
+      /### Tasks\n- \[ \] \*Tasks will be added as they are identified\*\n\n### Completed\n- \[x\] Created development plan file/g,
+      '<!-- beads-phase-id: TBD -->\n### Tasks\n\n*Tasks managed via `bd` CLI*'
+    );
+
+    transformed = transformed.replace(
+      /### Tasks\n- \[ \] \*To be added when this phase becomes active\*\n\n### Completed\n\*None yet\*/g,
+      '<!-- beads-phase-id: TBD -->\n### Tasks\n\n*Tasks managed via `bd` CLI*'
+    );
+
+    // Update footer to mention beads CLI
+    transformed = transformed.replace(
+      /\*This plan is maintained by the LLM\. Tool responses provide guidance on which section to focus on and what tasks to work on\.\*/,
+      '*This plan is maintained by the LLM and uses beads CLI for task management. Tool responses provide guidance on which bd commands to use for task management.*'
+    );
+
+    this.logger.debug('BeadsPlugin: Plan file transformed for beads', {
+      planFilePath,
+      originalLength: content.length,
+      transformedLength: transformed.length,
+      wasModified: content !== transformed,
+    });
+
+    return transformed;
+  }
+
+  /**
+   * Handle afterInstructionsGenerated hook
+   * Enriches instructions with beads-specific task management guidance
+   */
+  private async handleAfterInstructionsGenerated(
+    context: PluginHookContext,
+    instructions: GeneratedInstructions
+  ): Promise<GeneratedInstructions> {
+    this.logger.debug('BeadsPlugin: afterInstructionsGenerated hook invoked', {
+      phase: instructions.phase,
+      instructionSource: instructions.instructionSource,
+      planFilePath: instructions.planFilePath,
+    });
+
+    // Generate beads-specific task management guidance
+    const beadsGuidance = await this.generateBeadsGuidance(
+      context,
+      instructions
+    );
+
+    // Enhance instructions with beads guidance
+    let enhanced = instructions.instructions;
+
+    enhanced += `\n\nLog decisions in plan file. Use ONLY \`bd\` CLI for tasks (not your own todo tools).${beadsGuidance}`;
+
+    // Add plan file creation note if needed
+    if (context.planFileExists === false) {
+      enhanced +=
+        '\n\n**Note**: Plan file will be created when you first update it.';
+    }
+
+    // Add beads-specific reminders
+    enhanced += '\n\nCall `whats_next()` after user messages.';
+
+    this.logger.debug(
+      'BeadsPlugin: Instructions enriched with beads guidance',
+      {
+        originalLength: instructions.instructions.length,
+        enrichedLength: enhanced.length,
+      }
+    );
+
+    return {
+      ...instructions,
+      instructions: enhanced,
+    };
+  }
+
+  /**
+   * Generate beads-specific task management guidance
+   */
+  private async generateBeadsGuidance(
+    _context: PluginHookContext,
+    instructions: GeneratedInstructions
+  ): Promise<string> {
+    // For whats_next and start_development, provide detailed guidance
+    if (
+      instructions.instructionSource === 'whats_next' ||
+      instructions.instructionSource === 'start_development'
+    ) {
+      const phaseTaskId = await this.extractPhaseTaskIdFromPlanFile(
+        instructions.planFilePath,
+        instructions.phase
+      );
+
+      if (!phaseTaskId) {
+        return `\n\n**Task Management (bd CLI):**
+Create tasks as sub-tasks of phase task: \`bd create 'title' --parent <phase-task-id>\`
+List open tasks: \`bd list --parent <phase-task-id> --status open\`
+Complete tasks: \`bd close <id>\``;
+      }
+
+      return `\n\n**Task Management (bd CLI) - Phase: ${phaseTaskId}**
+Create tasks as sub-tasks: \`bd create 'title' --parent ${phaseTaskId}\`
+List open tasks: \`bd list --parent ${phaseTaskId} --status open\`
+Complete tasks: \`bd close <id>\``;
+    }
+
+    return '';
+  }
+
+  /**
+   * Extract phase task ID from plan file
+   */
+  private async extractPhaseTaskIdFromPlanFile(
+    planFilePath: string,
+    phase: string
+  ): Promise<string | null> {
+    try {
+      const { readFile } = await import('node:fs/promises');
+      const content = await readFile(planFilePath, 'utf-8');
+
+      const phaseName = this.capitalizePhase(phase);
+      const phaseHeader = `## ${phaseName}`;
+
+      // Look for the phase header followed by beads-phase-id comment
+      const lines = content.split('\n');
+      let foundPhaseHeader = false;
+
+      for (const line of lines) {
+        if (line.trim() === phaseHeader) {
+          foundPhaseHeader = true;
+          continue;
+        }
+
+        if (foundPhaseHeader && line.includes('beads-phase-id:')) {
+          const match = line.match(/beads-phase-id:\s*([\w\d.-]+)/);
+          if (match && match[1] && match[1] !== 'TBD') {
+            return match[1];
+          }
+        }
+
+        // Stop looking if we hit the next phase header
+        if (foundPhaseHeader && line.startsWith('##') && line !== phaseHeader) {
+          break;
+        }
+      }
+
+      return null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  /**
+   * Capitalize phase name for display
+   */
+  private capitalizePhase(phase: string): string {
+    return phase
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 
   /**
@@ -355,7 +540,7 @@ export class BeadsPlugin implements IPlugin {
         isAvailable = await this.beadsTaskBackendClient.isAvailable();
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn('BeadsPlugin: Failed to check beads availability', {
+        this.logger.warn('BeadsPlugin: Failed to check beads availability', {
           error: errorMsg,
           conversationId,
         });
@@ -365,7 +550,7 @@ export class BeadsPlugin implements IPlugin {
 
       if (!isAvailable) {
         // Not in beads mode or beads not available, skip validation
-        logger.debug(
+        this.logger.debug(
           'BeadsPlugin: Skipping beads task validation - beads CLI not available',
           {
             conversationId,
@@ -385,7 +570,7 @@ export class BeadsPlugin implements IPlugin {
         );
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn('BeadsPlugin: Failed to get beads phase task ID', {
+        this.logger.warn('BeadsPlugin: Failed to get beads phase task ID', {
           error: errorMsg,
           conversationId,
           currentPhase,
@@ -396,7 +581,7 @@ export class BeadsPlugin implements IPlugin {
 
       if (!currentPhaseTaskId) {
         // No beads state found for this conversation - fallback to graceful handling
-        logger.debug(
+        this.logger.debug(
           'BeadsPlugin: No beads phase task ID found for current phase',
           {
             conversationId,
@@ -408,7 +593,7 @@ export class BeadsPlugin implements IPlugin {
         return;
       }
 
-      logger.debug(
+      this.logger.debug(
         'BeadsPlugin: Checking for incomplete beads tasks using task backend client',
         {
           conversationId,
@@ -426,7 +611,7 @@ export class BeadsPlugin implements IPlugin {
           );
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn(
+        this.logger.warn(
           'BeadsPlugin: Failed to validate tasks with beads backend',
           {
             error: errorMsg,
@@ -441,24 +626,11 @@ export class BeadsPlugin implements IPlugin {
       if (!validationResult.valid) {
         // Get the incomplete tasks from the validation result
         const incompleteTasks = validationResult.openTasks || [];
+        const taskIds = incompleteTasks.map(t => t.id).join(', ');
 
-        // Create detailed error message with incomplete tasks
-        const taskDetails = incompleteTasks
-          .map(task => `  • ${task.id} - ${task.title || 'Untitled task'}`)
-          .join('\n');
+        const errorMessage = `${incompleteTasks.length} incomplete task(s) in ${currentPhase}: ${taskIds}. Complete or defer (\`bd defer <id>\`) before proceeding.`;
 
-        const errorMessage = `Cannot proceed to ${targetPhase} - ${incompleteTasks.length} incomplete task(s) in current phase "${currentPhase}":
-
-${taskDetails}
-
-To proceed, check the in-progress-tasks using:
-
-   bd list --parent ${currentPhaseTaskId} --status open
-
-You can also defer tasks if they're no longer needed:
-   bd defer <task-id> --until tomorrow`;
-
-        logger.info(
+        this.logger.info(
           'BeadsPlugin: Blocking phase transition due to incomplete beads tasks',
           {
             conversationId,
@@ -473,7 +645,7 @@ You can also defer tasks if they're no longer needed:
         throw new Error(errorMessage);
       }
 
-      logger.info(
+      this.logger.info(
         'BeadsPlugin: All beads tasks completed in current phase, allowing transition',
         {
           conversationId,
@@ -494,7 +666,7 @@ You can also defer tasks if they're no longer needed:
       // Log other errors but allow transition (graceful degradation)
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      logger.warn(
+      this.logger.warn(
         'BeadsPlugin: Beads task validation failed, allowing transition to proceed',
         {
           error: errorMessage,
@@ -576,7 +748,7 @@ You can also defer tasks if they're no longer needed:
         content = await readFile(planFilePath, 'utf-8');
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn('BeadsPlugin: Failed to read plan file for update', {
+        this.logger.warn('BeadsPlugin: Failed to read plan file for update', {
           error: errorMsg,
           planFilePath,
         });
@@ -600,7 +772,7 @@ You can also defer tasks if they're no longer needed:
       // Validate that all TBD placeholders were replaced
       const remainingTBDs = content.match(/<!-- beads-phase-id: TBD -->/g);
       if (remainingTBDs && remainingTBDs.length > 0) {
-        logger.warn(
+        this.logger.warn(
           'BeadsPlugin: Failed to replace all TBD placeholders in plan file',
           {
             planFilePath,
@@ -618,7 +790,7 @@ You can also defer tasks if they're no longer needed:
         await writeFile(planFilePath, content, 'utf-8');
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn('BeadsPlugin: Failed to write updated plan file', {
+        this.logger.warn('BeadsPlugin: Failed to write updated plan file', {
           error: errorMsg,
           planFilePath,
         });
@@ -626,7 +798,7 @@ You can also defer tasks if they're no longer needed:
         return;
       }
 
-      logger.info(
+      this.logger.info(
         'BeadsPlugin: Successfully updated plan file with beads phase task IDs',
         {
           planFilePath,
@@ -639,7 +811,7 @@ You can also defer tasks if they're no longer needed:
     } catch (error) {
       // Catch-all for unexpected errors
       const errorMsg = error instanceof Error ? error.message : String(error);
-      logger.warn(
+      this.logger.warn(
         'BeadsPlugin: Unexpected error while updating plan file with phase task IDs',
         {
           error: errorMsg,

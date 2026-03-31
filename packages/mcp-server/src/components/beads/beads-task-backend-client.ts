@@ -9,20 +9,23 @@ import {
   type ITaskBackendClient,
   type BackendTask,
   type TaskValidationResult,
+  type ILogger,
 } from '@codemcp/workflows-core';
 import { execSync } from 'node:child_process';
 import { createLogger } from '@codemcp/workflows-core';
 
-const logger = createLogger('BeadsTaskBackendClient');
+const defaultLogger = createLogger('BeadsTaskBackendClient');
 
 /**
  * Beads-specific implementation of task backend client
  */
 export class BeadsTaskBackendClient implements ITaskBackendClient {
   private projectPath: string;
+  private logger: ILogger;
 
-  constructor(projectPath: string) {
+  constructor(projectPath: string, logger?: ILogger) {
     this.projectPath = projectPath;
+    this.logger = logger ?? defaultLogger;
   }
 
   /**
@@ -33,7 +36,7 @@ export class BeadsTaskBackendClient implements ITaskBackendClient {
   ): Promise<{ success: boolean; stdout?: string; stderr?: string }> {
     try {
       const command = `bd ${args.join(' ')}`;
-      logger.debug('Executing beads command', {
+      this.logger.debug('Executing beads command', {
         command,
         projectPath: this.projectPath,
       });
@@ -51,7 +54,7 @@ export class BeadsTaskBackendClient implements ITaskBackendClient {
         stdout?: string;
         status?: number;
       };
-      logger.warn('Beads command failed', {
+      this.logger.warn('Beads command failed', {
         args,
         error: error instanceof Error ? error.message : String(error),
         stderr: execError.stderr,

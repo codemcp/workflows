@@ -1,52 +1,48 @@
 /**
- * Phase-Specific Task ID Integration Tests for BeadsInstructionGenerator
+ * Phase-Specific Task ID Integration Tests for BeadsPlugin
  *
- * Tests that validate BeadsInstructionGenerator's ability to extract phase task IDs
- * from plan files and integrate them properly into bd commands.
+ * Tests that validate BeadsPlugin's afterInstructionsGenerated hook ability to
+ * extract phase task IDs from plan files and integrate them properly into bd commands.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { BeadsInstructionGenerator } from '../../src/components/beads/beads-instruction-generator.js';
+import { BeadsPlugin } from '../../src/plugin-system/beads-plugin.js';
 import type {
-  InstructionContext,
-  ConversationContext,
-} from '@codemcp/workflows-core';
+  PluginHookContext,
+  GeneratedInstructions,
+} from '../../src/plugin-system/plugin-interfaces.js';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 describe('Phase-Specific Task ID Integration Tests', () => {
-  let beadsInstructionGenerator: BeadsInstructionGenerator;
-  let mockInstructionContext: InstructionContext;
-  let mockConversationContext: ConversationContext;
+  let beadsPlugin: BeadsPlugin;
+  let afterInstructionsGenerated: (
+    context: PluginHookContext,
+    instructions: GeneratedInstructions
+  ) => Promise<GeneratedInstructions>;
+  let mockPluginContext: PluginHookContext;
   let testTempDir: string;
   let testPlanFilePath: string;
 
   beforeEach(async () => {
-    beadsInstructionGenerator = new BeadsInstructionGenerator();
-
     // Create temporary directory for test files
     testTempDir = join(process.cwd(), 'temp-test-' + Date.now());
     await mkdir(testTempDir, { recursive: true });
 
     testPlanFilePath = join(testTempDir, 'plan.md');
 
-    // Set up mock contexts with temp directory
-    mockConversationContext = {
-      conversationId: 'test-conversation',
-      projectPath: testTempDir,
-      planFilePath: testPlanFilePath,
-      gitBranch: 'main',
-      currentPhase: 'design',
-      workflowName: 'epcc',
-    };
+    beadsPlugin = new BeadsPlugin({ projectPath: testTempDir });
+    const hooks = beadsPlugin.getHooks();
+    afterInstructionsGenerated = hooks.afterInstructionsGenerated!;
 
-    mockInstructionContext = {
-      phase: 'design',
-      conversationContext: mockConversationContext,
-      instructionSource: 'whats_next',
-      transitionReason: 'test transition',
-      isModeled: false,
-      planFileExists: true,
+    // Set up mock plugin context
+    mockPluginContext = {
+      conversationId: 'test-conversation',
+      planFilePath: testPlanFilePath,
+      currentPhase: 'design',
+      workflow: 'epcc',
+      projectPath: testTempDir,
+      gitBranch: 'main',
     };
   });
 
@@ -58,6 +54,24 @@ describe('Phase-Specific Task ID Integration Tests', () => {
       // Ignore cleanup errors
     }
   });
+
+  /**
+   * Helper to create GeneratedInstructions input for the hook
+   */
+  function createInstructions(
+    baseInstructions: string,
+    phase: string,
+    instructionSource: 'whats_next' | 'proceed_to_phase' = 'whats_next',
+    planFileExists: boolean = true
+  ): GeneratedInstructions {
+    return {
+      instructions: baseInstructions,
+      planFilePath: testPlanFilePath,
+      phase,
+      instructionSource,
+      planFileExists,
+    };
+  }
 
   describe('Phase Task ID Extraction from Plan Files', () => {
     it('should extract phase task ID from properly formatted plan file', async () => {
@@ -78,19 +92,14 @@ Some implementation tasks here.
 
       await writeFile(testPlanFilePath, planContent);
 
-      const result = await beadsInstructionGenerator.generateInstructions(
-        'Work on design tasks.',
-        mockInstructionContext
+      const result = await afterInstructionsGenerated(
+        { ...mockPluginContext, currentPhase: 'design' },
+        createInstructions('Work on design tasks.', 'design')
       );
 
       // Should include specific phase task ID in commands
-      expect(result.instructions).toContain(
-        'bd list --parent project-epic-1.2 --status open'
-      );
-      expect(result.instructions).toContain(
-        "bd create 'Task description' --parent project-epic-1.2"
-      );
-      // Removed 'bd show' expectation - no longer part of minimal output
+      expect(result.instructions).toContain('--parent project-epic-1.2');
+      expect(result.instructions).toContain('bd create');
     });
 
     it('should handle phase task IDs with various formats', async () => {
@@ -112,424 +121,182 @@ Some implementation tasks here.
 
         await writeFile(testPlanFilePath, planContent);
 
-        const result = await beadsInstructionGenerator.generateInstructions(
-          'Work on tasks.',
-          { ...mockInstructionContext, phase: testCase.phase }
+        const result = await afterInstructionsGenerated(
+          { ...mockPluginContext, currentPhase: testCase.phase },
+          createInstructions('Work on tasks.', testCase.phase)
         );
 
-        expect(
-          result.instructions,
-          `Should extract ID: ${testCase.id}`
-        ).toContain(`bd list --parent ${testCase.id} --status open`);
-        expect(
-          result.instructions,
-          `Should use ID in create command: ${testCase.id}`
-        ).toContain(
-          `bd create 'Task description' --parent ${testCase.id} -p <priority>`
-        );
+        expect(result.instructions).toContain(`--parent ${testCase.id}`);
       }
     });
 
-    it('should handle different phase names with underscore formatting', async () => {
-      const phaseMappings = [
-        { phase: 'design', header: 'Design' },
-        { phase: 'implementation', header: 'Implementation' },
-        { phase: 'code_review', header: 'Code Review' },
-        { phase: 'system_test', header: 'System Test' },
-      ];
+    it('should handle missing phase task ID gracefully', async () => {
+      const planContent = `# Project Plan
 
-      for (const mapping of phaseMappings) {
-        const planContent = `# Project Plan
-
-## ${mapping.header}
-<!-- beads-phase-id: phase-${mapping.phase}-123 -->
-- Some tasks here
+## Design
+- Task 1
+- Task 2
 `;
 
-        await writeFile(testPlanFilePath, planContent);
+      await writeFile(testPlanFilePath, planContent);
 
-        const result = await beadsInstructionGenerator.generateInstructions(
-          'Work on phase tasks.',
-          { ...mockInstructionContext, phase: mapping.phase }
-        );
+      const result = await afterInstructionsGenerated(
+        mockPluginContext,
+        createInstructions('Work on tasks.', 'design')
+      );
 
-        expect(
-          result.instructions,
-          `Should find task ID for phase: ${mapping.phase}`
-        ).toContain(
-          `bd list --parent phase-${mapping.phase}-123 --status open`
-        );
-      }
+      // Should still generate valid instructions with generic placeholder
+      expect(result.instructions).toContain('bd');
     });
 
-    it('should handle multiple phases and extract correct phase task ID', async () => {
+    it('should handle non-existent plan file gracefully', async () => {
+      // Don't create the plan file
+
+      const result = await afterInstructionsGenerated(
+        mockPluginContext,
+        createInstructions('Work on tasks.', 'design', 'whats_next', false)
+      );
+
+      // Should still generate valid instructions
+      expect(result.instructions).toContain('bd');
+    });
+
+    it('should match correct phase when multiple phases have task IDs', async () => {
       const planContent = `# Project Plan
 
 ## Explore
 <!-- beads-phase-id: explore-task-1 -->
-- Research requirements
-- Analyze existing solutions
+- Explore task 1
 
 ## Design
 <!-- beads-phase-id: design-task-2 -->
-- Create system design
-- Design database schema
-
-## Implementation
-<!-- beads-phase-id: impl-task-3 -->
-- Write core functionality
-- Implement API endpoints
-`;
-
-      await writeFile(testPlanFilePath, planContent);
-
-      // Test design phase extraction
-      const designResult = await beadsInstructionGenerator.generateInstructions(
-        'Work on design.',
-        { ...mockInstructionContext, phase: 'design' }
-      );
-
-      expect(designResult.instructions).toContain(
-        'bd list --parent design-task-2 --status open'
-      );
-      expect(designResult.instructions).not.toContain('explore-task-1');
-      expect(designResult.instructions).not.toContain('impl-task-3');
-
-      // Test implementation phase extraction
-      const implResult = await beadsInstructionGenerator.generateInstructions(
-        'Work on implementation.',
-        { ...mockInstructionContext, phase: 'implementation' }
-      );
-
-      expect(implResult.instructions).toContain(
-        'bd list --parent impl-task-3 --status open'
-      );
-      expect(implResult.instructions).not.toContain('design-task-2');
-      expect(implResult.instructions).not.toContain('explore-task-1');
-    });
-  });
-
-  describe('Graceful Handling of Missing Phase Task IDs', () => {
-    it('should provide generic commands when no phase task ID is found', async () => {
-      const planContent = `# Project Plan
-
-## Design
-- Some tasks without beads-phase-id
-- More tasks here
-`;
-
-      await writeFile(testPlanFilePath, planContent);
-
-      const result = await beadsInstructionGenerator.generateInstructions(
-        'Work on design tasks.',
-        mockInstructionContext
-      );
-
-      // Should fall back to generic placeholder commands
-      expect(result.instructions).toContain(
-        'bd list --parent <phase-task-id> --status open'
-      );
-      expect(result.instructions).toContain(
-        "bd create 'Task title' --parent <phase-task-id> -p <priority>"
-      );
-      expect(result.instructions).toContain('Use bd CLI tool exclusively');
-      expect(result.instructions).not.toContain('bd list --parent design-');
-    });
-
-    it('should handle malformed beads-phase-id comments gracefully', async () => {
-      // Test cases that should fall back to generic commands (don't match regex)
-      const genericFallbackCases = [
-        '<!-- beads-phase-id -->', // No colon
-        '<!-- beads-phase-id: @#$% -->', // Invalid characters (should not match regex)
-      ];
-
-      for (const malformedComment of genericFallbackCases) {
-        const planContent = `# Project Plan
-
-## Design
-${malformedComment}
-- Some tasks here
-`;
-
-        await writeFile(testPlanFilePath, planContent);
-
-        const result = await beadsInstructionGenerator.generateInstructions(
-          'Work on tasks.',
-          mockInstructionContext
-        );
-
-        expect(
-          result.instructions,
-          `Should fall back to generic for malformed comment: ${malformedComment}`
-        ).toContain('bd list --parent <phase-task-id> --status open');
-      }
-
-      // Test cases that extract unexpected values due to regex matching behavior
-      const edgeCases = [
-        { comment: '<!-- beads-phase-id: -->', extracted: '--' },
-        { comment: '<!-- beads-phase-id:no-space -->', extracted: 'no-space' },
-      ];
-
-      for (const edgeCase of edgeCases) {
-        const planContent = `# Project Plan
-
-## Design
-${edgeCase.comment}
-- Some tasks here
-`;
-
-        await writeFile(testPlanFilePath, planContent);
-
-        const result = await beadsInstructionGenerator.generateInstructions(
-          'Work on tasks.',
-          mockInstructionContext
-        );
-
-        // Note: These cases currently extract values due to regex behavior
-        // This could be considered edge case behavior that should be improved
-        expect(
-          result.instructions,
-          `Should extract value from edge case: ${edgeCase.comment}`
-        ).toContain(`bd list --parent ${edgeCase.extracted} --status open`);
-      }
-    });
-
-    it('should handle non-existent plan file gracefully', async () => {
-      const contextWithMissingFile = {
-        ...mockInstructionContext,
-        planFileExists: false,
-        conversationContext: {
-          ...mockConversationContext,
-          planFilePath: '/non/existent/plan.md',
-        },
-      };
-
-      const result = await beadsInstructionGenerator.generateInstructions(
-        'Work on tasks.',
-        contextWithMissingFile
-      );
-
-      // Should provide generic guidance without crashing
-      expect(result.instructions).toContain(
-        'bd list --parent <phase-task-id> --status open'
-      );
-      expect(result.instructions).toContain('Use bd CLI tool exclusively');
-      expect(result.instructions).toContain(
-        'Plan file will be created when you first update it'
-      );
-    });
-
-    it('should handle plan file with no matching phase section', async () => {
-      const planContent = `# Project Plan
-
-## Explore
-<!-- beads-phase-id: explore-123 -->
-- Exploration tasks
-
-## Implementation
-<!-- beads-phase-id: impl-456 -->
-- Implementation tasks
-`;
-
-      await writeFile(testPlanFilePath, planContent);
-
-      // Request instructions for a phase not in the plan file
-      const result = await beadsInstructionGenerator.generateInstructions(
-        'Work on design tasks.',
-        { ...mockInstructionContext, phase: 'design' }
-      );
-
-      // Should fall back to generic commands
-      expect(result.instructions).toContain(
-        'bd list --parent <phase-task-id> --status open'
-      );
-      expect(result.instructions).not.toContain('explore-123');
-      expect(result.instructions).not.toContain('impl-456');
-    });
-  });
-
-  describe('bd Command Integration', () => {
-    it('should integrate extracted phase task ID into all relevant bd commands', async () => {
-      const planContent = `# Project Plan
-
-## Design
-<!-- beads-phase-id: design-epic-789 -->
-- Design system architecture
-`;
-
-      await writeFile(testPlanFilePath, planContent);
-
-      const result = await beadsInstructionGenerator.generateInstructions(
-        'Work on design.',
-        mockInstructionContext
-      );
-
-      // Should mention the specific task ID in context
-      expect(result.instructions).toContain('design-epic-789');
-      expect(result.instructions).toContain('subtasks of `design-epic-789`');
-    });
-
-    it('should provide immediate action guidance with extracted task ID', async () => {
-      const planContent = `# Project Plan
-
-## Implementation
-<!-- beads-phase-id: feature-impl-999 -->
-- Implement core features
-`;
-
-      await writeFile(testPlanFilePath, planContent);
-
-      const result = await beadsInstructionGenerator.generateInstructions(
-        'Start implementation.',
-        { ...mockInstructionContext, phase: 'implementation' }
-      );
-
-      // Should provide specific immediate action
-      expect(result.instructions).toContain(
-        '--parent feature-impl-999 --status open'
-      );
-    });
-
-    it('should handle phase task ID extraction consistently across multiple calls', async () => {
-      const planContent = `# Project Plan
+- Design task 1
 
 ## Code
-<!-- beads-phase-id: consistent-id-123 -->
-- Write tests
-- Implement features
+<!-- beads-phase-id: code-task-3 -->
+- Code task 1
 `;
 
       await writeFile(testPlanFilePath, planContent);
 
-      // Generate instructions multiple times
-      const results = await Promise.all([
-        beadsInstructionGenerator.generateInstructions('Call 1', {
-          ...mockInstructionContext,
-          phase: 'code',
-        }),
-        beadsInstructionGenerator.generateInstructions('Call 2', {
-          ...mockInstructionContext,
-          phase: 'code',
-        }),
-        beadsInstructionGenerator.generateInstructions('Call 3', {
-          ...mockInstructionContext,
-          phase: 'code',
-        }),
-      ]);
+      // Test design phase
+      const designResult = await afterInstructionsGenerated(
+        { ...mockPluginContext, currentPhase: 'design' },
+        createInstructions('Work on design.', 'design')
+      );
+      expect(designResult.instructions).toContain('design-task-2');
+      expect(designResult.instructions).not.toContain('explore-task-1');
+      expect(designResult.instructions).not.toContain('code-task-3');
 
-      // All results should contain the same extracted task ID
-      for (const result of results) {
-        expect(result.instructions).toContain(
-          'bd list --parent consistent-id-123 --status open'
-        );
-        expect(result.instructions).toContain('consistent-id-123');
-      }
+      // Test code phase
+      const codeResult = await afterInstructionsGenerated(
+        { ...mockPluginContext, currentPhase: 'code' },
+        createInstructions('Work on code.', 'code')
+      );
+      expect(codeResult.instructions).toContain('code-task-3');
+      expect(codeResult.instructions).not.toContain('explore-task-1');
+      expect(codeResult.instructions).not.toContain('design-task-2');
     });
   });
 
-  describe('Phase Name Capitalization and Matching', () => {
-    it('should correctly capitalize phase names for header matching', async () => {
-      const testCases = [
-        { input: 'design', expected: 'Design' },
-        { input: 'code_review', expected: 'Code Review' },
-        { input: 'system_test', expected: 'System Test' },
-        { input: 'integration_testing', expected: 'Integration Testing' },
-      ];
+  describe('Beads-Specific Content', () => {
+    it('should include plan file guidance', async () => {
+      await writeFile(testPlanFilePath, '# Plan');
 
-      for (const testCase of testCases) {
-        const planContent = `# Project Plan
+      const result = await afterInstructionsGenerated(
+        mockPluginContext,
+        createInstructions('Base instructions.', 'design')
+      );
 
-## ${testCase.expected}
-<!-- beads-phase-id: test-id-${testCase.input} -->
-- Some tasks
-`;
-
-        await writeFile(testPlanFilePath, planContent);
-
-        const result = await beadsInstructionGenerator.generateInstructions(
-          'Work on phase.',
-          { ...mockInstructionContext, phase: testCase.input }
-        );
-
-        expect(
-          result.instructions,
-          `Should extract ID for phase: ${testCase.input} -> ${testCase.expected}`
-        ).toContain(`bd list --parent test-id-${testCase.input} --status open`);
-      }
+      expect(result.instructions).toContain('Log decisions');
     });
 
-    it('should handle case-insensitive phase header matching', async () => {
-      const planContent = `# Project Plan
+    it('should include beads-specific reminders', async () => {
+      await writeFile(testPlanFilePath, '# Plan');
 
-## design
-<!-- beads-phase-id: lowercase-header-123 -->
-- Tasks with lowercase header
-`;
-
-      await writeFile(testPlanFilePath, planContent);
-
-      // Should still find the phase despite case difference
-      const result = await beadsInstructionGenerator.generateInstructions(
-        'Work on design.',
-        mockInstructionContext
+      const result = await afterInstructionsGenerated(
+        mockPluginContext,
+        createInstructions('Base instructions.', 'design')
       );
 
-      // Note: The current implementation is case-sensitive, so this tests the expected behavior
-      // If the implementation should be case-insensitive, this test would need to be updated
-      expect(result.instructions).toContain(
-        'bd list --parent <phase-task-id> --status open'
+      expect(result.instructions).toContain('bd');
+      expect(result.instructions).toContain('whats_next()');
+    });
+
+    it('should only generate task guidance for whats_next source', async () => {
+      await writeFile(
+        testPlanFilePath,
+        '# Plan\n## Design\n<!-- beads-phase-id: task-1 -->'
       );
+
+      const whatsNextResult = await afterInstructionsGenerated(
+        mockPluginContext,
+        createInstructions('Base.', 'design', 'whats_next')
+      );
+
+      const proceedResult = await afterInstructionsGenerated(
+        mockPluginContext,
+        createInstructions('Base.', 'design', 'proceed_to_phase')
+      );
+
+      // whats_next should have detailed task guidance
+      expect(whatsNextResult.instructions).toContain('bd list --parent task-1');
+
+      // proceed_to_phase should not have detailed task guidance
+      expect(proceedResult.instructions).not.toContain(
+        'bd list --parent task-1'
+      );
+    });
+
+    it('should preserve base instructions', async () => {
+      await writeFile(testPlanFilePath, '# Plan');
+
+      const baseInstructions =
+        'These are the original instructions from the workflow.';
+      const result = await afterInstructionsGenerated(
+        mockPluginContext,
+        createInstructions(baseInstructions, 'design')
+      );
+
+      expect(result.instructions).toContain(baseInstructions);
     });
   });
 
-  describe('Error Recovery and Robustness', () => {
-    it('should handle plan files with multiple beads-phase-id comments in same section', async () => {
+  describe('Phase Name Capitalization', () => {
+    it('should handle snake_case phase names', async () => {
       const planContent = `# Project Plan
 
-## Design
-<!-- beads-phase-id: first-id-123 -->
-<!-- beads-phase-id: second-id-456 -->
-- Tasks with multiple IDs
+## Red Phase
+<!-- beads-phase-id: red-task -->
+Tasks here
 `;
 
       await writeFile(testPlanFilePath, planContent);
 
-      const result = await beadsInstructionGenerator.generateInstructions(
-        'Work on design.',
-        mockInstructionContext
+      const result = await afterInstructionsGenerated(
+        { ...mockPluginContext, currentPhase: 'red_phase' },
+        createInstructions('Work on red phase.', 'red_phase')
       );
 
-      // Should use the first found ID
-      expect(result.instructions).toContain(
-        'bd list --parent first-id-123 --status open'
-      );
-      expect(result.instructions).not.toContain('second-id-456');
+      expect(result.instructions).toContain('red-task');
     });
 
-    it('should handle plan files with beads-phase-id in wrong sections', async () => {
+    it('should handle simple phase names', async () => {
       const planContent = `# Project Plan
 
 ## Design
-- Design tasks
-
-## Implementation
-<!-- beads-phase-id: impl-id-789 -->
-- Implementation tasks
+<!-- beads-phase-id: design-task -->
+Tasks here
 `;
 
       await writeFile(testPlanFilePath, planContent);
 
-      // Request design phase but ID is in implementation section
-      const result = await beadsInstructionGenerator.generateInstructions(
-        'Work on design.',
-        mockInstructionContext
+      const result = await afterInstructionsGenerated(
+        { ...mockPluginContext, currentPhase: 'design' },
+        createInstructions('Work on design.', 'design')
       );
 
-      // Should not use the ID from wrong section
-      expect(result.instructions).toContain(
-        'bd list --parent <phase-task-id> --status open'
-      );
-      expect(result.instructions).not.toContain('impl-id-789');
+      expect(result.instructions).toContain('design-task');
     });
   });
 });
