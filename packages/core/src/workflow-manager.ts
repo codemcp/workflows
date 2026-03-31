@@ -50,19 +50,35 @@ export class WorkflowManager {
 
   /**
    * Parse enabled domains from environment variable
+   * Supports both WORKFLOW_DOMAINS and VIBE_WORKFLOW_DOMAINS (legacy)
+   * WORKFLOW_DOMAINS takes precedence if both are set (modern, non-prefixed version preferred)
    */
   private parseEnabledDomains(): Set<string> {
-    const domainsEnv = process.env['VIBE_WORKFLOW_DOMAINS'];
+    // Check both WORKFLOW_DOMAINS and VIBE_WORKFLOW_DOMAINS
+    // WORKFLOW_DOMAINS (modern) takes precedence over VIBE_WORKFLOW_DOMAINS (legacy)
+    const domainsEnv =
+      process.env['WORKFLOW_DOMAINS'] || process.env['VIBE_WORKFLOW_DOMAINS'];
+
     if (!domainsEnv) {
+      logger.debug('No domain configuration found, using default: code');
       return new Set(['code']);
     }
 
-    return new Set(
+    const domains = new Set(
       domainsEnv
         .split(',')
         .map(d => d.trim())
         .filter(d => d)
     );
+
+    logger.debug('Parsed enabled domains', {
+      source: process.env['WORKFLOW_DOMAINS']
+        ? 'WORKFLOW_DOMAINS'
+        : 'VIBE_WORKFLOW_DOMAINS',
+      domains: Array.from(domains),
+    });
+
+    return domains;
   }
 
   /**

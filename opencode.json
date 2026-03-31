@@ -1,13 +1,20 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "logLevel": "DEBUG",
+  "plugin": [
+    "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe/packages/opencode-plugin"
+  ],
   "mcp": {
     "workflows": {
       "type": "local",
       "command": [
-        "npx",
-        "@codemcp/workflows-server@latest"
+        "node",
+        "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe/packages/mcp-server/dist/index.js"
       ]
     }
+  },
+  "tools": {
+    "workflows*": false
   },
   "agent": {
     "vibe": {
@@ -18,6 +25,20 @@
         "workflows_reset_development": "ask",
         "workflows_start_development": "ask",
         "workflows_proceed_to_phase": "ask"
+      },
+      "tools": {
+        "workflows*": true,
+        "start_development": false,
+        "proceed_to_phase": false,
+        "conduct_review": false,
+        "reset_development": false,
+        "setup_project_docs ": false
+      }
+    },
+    "workflows": {
+      "prompt": "whenever you execute the tool, check whether the result returns instructions. Follow those instructions closely. When instructed to interact with the user (e. g. ask questions), don't just move on autonomously, but interact!",
+      "permission": {
+        "proceed_to_phase": "ask"
       }
     }
   }
