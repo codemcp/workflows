@@ -6,21 +6,27 @@
  */
 
 import { homedir } from 'node:os';
-import { createLogger } from '@codemcp/workflows-core';
+import { createLogger, type ILogger } from '@codemcp/workflows-core';
 import { HandlerResult } from './types.js';
 
-const logger = createLogger('ServerHelpers');
+// Default logger for standalone use (MCP server mode)
+// When called from OpenCode plugin, pass logger parameter to avoid stderr pollution
+const defaultLogger = createLogger('ServerHelpers');
 
 /**
  * Normalize and validate project path
  * Ensures we have a valid project path, defaulting to home directory if needed
  */
-export function normalizeProjectPath(projectPath?: string): string {
+export function normalizeProjectPath(
+  projectPath?: string,
+  logger?: ILogger
+): string {
+  const log = logger ?? defaultLogger;
   const path = projectPath || process.cwd();
 
   if (path === '/' || path === '') {
     const homePath = homedir();
-    logger.info('Invalid project path detected, using home directory', {
+    log.info('Invalid project path detected, using home directory', {
       originalPath: path,
       normalizedPath: homePath,
     });
@@ -66,8 +72,10 @@ export function createErrorResult(
  */
 export async function safeExecute<T>(
   operation: () => Promise<T>,
-  errorContext?: string
+  errorContext?: string,
+  logger?: ILogger
 ): Promise<HandlerResult<T>> {
+  const log = logger ?? defaultLogger;
   try {
     const result = await operation();
     return createSuccessResult(result);
@@ -78,7 +86,14 @@ export async function safeExecute<T>(
       ? `${errorContext}: ${errorMessage}`
       : errorMessage;
 
-    logger.error('Operation failed', error as Error, { errorContext });
+    // These are expected user errors, not system failures - don't log as ERROR
+    const isExpectedError =
+      errorMessage.includes('CONVERSATION_NOT_FOUND') ||
+      errorMessage.includes('Invalid workflow:');
+
+    if (!isExpectedError) {
+      log.error('Operation failed', error as Error, { errorContext });
+    }
     return createErrorResult(contextualError);
   }
 }
@@ -201,8 +216,13 @@ export function generateWorkflowDescription(
 /**
  * Log handler execution for debugging
  */
-export function logHandlerExecution(handlerName: string, args: unknown): void {
-  logger.debug(`Executing ${handlerName} handler`, {
+export function logHandlerExecution(
+  handlerName: string,
+  args: unknown,
+  logger?: ILogger
+): void {
+  const log = logger ?? defaultLogger;
+  log.debug(`Executing ${handlerName} handler`, {
     handlerName,
     argsKeys: Object.keys(args || {}),
   });
@@ -213,9 +233,11 @@ export function logHandlerExecution(handlerName: string, args: unknown): void {
  */
 export function logHandlerCompletion(
   handlerName: string,
-  result: HandlerResult<unknown>
+  result: HandlerResult<unknown>,
+  logger?: ILogger
 ): void {
-  logger.debug(`Completed ${handlerName} handler`, {
+  const log = logger ?? defaultLogger;
+  log.debug(`Completed ${handlerName} handler`, {
     handlerName,
     success: result.success,
     hasData: !!result.data,

@@ -5,7 +5,7 @@
  * This replaces the monolithic server.ts with a clean, modular architecture.
  */
 
-import { setMcpServerForLogging, createLogger } from '@codemcp/workflows-core';
+import { registerLogSink, createLogger } from '@codemcp/workflows-core';
 import { ServerConfig } from './types.js';
 import {
   initializeServerComponents,
@@ -16,6 +16,7 @@ import {
 import { createToolRegistry } from './tool-handlers/index.js';
 import { createResourceRegistry } from './resource-handlers/index.js';
 import { createResponseRenderer } from './response-renderer.js';
+import { createMcpLogSink } from './mcp-log-sink.js';
 import type {
   ProceedToPhaseArgs,
   ProceedToPhaseResult,
@@ -75,8 +76,8 @@ export class ResponsibleVibeMCPServer {
       this.components.resourceRegistry = resourceRegistry;
       this.components.responseRenderer = responseRenderer;
 
-      // Register MCP server for logging notifications
-      setMcpServerForLogging(this.components.mcpServer);
+      // Register MCP log sink for log notifications
+      registerLogSink(createMcpLogSink(this.components.mcpServer));
 
       // Register tools and resources with MCP server
       await registerMcpTools(

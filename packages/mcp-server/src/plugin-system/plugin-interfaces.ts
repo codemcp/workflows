@@ -87,6 +87,9 @@ export interface PluginHookContext {
   /** Git branch name */
   gitBranch: string;
 
+  /** Whether the plan file exists at the time of instruction generation */
+  planFileExists: boolean;
+
   /** Target phase (only available in phase transitions) */
   targetPhase?: string;
 
@@ -150,4 +153,6 @@ export interface GeneratedInstructions {
   instructions: string;
   planFilePath: string;
   phase: string;
+  /** Source of the instruction generation */
+  instructionSource?: 'whats_next' | 'proceed_to_phase' | 'start_development';
 }
