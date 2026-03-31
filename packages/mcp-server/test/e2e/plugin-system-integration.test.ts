@@ -1045,6 +1045,7 @@ describe('Plugin System Integration Tests', () => {
 
       expect(Object.keys(response).sort()).toEqual(
         [
+          'allowed_file_patterns',
           'instructions',
           'phase',
           'plan_file_path',

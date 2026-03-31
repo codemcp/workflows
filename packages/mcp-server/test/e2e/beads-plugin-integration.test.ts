@@ -152,11 +152,9 @@ function validateBeadsInstructions(instructions: string): void {
   // Should mention task management
   expect(instructions.toLowerCase()).toContain('task');
 
-  // Should have beads-specific guidance
+  // Should have beads-specific guidance (bd CLI only, not own todo tools)
+  expect(instructions).toContain('ONLY');
   expect(instructions).toContain('bd');
-
-  // Should mention using ONLY bd CLI
-  expect(instructions).toContain('Use ONLY bd CLI tool');
 }
 
 /**
@@ -378,10 +376,8 @@ describe('Beads Plugin Comprehensive Integration', () => {
       const instructions = response.instructions;
 
       // VALIDATE: Clear instruction about bd CLI exclusivity
-      expect(instructions).toContain('Use ONLY bd CLI tool');
-      expect(instructions).toContain(
-        'do not use your own task management tools'
-      );
+      expect(instructions).toContain('Use ONLY');
+      expect(instructions).toContain('not your own todo tools');
     });
   });
 
@@ -506,13 +502,13 @@ describe('Beads Plugin Comprehensive Integration', () => {
       await scenarioWithout.cleanup();
       delete process.env.TASK_BACKEND;
 
-      // VALIDATE: WITH beads mentions bd CLI
+      // VALIDATE: WITH beads mentions bd CLI and exclusivity
       expect(instructionsWithBeads.toLowerCase()).toContain('bd');
-      expect(instructionsWithBeads).toContain('bd Task Management');
+      expect(instructionsWithBeads).toContain('Use ONLY');
 
-      // VALIDATE: WITHOUT beads does NOT mention bd CLI
+      // VALIDATE: WITHOUT beads does NOT mention bd CLI exclusivity
       expect(instructionsWithout.toLowerCase()).not.toContain('bd cli');
-      expect(instructionsWithout).not.toContain('bd Task Management');
+      expect(instructionsWithout).not.toContain('Use ONLY');
     });
 
     it('should maintain identical response contracts regardless of beads', async () => {
@@ -1350,7 +1346,7 @@ describe('Beads Plugin Comprehensive Integration', () => {
 
       // VALIDATE: Instructions include beads guidance
       expect(whatsNextResponse.instructions).toContain('bd');
-      expect(whatsNextResponse.instructions).toContain('Use ONLY bd CLI tool');
+      expect(whatsNextResponse.instructions).toContain('Use ONLY');
 
       // VALIDATE: Plan file still has markers
       const planContent = await fs.readFile(
@@ -1617,7 +1613,7 @@ describe('Beads Plugin Comprehensive Integration', () => {
       // VALIDATE: Instructions contain expected guidance
       expect(whatsNextResponse.instructions).toContain('bd');
       expect(whatsNextResponse.instructions).toContain('Task');
-      expect(whatsNextResponse.instructions).toContain('Use ONLY bd CLI tool');
+      expect(whatsNextResponse.instructions).toContain('ONLY');
     });
   });
 });

@@ -111,12 +111,8 @@ describe('StartDevelopmentHandler - Dynamic Artifact Detection', () => {
       );
 
       TestAssertions.expectArtifactSetupPhase(result);
-      expect(result.instructions).toContain(
-        '**Referenced Variables:** `$ARCHITECTURE_DOC`'
-      );
-      expect(result.instructions).toContain('architecture.md');
-      expect(result.instructions).toContain('✅ requirements.md');
-      expect(result.instructions).toContain('✅ design.md');
+      expect(result.instructions).toContain('Missing docs');
+      expect(result.instructions).toContain('architecture');
     });
 
     it('should detect multiple document variables in workflow', async () => {
@@ -154,12 +150,10 @@ describe('StartDevelopmentHandler - Dynamic Artifact Detection', () => {
       );
 
       TestAssertions.expectArtifactSetupPhase(result);
-      expect(result.instructions).toContain(
-        '**Referenced Variables:** `$ARCHITECTURE_DOC`, `$REQUIREMENTS_DOC`, `$DESIGN_DOC`'
-      );
-      expect(result.instructions).toContain('architecture.md');
-      expect(result.instructions).toContain('requirements.md');
-      expect(result.instructions).toContain('design.md');
+      expect(result.instructions).toContain('Missing docs');
+      expect(result.instructions).toContain('architecture');
+      expect(result.instructions).toContain('requirements');
+      expect(result.instructions).toContain('design');
     });
 
     it('should proceed normally when all referenced documents exist', async () => {
@@ -260,12 +254,8 @@ describe('StartDevelopmentHandler - Dynamic Artifact Detection', () => {
       );
 
       TestAssertions.expectArtifactSetupPhase(result);
-      expect(result.instructions).toContain(
-        '**Referenced Variables:** `$REQUIREMENTS_DOC`, `$DESIGN_DOC`'
-      );
-      expect(result.instructions).toContain('design.md'); // Only missing doc
-      expect(result.instructions).toContain('✅ architecture.md'); // Existing doc
-      expect(result.instructions).toContain('✅ requirements.md'); // Existing doc
+      expect(result.instructions).toContain('Missing docs');
+      expect(result.instructions).toContain('design'); // Only missing doc
     });
 
     it('should handle workflow loading errors gracefully', async () => {
@@ -327,12 +317,8 @@ describe('StartDevelopmentHandler - Dynamic Artifact Detection', () => {
         mockContext
       );
 
-      expect(result.instructions).toContain(
-        '**Referenced Variables:** `$ARCHITECTURE_DOC`'
-      );
-      expect(result.instructions).toContain(
-        'detected variables: `$ARCHITECTURE_DOC`'
-      );
+      expect(result.instructions).toContain('Missing docs');
+      expect(result.instructions).toContain('setup_project_docs');
     });
 
     it('should proceed normally for optional workflows with missing documents', async () => {

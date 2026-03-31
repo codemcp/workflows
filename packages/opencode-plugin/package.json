@@ -1,0 +1,49 @@
+{
+  "name": "@codemcp/workflows-opencode",
+  "version": "0.1.0",
+  "description": "OpenCode plugin for structured development workflows",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc --watch",
+    "clean:build": "rimraf ./dist",
+    "test": "vitest --run",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format:check": "prettier --check .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@codemcp/workflows-core": "workspace:*",
+    "@codemcp/workflows-server": "workspace:*",
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "vitest": "4.0.18"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/sdk": "*"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "workflows",
+    "development"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mrsimpson/responsible-vibe-mcp"
+  }
+}
