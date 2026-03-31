@@ -12,7 +12,7 @@ import { stripWhatsNextReferences } from '../utils.js';
 
 export function createProceedToPhaseTool(
   getServerContext: () => Promise<ServerContext>,
-  updateCachedState: (result: WhatsNextResult, workflowName?: string) => void
+  setBufferedInstructions: (result: WhatsNextResult) => void
 ): ToolDefinition {
   return tool({
     description:
@@ -54,10 +54,9 @@ export function createProceedToPhaseTool(
 
         const data = unwrapResult(result);
 
-        // Update cached state with new phase info and instructions
-        // This is the proper way: the tool provides the instructions directly
-        // so chat.message hook will use them instead of re-querying
-        updateCachedState({
+        // Buffer instructions so the next chat.message hook uses them
+        // instead of re-querying WhatsNextHandler (which may read stale disk state)
+        setBufferedInstructions({
           phase: data.phase,
           instructions: data.instructions,
           plan_file_path: data.plan_file_path,

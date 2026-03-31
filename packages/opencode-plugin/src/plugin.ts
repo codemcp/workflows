@@ -12,7 +12,6 @@
  * Logs are sent via OpenCode SDK's client.app.log() API
  */
 
-import * as path from 'node:path';
 import type { Plugin, PluginInput, Hooks } from './types.js';
 import { createProceedToPhaseTool } from './tool-handlers/proceed-to-phase.js';
 import { createConductReviewTool } from './tool-handlers/conduct-review.js';
@@ -23,13 +22,7 @@ import {
   createOpenCodeLogger,
   createOpenCodeLoggerFactory,
 } from './opencode-logger.js';
-import {
-  PlanManager,
-  InstructionGenerator,
-  FileStorage,
-  ConversationManager,
-  WorkflowManager,
-} from '@codemcp/workflows-core';
+import { PlanManager, InstructionGenerator } from '@codemcp/workflows-core';
 import {
   WhatsNextHandler,
   type WhatsNextResult,
@@ -41,18 +34,15 @@ import {
 import { stripWhatsNextReferences } from './utils.js';
 
 /**
- * Cached workflow state from tools or WhatsNextHandler.
- * Used by tool.execute.before hook for file edit validation.
- * Used by chat.message hook for phase instructions.
+ * Buffered instructions from proceed_to_phase or start_development tools.
+ * Consumed (and cleared) by the next chat.message hook invocation.
+ * Falls back to WhatsNextHandler when null.
  */
-interface CachedWorkflowState {
-  active: boolean;
-  phase: string | null;
-  phaseDescription: string | null;
+interface BufferedInstructions {
+  phase: string;
+  instructions: string;
+  planFilePath: string;
   allowedFilePatterns: string[];
-  workflowName: string | null;
-  planFilePath: string | null;
-  instructions: string | null;
 }
 
 /**
@@ -140,17 +130,22 @@ export const WorkflowsPlugin: Plugin = async (
   > | null = null;
   let serverContextInitialized = false;
 
-  // Cached workflow state - updated by tools and WhatsNextHandler
-  // Used by chat.message hook for instructions and tool.execute.before for file patterns
-  let cachedState: CachedWorkflowState = {
-    active: false,
-    phase: null,
-    phaseDescription: null,
-    allowedFilePatterns: ['**/*'],
-    workflowName: null,
-    planFilePath: null,
-    instructions: null,
-  };
+  // Buffered instructions from tools (proceed_to_phase, start_development).
+  // Consumed and cleared by the next chat.message hook call.
+  let bufferedInstructions: BufferedInstructions | null = null;
+
+  /**
+   * Set buffered instructions from a tool result.
+   * The next chat.message hook will use these instead of calling WhatsNextHandler.
+   */
+  function setBufferedInstructions(result: WhatsNextResult) {
+    bufferedInstructions = {
+      phase: result.phase,
+      instructions: result.instructions,
+      planFilePath: result.plan_file_path,
+      allowedFilePatterns: result.allowed_file_patterns,
+    };
+  }
 
   // Helper to get an initialized ServerContext for handler delegation
   // Creates once, reuses for all subsequent calls
@@ -186,87 +181,35 @@ export const WorkflowsPlugin: Plugin = async (
       // Ignore errors during startup plugin check
     });
 
-  // Helper to update cached state from WhatsNextResult or tool result
-  function updateCachedState(result: WhatsNextResult, workflowName?: string) {
-    cachedState = {
-      active: true,
-      phase: result.phase,
-      phaseDescription: null, // Not provided by WhatsNextResult, but not critical
-      allowedFilePatterns: result.allowed_file_patterns,
-      workflowName: workflowName ?? cachedState.workflowName,
-      planFilePath: result.plan_file_path,
-      instructions: result.instructions,
-    };
-  }
-
   /**
-   * Load state directly from core without triggering transition analysis.
-   * Used by tool.execute.before to get current phase restrictions.
-   * Returns true if state was successfully loaded.
+   * Read current workflow state from ConversationManager via shared ServerContext.
+   * Returns null if no active conversation exists.
    */
-  async function loadStateDirectly(): Promise<boolean> {
+  async function getWorkflowState(): Promise<{
+    phase: string;
+    phaseDescription: string | null;
+    allowedFilePatterns: string[];
+    workflowName: string;
+  } | null> {
     try {
-      const vibeDir = path.join(input.directory, '.vibe');
-      const storageDir = path.join(vibeDir, 'storage');
-
-      const fileStorage = new FileStorage(storageDir);
-      await fileStorage.initialize();
-
-      const workflowManager = new WorkflowManager();
-      workflowManager.loadProjectWorkflows(input.directory);
-
-      const conversationManager = new ConversationManager(
-        fileStorage,
-        workflowManager,
-        input.directory
-      );
-
-      // Get conversation context (this doesn't trigger transitions)
-      const context = await conversationManager.getConversationContext();
-
-      // Load the workflow to get phase restrictions
-      const stateMachine = workflowManager.loadWorkflowForProject(
-        input.directory,
+      const serverContext = await getServerContext();
+      const context =
+        await serverContext.conversationManager.getConversationContext();
+      const stateMachine = serverContext.workflowManager.loadWorkflowForProject(
+        context.projectPath,
         context.workflowName
       );
       const phaseState = stateMachine.states[context.currentPhase];
-      const allowedFilePatterns = phaseState?.allowed_file_patterns ?? ['**/*'];
-
-      // Update cached state
-      cachedState = {
-        active: true,
+      return {
         phase: context.currentPhase,
         phaseDescription: phaseState?.description ?? null,
-        allowedFilePatterns,
+        allowedFilePatterns: phaseState?.allowed_file_patterns ?? ['**/*'],
         workflowName: context.workflowName,
-        planFilePath: context.planFilePath,
-        instructions: null, // Will be populated by chat.message or tools
       };
-
-      return true;
     } catch (_error) {
-      // No conversation found or other error
-      return false;
+      return null;
     }
   }
-
-  // Try to get initial state directly (without triggering transitions)
-  loadStateDirectly()
-    .then(loaded => {
-      if (loaded) {
-        logger.debug('Initial state loaded directly', {
-          active: cachedState.active,
-          phase: cachedState.phase,
-          patterns: cachedState.allowedFilePatterns,
-        });
-      }
-    })
-    .catch(err => {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      if (!errorMessage.includes('CONVERSATION_NOT_FOUND')) {
-        logger.error('Failed to load initial state', { error: errorMessage });
-      }
-    });
 
   return {
     /**
@@ -281,127 +224,75 @@ export const WorkflowsPlugin: Plugin = async (
         return;
       }
 
-      // Delegate to WhatsNextHandler for instruction generation
       let result: WhatsNextResult | null = null;
-      try {
-        const serverContext = await getServerContext();
-        const handler = new WhatsNextHandler();
-        const handlerResult = await handler.handle({}, serverContext);
 
-        if (!handlerResult.success || !handlerResult.data) {
-          // No active workflow - prompt user to start one
-          logger.info(
-            'chat.message: No active workflow, injecting start prompt'
-          );
+      // If a tool (proceed_to_phase / start_development) buffered instructions,
+      // use those — they are authoritative and avoid potential staleness from
+      // re-querying WhatsNextHandler.
+      if (bufferedInstructions) {
+        logger.debug(
+          'chat.message: Using buffered instructions from tool call',
+          { phase: bufferedInstructions.phase }
+        );
+        result = {
+          phase: bufferedInstructions.phase,
+          instructions: bufferedInstructions.instructions,
+          plan_file_path: bufferedInstructions.planFilePath,
+          allowed_file_patterns: bufferedInstructions.allowedFilePatterns,
+        };
+        // Consume the buffer — next call will fall through to WhatsNextHandler
+        bufferedInstructions = null;
+      } else {
+        // No buffered instructions — query WhatsNextHandler (reads from disk)
+        try {
+          const serverContext = await getServerContext();
+          const handler = new WhatsNextHandler();
+          const handlerResult = await handler.handle({}, serverContext);
 
-          const startPrompt = `No Active Workflow Use the \`start_development\` tool to begin.`;
+          if (!handlerResult.success || !handlerResult.data) {
+            logger.info(
+              'chat.message: No active workflow, injecting start prompt'
+            );
+            output.parts.push({
+              id: `prt_workflows_${Date.now()}`,
+              sessionID: hookInput.sessionID,
+              messageID: hookInput.messageID || output.message.id,
+              type: 'text' as const,
+              text: `No Active Workflow Use the \`start_development\` tool to begin.`,
+            } as (typeof output.parts)[0]);
+            return;
+          }
 
-          const syntheticPart = {
-            id: `prt_workflows_${Date.now()}`,
-            sessionID: hookInput.sessionID,
-            messageID: hookInput.messageID || output.message.id,
-            type: 'text' as const,
-            text: startPrompt,
-          };
-
-          output.parts.push(syntheticPart as (typeof output.parts)[0]);
-          logger.info('chat.message: injected start-workflow prompt', {
-            sessionID: hookInput.sessionID,
-            partPreview: startPrompt.slice(0, 200),
+          result = handlerResult.data;
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('CONVERSATION_NOT_FOUND')) {
+            logger.info(
+              'chat.message: No active workflow, injecting start prompt'
+            );
+            output.parts.push({
+              id: `prt_workflows_${Date.now()}`,
+              sessionID: hookInput.sessionID,
+              messageID: hookInput.messageID || output.message.id,
+              type: 'text' as const,
+              text: `No Active Workflow Use the \`start_development\` tool to begin.`,
+            } as (typeof output.parts)[0]);
+            return;
+          }
+          logger.error('chat.message: Error delegating to WhatsNextHandler', {
+            error: errorMessage,
           });
-
-          // Mark workflow as inactive
-          cachedState = {
-            active: false,
-            phase: null,
-            phaseDescription: null,
-            allowedFilePatterns: ['**/*'],
-            workflowName: null,
-            planFilePath: null,
-            instructions: null,
-          };
           return;
         }
-
-        result = handlerResult.data;
-
-        // PROPER FIX: If we already have cached instructions (from a tool call like
-        // proceed_to_phase), use those instead of re-querying. This eliminates the
-        // race condition entirely - the tool's instructions are authoritative.
-        if (cachedState.instructions && cachedState.planFilePath) {
-          // We have instructions from a tool call, use them instead of WhatsNextHandler result
-          logger.info(
-            'chat.message: Using instructions from cached state (tool call)',
-            {
-              phase: cachedState.phase,
-              source: 'tool-cache',
-            }
-          );
-          result = {
-            phase: cachedState.phase || '',
-            instructions: cachedState.instructions,
-            plan_file_path: cachedState.planFilePath,
-            allowed_file_patterns: cachedState.allowedFilePatterns,
-          };
-        } else {
-          // No cached instructions, update from WhatsNextHandler (first message or external state change)
-          updateCachedState(result);
-          logger.debug(
-            'chat.message: Updated cached state from WhatsNextHandler',
-            {
-              phase: result.phase,
-            }
-          );
-        }
-
-        logger.info('chat.message hook fired', {
-          sessionID: hookInput.sessionID,
-          workflow: cachedState.workflowName,
-          phase: result.phase,
-        });
-      } catch (error) {
-        // Handle CONVERSATION_NOT_FOUND gracefully
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        if (errorMessage.includes('CONVERSATION_NOT_FOUND')) {
-          logger.info(
-            'chat.message: No active workflow, injecting start prompt'
-          );
-
-          const startPrompt = `No Active Workflow Use the \`start_development\` tool to begin.`;
-
-          const syntheticPart = {
-            id: `prt_workflows_${Date.now()}`,
-            sessionID: hookInput.sessionID,
-            messageID: hookInput.messageID || output.message.id,
-            type: 'text' as const,
-            text: startPrompt,
-          };
-
-          output.parts.push(syntheticPart as (typeof output.parts)[0]);
-
-          cachedState = {
-            active: false,
-            phase: null,
-            phaseDescription: null,
-            allowedFilePatterns: ['**/*'],
-            workflowName: null,
-            planFilePath: null,
-            instructions: null,
-          };
-          return;
-        }
-        logger.error('chat.message: Error delegating to WhatsNextHandler', {
-          error: errorMessage,
-        });
-        return;
       }
 
-      // Strip whats_next() references - plugin auto-injects instructions
-      if (!result) {
-        logger.error('chat.message: Result is null after processing');
-        return;
-      }
+      logger.info('chat.message hook fired', {
+        sessionID: hookInput.sessionID,
+        phase: result.phase,
+      });
+
+      // Strip whats_next() references — plugin auto-injects instructions
       const instructionText = stripWhatsNextReferences(result.instructions);
 
       if (!instructionText.trim()) {
@@ -409,18 +300,15 @@ export const WorkflowsPlugin: Plugin = async (
         return;
       }
 
-      // Add synthetic part with phase instructions
-      const syntheticPart = {
+      output.parts.push({
         id: `prt_workflows_${Date.now()}`,
         sessionID: hookInput.sessionID,
         messageID: hookInput.messageID || output.message.id,
         type: 'text' as const,
         text: instructionText,
-      };
+      } as (typeof output.parts)[0]);
 
-      output.parts.push(syntheticPart as (typeof output.parts)[0]);
       logger.info('chat.message: injected phase instructions', {
-        workflow: cachedState.workflowName,
         phase: result.phase,
         length: instructionText.length,
         preview: instructionText.slice(0, 300),
@@ -438,76 +326,52 @@ export const WorkflowsPlugin: Plugin = async (
         return;
       }
 
-      // Log every tool execution to verify hook is being called
-      logger.info('tool.execute.before hook called', {
-        tool: hookInput.tool,
-        sessionID: hookInput.sessionID,
-        callID: hookInput.callID,
-        cachedStateActive: cachedState.active,
-        cachedPhase: cachedState.phase,
-      });
-
-      // If cached state is not populated, try to load it directly
-      // This handles the case where tool.execute.before is called before chat.message
-      if (!cachedState.active) {
-        logger.debug('Cached state not active, loading directly');
-        const loaded = await loadStateDirectly();
-        if (!loaded) {
-          // No active workflow - allow all edits
-          logger.debug('No workflow loaded, allowing all edits');
-          return;
-        }
-        logger.debug('Loaded state directly', {
-          phase: cachedState.phase,
-          patterns: cachedState.allowedFilePatterns,
-        });
-      }
-
-      // If still not active, allow all edits
-      if (!cachedState.active) {
+      const editTools = ['edit', 'write', 'patch', 'apply_patch', 'multiedit'];
+      if (!editTools.includes(hookInput.tool)) {
         return;
       }
 
-      const editTools = ['edit', 'write', 'patch', 'apply_patch', 'multiedit'];
+      // Read current workflow state from ConversationManager
+      const state = await getWorkflowState();
+      if (!state) {
+        // No active workflow — allow all edits
+        return;
+      }
 
-      if (editTools.includes(hookInput.tool)) {
-        // Extract file path from tool args (check both filePath and path properties)
-        const args = output.args as Record<string, unknown>;
-        const filePath = String(args?.filePath || args?.path || '');
+      logger.debug('tool.execute.before', {
+        tool: hookInput.tool,
+        phase: state.phase,
+      });
 
-        if (!filePath) {
-          logger.warn('Edit tool called without filePath', {
-            tool: hookInput.tool,
-            args,
-          });
-          return;
-        }
+      // Extract file path from tool args
+      const args = output.args as Record<string, unknown>;
+      const filePath = String(args?.filePath || args?.path || '');
 
-        logger.debug('tool.execute.before', { tool: hookInput.tool, filePath });
+      if (!filePath) {
+        logger.warn('Edit tool called without filePath', {
+          tool: hookInput.tool,
+        });
+        return;
+      }
 
-        // Check if file edit is allowed using cached patterns
-        if (!isFileAllowed(filePath, cachedState.allowedFilePatterns)) {
-          const phase = cachedState.phase || 'unknown';
+      if (!isFileAllowed(filePath, state.allowedFilePatterns)) {
+        const allowedList = state.allowedFilePatterns
+          .map(p => `  • ${p}`)
+          .join('\n');
 
-          // Format error message to be actionable for the model
-          const allowedList = cachedState.allowedFilePatterns
-            .map(p => `  • ${p}`)
-            .join('\n');
+        const error = `BLOCKED: Cannot edit "${filePath}" in ${state.phase} phase.
 
-          const error = `BLOCKED: Cannot edit "${filePath}" in ${phase} phase.
-
-Current phase "${phase}" only allows editing:
+Current phase "${state.phase}" only allows editing:
 ${allowedList}
 
 ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editing this file type, OR focus on files matching the allowed patterns above.`;
 
-          logger.error('BLOCKING edit', {
-            filePath,
-            phase,
-            allowedPatterns: cachedState.allowedFilePatterns,
-          });
-          throw new Error(error);
-        }
+        logger.error('BLOCKING edit', {
+          filePath,
+          phase: state.phase,
+          allowedPatterns: state.allowedFilePatterns,
+        });
+        throw new Error(error);
       }
     },
 
@@ -529,28 +393,20 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
         sessionID: hookInput.sessionID,
       });
 
-      // If cached state is not populated, try to load it directly
-      if (!cachedState.active) {
-        await loadStateDirectly();
-      }
-
-      // Only inject if workflow is active
-      if (!cachedState.active || !cachedState.phase) {
+      const state = await getWorkflowState();
+      if (!state) {
         logger.debug('No active workflow - skipping compaction guidance');
         return;
       }
 
-      // Minimal guidance: what to preserve + continuation instructions
       output.context.push(
         'Preserve: user intents, key decisions, significant changes and the reasoning why they were made. Remove tool calls, intermediate thoughts, and minor details.'
       );
       output.context.push(
-        `End summary with: "Continue ${cachedState.phase} phase. ${cachedState.phaseDescription || ''}"`
+        `End summary with: "Continue ${state.phase} phase. ${state.phaseDescription || ''}"`
       );
 
-      logger.info('Injected compaction guidance', {
-        phase: cachedState.phase,
-      });
+      logger.info('Injected compaction guidance', { phase: state.phase });
     },
 
     /**
@@ -599,7 +455,7 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
       start_development: createStartDevelopmentTool(
         input.directory,
         getServerContext,
-        updateCachedState
+        setBufferedInstructions
       ),
 
       /**
@@ -608,7 +464,7 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
        */
       proceed_to_phase: createProceedToPhaseTool(
         getServerContext,
-        updateCachedState
+        setBufferedInstructions
       ),
 
       /**

@@ -13,7 +13,7 @@ import { stripWhatsNextReferences } from '../utils.js';
 export function createStartDevelopmentTool(
   projectDir: string,
   getServerContext: () => Promise<ServerContext>,
-  updateCachedState: (result: WhatsNextResult, workflowName?: string) => void
+  setBufferedInstructions: (result: WhatsNextResult) => void
 ): ToolDefinition {
   // Load available workflows for description
   // NOTE: Using getAvailableWorkflowsForProject() to respect:
@@ -72,16 +72,13 @@ export function createStartDevelopmentTool(
           phase: data.phase,
         });
 
-        // Update cached state with new workflow info
-        updateCachedState(
-          {
-            phase: data.phase,
-            instructions: data.instructions,
-            plan_file_path: data.plan_file_path,
-            allowed_file_patterns: data.allowed_file_patterns ?? ['**/*'],
-          },
-          args.workflow
-        );
+        // Buffer instructions for the next chat.message hook
+        setBufferedInstructions({
+          phase: data.phase,
+          instructions: data.instructions,
+          plan_file_path: data.plan_file_path,
+          allowed_file_patterns: data.allowed_file_patterns ?? ['**/*'],
+        });
 
         // Return the instructions from the handler (strip whats_next references)
         return stripWhatsNextReferences(data.instructions);
