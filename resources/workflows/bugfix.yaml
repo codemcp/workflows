@@ -26,6 +26,10 @@ metadata:
 states:
   reproduce:
     description: 'Reproduce and understand the bug'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
     default_instructions: |
       Gather specific information to reliably reproduce the reported bug:
       - What are the exact OS, browser/runtime versions, and hardware specs?
@@ -42,6 +46,10 @@ states:
 
   analyze:
     description: 'Analyze the bug and identify root cause'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
     default_instructions: Examine the code paths involved in the bug, identify the root cause, and understand why the issue occurs. Use debugging tools, add logging, and trace through the problematic code. Document your analysis and create tasks as needed.
     transitions:
       - trigger: 'need_more_reproduction'
@@ -66,6 +74,8 @@ states:
 
   fix:
     description: 'Implement the bug fix'
+    allowed_file_patterns:
+      - '**/*'
     default_instructions: |
       Implement the solution based on your analysis:
 
@@ -100,6 +110,8 @@ states:
 
   verify:
     description: 'Verify the fix and ensure no regressions'
+    allowed_file_patterns:
+      - '**/*'
     default_instructions: Test the fix thoroughly to ensure the original bug is resolved and no new issues were introduced. Run existing tests, create new ones if needed, and verify the solution is robust.
     transitions:
       - trigger: 'fix_needs_adjustment'
@@ -123,6 +135,8 @@ states:
 
   finalize:
     description: 'Code cleanup and documentation finalization'
+    allowed_file_patterns:
+      - '**/*'
     default_instructions: |
       Ensure code quality and documentation accuracy through systematic cleanup and review.
 

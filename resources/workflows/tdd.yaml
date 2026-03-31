@@ -26,6 +26,10 @@ metadata:
 states:
   explore:
     description: 'Research and exploration phase - understanding the problem space and codebase'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
     default_instructions: |
       **STEP 1:** Gather context about what needs to be developed. Focus on the WHY and WHAT, not the HOW.
 
@@ -46,6 +50,8 @@ states:
 
   red:
     description: 'RED phase - Write a failing test that defines the expected behavior'
+    allowed_file_patterns:
+      - '**/*'
     default_instructions: |
       Write a failing test that defines the expected behavior for the feature.
 
@@ -81,6 +87,8 @@ states:
 
   green:
     description: 'GREEN phase - Write only the necessary code to make the test pass'
+    allowed_file_patterns:
+      - '**/*'
     default_instructions: |
       Implement the necessary code to make the failing test pass with proper functionality.
 
@@ -120,6 +128,8 @@ states:
 
   refactor:
     description: 'REFACTOR phase - Improve code quality while keeping tests green (cleanup phase)'
+    allowed_file_patterns:
+      - '**/*'
     default_instructions: |
       Improve code quality while keeping all tests green. This is the cleanup phase where you enhance readability and maintainability.
 

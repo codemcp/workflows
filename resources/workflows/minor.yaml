@@ -26,6 +26,10 @@ metadata:
 states:
   explore:
     description: 'Analysis and design phase - understanding and planning without implementation'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
     default_instructions: >
       Understand the problem, analyze existing patterns, and design your approach.
       Consider the scope and impact of the change.
@@ -49,6 +53,8 @@ states:
 
   implement:
     description: 'Combined implementation phase - code, test, and commit'
+    allowed_file_patterns:
+      - '**/*'
     default_instructions: >
       Write clean, focused code for the minor enhancement, test your changes, and prepare for commit.
 
@@ -85,6 +91,8 @@ states:
 
   finalize:
     description: 'Code cleanup and documentation finalization'
+    allowed_file_patterns:
+      - '**/*'
     default_instructions: >
       Ensure code quality and documentation accuracy through systematic cleanup and review.
 

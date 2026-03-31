@@ -27,6 +27,10 @@ metadata:
 states:
   ideation:
     description: 'Deep requirements discovery and PRD creation phase'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
     default_instructions: |
       Understand WHAT the system should do, WHO will use it, WHY it's needed, and WHAT'S in/out of scope by exploring:
       - Are there existing solutions? What gaps do they have?
@@ -47,6 +51,10 @@ states:
 
   architecture:
     description: 'Tech stack selection and architecture design phase'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
     default_instructions: |
       Design the technical solution based on requirements from `$REQUIREMENTS_DOC`.
 
@@ -82,6 +90,10 @@ states:
 
   plan:
     description: 'Implementation planning phase based on established architecture'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
     default_instructions: |
       Create a detailed implementation strategy based on your completed architecture in `$ARCHITECTURE_DOC` and requirements from `$REQUIREMENTS_DOC`.
 
@@ -118,6 +130,8 @@ states:
 
   code:
     description: 'Implementation phase following the established plan and architecture'
+    allowed_file_patterns:
+      - '**/*'
     default_instructions: |
       Build the solution following your plan and detailed design from `$DESIGN_DOC` using the architecture from `$ARCHITECTURE_DOC`.
 
@@ -151,6 +165,8 @@ states:
 
   finalize:
     description: 'Code cleanup and documentation finalization'
+    allowed_file_patterns:
+      - '**/*'
     default_instructions: |
       This phase ensures code quality and documentation accuracy through systematic cleanup and review.
 

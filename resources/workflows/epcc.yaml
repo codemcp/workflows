@@ -26,6 +26,10 @@ metadata:
 states:
   explore:
     description: 'Research and exploration phase - understanding the problem space'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
     default_instructions: |
       Research the codebase to understand existing patterns and gather context about the problem space.
 
@@ -43,6 +47,10 @@ states:
 
   plan:
     description: 'Planning phase - creating a detailed implementation strategy'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
     default_instructions: |
       Create a detailed implementation strategy based on your exploration:
 
@@ -83,6 +91,8 @@ states:
 
   code:
     description: 'Implementation phase - writing and building the solution'
+    allowed_file_patterns:
+      - '**/*'
     default_instructions: |
       Follow your plan to build the solution:
 
@@ -124,6 +134,8 @@ states:
 
   commit:
     description: 'Code cleanup and documentation finalization'
+    allowed_file_patterns:
+      - '**/*'
     default_instructions: >
       Ensure code quality and documentation accuracy through systematic cleanup and review.
 
