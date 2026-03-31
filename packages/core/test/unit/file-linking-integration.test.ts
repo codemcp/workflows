@@ -142,7 +142,7 @@ describe('File Linking Integration', () => {
       const result = await fileDetectionManager.detectDocumentationFiles();
       const suggestions = fileDetectionManager.formatSuggestions(result);
 
-      expect(suggestions).toContain('Existing documentation files detected');
+      expect(suggestions).toContain('Found:');
       expect(suggestions).toContain('README.md');
       expect(suggestions).toContain('setup_project_docs');
     });

@@ -7,21 +7,16 @@
 import { describe, it, expect, beforeEach, Mocked, vi } from 'vitest';
 import { TestAccess } from '../utils/test-access.js';
 import { InstructionGenerator } from '../../src/instruction-generator.js';
-import { PlanManager } from '../../src/plan-manager.js';
 import { ProjectDocsManager } from '@codemcp/workflows-core';
 import type { ConversationContext } from '../../src/types.js';
 import type { InstructionContext } from '../../src/interfaces/instruction-generator.interface.js';
 import { join } from 'node:path';
-
-// Mock PlanManager
-vi.mock('../../src/plan-manager.js');
 
 // Mock ProjectDocsManager
 vi.mock('../../src/project-docs-manager.js');
 
 describe('InstructionGenerator', () => {
   let instructionGenerator: InstructionGenerator;
-  let mockPlanManager: Mocked<PlanManager>;
   let mockProjectDocsManager: Mocked<ProjectDocsManager>;
   let testProjectPath: string;
   let mockConversationContext: ConversationContext;
@@ -29,13 +24,6 @@ describe('InstructionGenerator', () => {
 
   beforeEach(() => {
     testProjectPath = '/test/project';
-
-    // Mock PlanManager
-    mockPlanManager = {
-      generatePlanFileGuidance: vi
-        .fn()
-        .mockReturnValue('Test plan file guidance'),
-    } as unknown as Mocked<PlanManager>;
 
     // Mock ProjectDocsManager
     mockProjectDocsManager = {
@@ -57,7 +45,7 @@ describe('InstructionGenerator', () => {
     } as unknown as Mocked<ProjectDocsManager>;
 
     // Create instruction generator and inject mocks
-    instructionGenerator = new InstructionGenerator(mockPlanManager);
+    instructionGenerator = new InstructionGenerator();
     TestAccess.injectMock(
       instructionGenerator,
       'projectDocsManager',
@@ -78,7 +66,7 @@ describe('InstructionGenerator', () => {
       conversationContext: mockConversationContext,
       transitionReason: 'Test transition',
       isModeled: false,
-      planFileExists: true,
+      instructionSource: 'whats_next',
     };
   });
 
@@ -168,9 +156,9 @@ describe('InstructionGenerator', () => {
         mockInstructionContext
       );
 
-      // Should contain enhanced instruction elements
-      expect(result.instructions).toContain('**Workflow Continuity:**');
-      expect(result.instructions).toContain('Add newly discovered tasks');
+      // Should contain minimal workflow guidance
+      expect(result.instructions).toContain('Read');
+      expect(result.instructions).toContain('whats_next()');
 
       // Should contain substituted variable
       expect(result.instructions).toContain(

@@ -7,11 +7,11 @@
  * Handles variable substitution for project artifact references.
  */
 
-// ConversationContext import removed as it's not used
-import { PlanManager } from './plan-manager.js';
 import { ProjectDocsManager } from './project-docs-manager.js';
 import type { YamlStateMachine } from './state-machine-types.js';
-// Task backend detection now handled by factory pattern
+import type { ILogger } from './logger.js';
+import { createLogger } from './logger.js';
+import { capitalizePhase } from './string-utils.js';
 import type {
   IInstructionGenerator,
   InstructionContext,
@@ -21,16 +21,14 @@ import type {
 export class InstructionGenerator implements IInstructionGenerator {
   private projectDocsManager: ProjectDocsManager;
 
-  constructor(_planManager: PlanManager) {
-    // planManager parameter kept for API compatibility but not stored since unused
-    this.projectDocsManager = new ProjectDocsManager();
+  constructor(logger: ILogger = createLogger('InstructionGenerator')) {
+    this.projectDocsManager = new ProjectDocsManager(logger);
   }
 
   /**
-   * Set the state machine definition for dynamic instruction generation
+   * No-op: all phase context is provided per-call via InstructionContext.
    */
   setStateMachine(_stateMachine: YamlStateMachine): void {
-    // stateMachine parameter kept for API compatibility but not stored since unused
     return;
   }
 
@@ -56,8 +54,6 @@ export class InstructionGenerator implements IInstructionGenerator {
 
     return {
       instructions: enhancedInstructions,
-      planFileGuidance:
-        'Task management guidance is now included in main instructions',
       metadata: {
         phase: context.phase,
         planFilePath: context.conversationContext.planFilePath,
@@ -107,33 +103,27 @@ export class InstructionGenerator implements IInstructionGenerator {
     baseInstructions: string,
     context: InstructionContext
   ): Promise<string> {
-    const { phase, conversationContext, planFileExists } = context;
+    const { phase, conversationContext, allowedFilePatterns } = context;
 
-    const phaseName = this.capitalizePhase(phase);
+    const phaseName = capitalizePhase(phase);
 
     let workflowSection = `---
-**Workflow Continuity:**
-Maintain \`${conversationContext.planFilePath}\`:
-- Work through tasks in the "${phaseName}" section; Focus on those tasks!
-- Add newly discovered tasks; log decisions in "Key Decisions"
-- DO NOT maintain tasks in other tools or documents than explicitly stated in this plan file!`;
+**Read \`${conversationContext.planFilePath}\`** for context.
+- Focus on "${phaseName}" tasks, log decisions in "Key Decisions"
+- Do NOT use other task/todo tools - use only the plan file for task tracking`;
 
-    if (!planFileExists) {
-      workflowSection += '\n- Note: plan file will be created on first update';
+    // Add file restriction guidance if patterns are restricted
+    if (
+      allowedFilePatterns &&
+      allowedFilePatterns.length > 0 &&
+      !allowedFilePatterns.includes('**/*') &&
+      !allowedFilePatterns.includes('*')
+    ) {
+      workflowSection += `\n- Files allowed: \`${allowedFilePatterns.join('`, `')}\``;
     }
 
-    workflowSection += '\n\nCall `whats_next()` after each user message.';
+    workflowSection += '\n\nCall `whats_next()` after user messages.';
 
     return `## ${phaseName} Phase\n\n${baseInstructions}\n\n${workflowSection}`;
-  }
-
-  /**
-   * Capitalize phase name for display
-   */
-  private capitalizePhase(phase: string): string {
-    return phase
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
   }
 }

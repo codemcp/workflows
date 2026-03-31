@@ -87,9 +87,7 @@ const instructionGeneratorRegistration: ImplementationRegistration<IInstructionG
     description:
       'Default instruction generator that creates context-aware LLM instructions with variable substitution and task backend integration',
     createInstance: () => {
-      // Create a mock PlanManager for the InstructionGenerator constructor
-      const mockPlanManager = new PlanManager();
-      return new InstructionGenerator(mockPlanManager);
+      return new InstructionGenerator();
     },
     setup: async () => {
       await setupTestDirectory();

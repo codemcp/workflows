@@ -361,4 +361,37 @@ export class StateMachineLoader {
     // Fall back to default instructions for the phase
     return stateDefinition.default_instructions;
   }
+
+  /**
+   * Get allowed file patterns for a specific phase.
+   * Returns undefined if no restrictions are defined (all files allowed).
+   *
+   * @param phase - The phase/state name to get patterns for
+   * @returns Array of glob patterns or undefined if all files are allowed
+   */
+  public getAllowedFilePatterns(phase: string): string[] | undefined {
+    if (!this.stateMachine) {
+      throw new Error('State machine not loaded');
+    }
+
+    const stateDefinition = this.stateMachine.states[phase];
+    if (!stateDefinition) {
+      logger.error('Unknown phase', new Error(`Unknown phase: ${phase}`));
+      throw new Error(`Unknown phase: ${phase}`);
+    }
+
+    return stateDefinition.allowed_file_patterns;
+  }
+
+  /**
+   * Whether the given phase restricts which files may be edited.
+   * Returns false when no allowed_file_patterns are defined (all files allowed).
+   * Callers should use getAllowedFilePatterns + a glob library for actual path matching.
+   *
+   * @param phase - The phase/state name
+   */
+  public hasFileRestrictions(phase: string): boolean {
+    const patterns = this.getAllowedFilePatterns(phase);
+    return patterns !== undefined && patterns.length > 0;
+  }
 }

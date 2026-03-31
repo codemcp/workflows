@@ -22,7 +22,6 @@ import type {
 import type { YamlStateMachine } from '../../../src/state-machine-types.js';
 import type { ConversationContext } from '../../../src/types.js';
 import { InstructionGenerator } from '../../../src/instruction-generator.js';
-import { PlanManager } from '../../../src/plan-manager.js';
 
 // Register implementations before creating contract tests
 const existingImplementations =
@@ -35,8 +34,7 @@ if (existingImplementations.length === 0) {
     description:
       'Core InstructionGenerator implementation for markdown-based task management',
     createInstance: () => {
-      const mockPlanManager = new PlanManager();
-      return new InstructionGenerator(mockPlanManager);
+      return new InstructionGenerator();
     },
   });
 }
@@ -94,7 +92,7 @@ const mockInstructionContext: InstructionContext = {
   conversationContext: mockConversationContext,
   transitionReason: 'Starting exploration',
   isModeled: true,
-  planFileExists: true,
+  instructionSource: 'whats_next',
 };
 
 /**
@@ -121,14 +119,10 @@ class InstructionGeneratorContract extends BaseInterfaceContract<IInstructionGen
         isAsync: true,
         returnTypeValidator: (result): result is GeneratedInstructions => {
           return (
-            ValidationHelpers.hasProperties([
-              'instructions',
-              'planFileGuidance',
-              'metadata',
-            ])(result) &&
+            ValidationHelpers.hasProperties(['instructions', 'metadata'])(
+              result
+            ) &&
             typeof (result as GeneratedInstructions).instructions ===
-              'string' &&
-            typeof (result as GeneratedInstructions).planFileGuidance ===
               'string' &&
             ValidationHelpers.hasProperties([
               'phase',
@@ -146,15 +140,10 @@ class InstructionGeneratorContract extends BaseInterfaceContract<IInstructionGen
         isAsync: true,
         returnTypeValidator: (result): result is GeneratedInstructions => {
           return (
-            ValidationHelpers.hasProperties([
-              'instructions',
-              'planFileGuidance',
-              'metadata',
-            ])(result) &&
-            typeof (result as GeneratedInstructions).instructions ===
-              'string' &&
-            typeof (result as GeneratedInstructions).planFileGuidance ===
-              'string'
+            ValidationHelpers.hasProperties(['instructions', 'metadata'])(
+              result
+            ) &&
+            typeof (result as GeneratedInstructions).instructions === 'string'
           );
         },
         description: 'should handle empty base instructions gracefully',
@@ -273,7 +262,6 @@ class InstructionGeneratorContract extends BaseInterfaceContract<IInstructionGen
 
             expect(result.metadata.phase).toBe(phase);
             expect(result.instructions).toBeTruthy();
-            expect(result.planFileGuidance).toBeTruthy();
           }
         } finally {
           if (registration.cleanup) {
@@ -370,7 +358,6 @@ class InstructionGeneratorContract extends BaseInterfaceContract<IInstructionGen
           // Test with existing plan file
           const existingPlanContext: InstructionContext = {
             ...mockInstructionContext,
-            planFileExists: true,
           };
 
           const existingResult = await instance.generateInstructions(
@@ -382,7 +369,6 @@ class InstructionGeneratorContract extends BaseInterfaceContract<IInstructionGen
           // Test without existing plan file
           const newPlanContext: InstructionContext = {
             ...mockInstructionContext,
-            planFileExists: false,
           };
 
           const newResult = await instance.generateInstructions(
@@ -439,8 +425,7 @@ describe('IInstructionGenerator Interface Contract', () => {
       description:
         'Core InstructionGenerator implementation for markdown-based task management',
       createInstance: () => {
-        const mockPlanManager = new PlanManager();
-        return new InstructionGenerator(mockPlanManager);
+        return new InstructionGenerator();
       },
     };
 
@@ -475,7 +460,6 @@ describe('IInstructionGenerator Interface Contract', () => {
     it('should validate generated instructions structure', () => {
       const mockResult: GeneratedInstructions = {
         instructions: 'Enhanced instructions',
-        planFileGuidance: 'Plan file guidance',
         metadata: {
           phase: 'explore',
           planFilePath: '/test/plan.md',

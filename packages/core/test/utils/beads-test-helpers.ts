@@ -99,7 +99,6 @@ export const createTestContext = (overrides = {}) => ({
     },
     transitionReason: 'test',
     isModeled: false,
-    planFileExists: true,
     ...overrides.instructionContext,
   },
 });

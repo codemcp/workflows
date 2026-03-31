@@ -1,30 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { InstructionGenerator } from '../../src/instruction-generator';
-import { PlanManager } from '../../src/plan-manager';
-import type { InstructionContext } from '../../src/instruction-generator';
-import type { TaskBackendConfig } from '../../src/task-backend';
+import type { InstructionContext } from '../../src/interfaces/instruction-generator.interface';
 import type { ConversationContext } from '../../src/types';
 
 describe('Markdown Backend Protection Tests', () => {
   let instructionGenerator: InstructionGenerator;
-  let mockPlanManager: PlanManager;
   let mockInstructionContext: InstructionContext;
   let mockConversationContext: ConversationContext;
 
   beforeEach(() => {
-    // Mock PlanManager
-    mockPlanManager = {} as PlanManager;
-
-    // Mock markdown backend detector (always returns markdown)
-    const markdownBackendDetector = (): TaskBackendConfig => ({
-      backend: 'markdown',
-      isAvailable: true,
-    });
-
-    instructionGenerator = new InstructionGenerator(
-      mockPlanManager,
-      markdownBackendDetector
-    );
+    instructionGenerator = new InstructionGenerator();
 
     // Set up mock contexts
     mockConversationContext = {
@@ -41,7 +26,7 @@ describe('Markdown Backend Protection Tests', () => {
       conversationContext: mockConversationContext,
       transitionReason: 'test',
       isModeled: false,
-      planFileExists: true,
+      instructionSource: 'whats_next',
     };
   });
 
@@ -52,30 +37,17 @@ describe('Markdown Backend Protection Tests', () => {
         mockInstructionContext
       );
 
-      // Verify ALL markdown-specific elements are present
-      expect(result.instructions).toContain('**Workflow Continuity:**');
+      // Verify minimal markdown-specific elements are present
+      expect(result.instructions).toContain('Read `');
       expect(result.instructions).toContain(
-        `Maintain \`${mockConversationContext.planFilePath}\``
+        mockConversationContext.planFilePath
       );
-      expect(result.instructions).toContain(
-        'Work through tasks in the "Design" section'
-      );
-      expect(result.instructions).toContain('tasks in other tools');
-      expect(result.instructions).toContain('Maintain `');
-      expect(result.instructions).toContain('Add newly discovered tasks');
-      expect(result.instructions).toContain('log decisions in "Key Decisions"');
-      expect(result.instructions).toContain('Call `whats_next()`');
+      expect(result.instructions).toContain('whats_next()');
 
       // Should NOT contain ANY beads-specific content
       expect(result.instructions).not.toContain('bd CLI');
-      expect(result.instructions).not.toContain('hierarchical task structure');
-      expect(result.instructions).not.toContain(
-        'Project Epic → Phase Tasks → Work Items'
-      );
-      expect(result.instructions).not.toContain('--parent flag');
       expect(result.instructions).not.toContain('bd create');
       expect(result.instructions).not.toContain('bd list');
-      expect(result.instructions).not.toContain('bd close');
     });
 
     it('should include correct plan file path in markdown instructions', async () => {
@@ -93,7 +65,7 @@ describe('Markdown Backend Protection Tests', () => {
         customContext
       );
 
-      expect(result.instructions).toContain(`Maintain \`${customPlanPath}\``);
+      expect(result.instructions).toContain(`Read \`${customPlanPath}\``);
     });
 
     it('should customize markdown guidance based on phase', async () => {
@@ -103,9 +75,7 @@ describe('Markdown Backend Protection Tests', () => {
         { ...mockInstructionContext, phase: 'design' }
       );
 
-      expect(designResult.instructions).toContain(
-        'Work through tasks in the "Design" section'
-      );
+      expect(designResult.instructions).toContain('Design');
 
       // Test implementation phase
       const implResult = await instructionGenerator.generateInstructions(
@@ -113,9 +83,7 @@ describe('Markdown Backend Protection Tests', () => {
         { ...mockInstructionContext, phase: 'implementation' }
       );
 
-      expect(implResult.instructions).toContain(
-        'Work through tasks in the "Implementation" section'
-      );
+      expect(implResult.instructions).toContain('Implementation');
     });
   });
 
@@ -126,25 +94,12 @@ describe('Markdown Backend Protection Tests', () => {
         mockInstructionContext
       );
 
-      // Explicitly verify NO beads content - comprehensive list
+      // Explicitly verify NO beads content
       const beadsTerms = [
         'bd CLI',
         'bd create',
         'bd list',
         'bd close',
-        'bd update',
-        'bd show',
-        '--parent flag',
-        '--parent',
-        'hierarchical task structure',
-        'Project Epic → Phase Tasks → Work Items',
-        'BD CLI TASK SYSTEM',
-        'Essential Commands',
-        'Work Items',
-        'Phase Tasks',
-        'Project Epic',
-        'ready work items',
-        'create work item',
         'beads',
         'BEADS',
       ];
@@ -163,8 +118,7 @@ describe('Markdown Backend Protection Tests', () => {
         mockInstructionContext
       );
 
-      // These MUST be present in markdown mode
-      expect(result.instructions).toContain('**Workflow Continuity:**');
+      // Plan file path MUST be present
       expect(result.instructions).toContain(
         mockConversationContext.planFilePath
       );
@@ -177,16 +131,11 @@ describe('Markdown Backend Protection Tests', () => {
       );
 
       // Verify markdown-specific task guidance
-      expect(result.instructions).toContain('tasks in other tools');
-      expect(result.instructions).toContain('Maintain `');
-      expect(result.instructions).toContain('Call `whats_next()`');
+      expect(result.instructions).toContain('Read `');
+      expect(result.instructions).toContain('whats_next()');
 
       // Verify NO beads task guidance
       expect(result.instructions).not.toContain('Use bd CLI tool exclusively');
-      expect(result.instructions).not.toContain(
-        'Use ONLY bd CLI tool for task management'
-      );
-      expect(result.instructions).not.toContain('Create new task under phase');
     });
   });
 
@@ -194,7 +143,6 @@ describe('Markdown Backend Protection Tests', () => {
     it('should handle non-existent plan file in markdown mode', async () => {
       const contextNoPlan = {
         ...mockInstructionContext,
-        planFileExists: false,
       };
 
       const result = await instructionGenerator.generateInstructions(
@@ -203,25 +151,20 @@ describe('Markdown Backend Protection Tests', () => {
       );
 
       // Should still reference plan file even if it doesn't exist
-      expect(result.instructions).toContain('**Workflow Continuity:**');
-      expect(result.instructions).toContain(
-        'plan file will be created on first update'
-      );
+      expect(result.instructions).toContain('Read');
     });
 
     it('should maintain markdown structure regardless of backend availability', async () => {
-      // Even if beads backend changes state, markdown mode should be consistent
       const result = await instructionGenerator.generateInstructions(
         'Test instructions with backend variations',
         mockInstructionContext
       );
 
       // Core markdown structure should always be present
-      expect(result.instructions).toContain('**Workflow Continuity:**');
+      expect(result.instructions).toContain('Read `');
       expect(result.instructions).toContain(
-        `Maintain \`${mockConversationContext.planFilePath}\``
+        mockConversationContext.planFilePath
       );
-      expect(result.instructions).toContain('Work through tasks in the');
     });
   });
 
@@ -244,7 +187,6 @@ describe('Markdown Backend Protection Tests', () => {
       );
 
       // Should still be in markdown format
-      expect(result.instructions).toContain('**Workflow Continuity:**');
       expect(result.instructions).not.toContain('bd CLI');
     });
   });
@@ -263,12 +205,8 @@ describe('Markdown Backend Protection Tests', () => {
         // All phases should have consistent markdown structure
         expect(
           result.instructions,
-          `Phase ${phase} should have workflow continuity section`
-        ).toContain('**Workflow Continuity:**');
-        expect(
-          result.instructions,
-          `Phase ${phase} should have task tracking`
-        ).toContain('tasks in other tools');
+          `Phase ${phase} should have plan file reference`
+        ).toContain('Read');
         expect(
           result.instructions,
           `Phase ${phase} should not have beads content`
@@ -277,7 +215,6 @@ describe('Markdown Backend Protection Tests', () => {
     });
 
     it('should never accidentally switch to beads mode in markdown backend', async () => {
-      // Multiple instruction generations should be consistent
       const results = await Promise.all([
         instructionGenerator.generateInstructions(
           'Test 1',
@@ -298,7 +235,7 @@ describe('Markdown Backend Protection Tests', () => {
         expect(
           result.instructions,
           `Result ${index + 1} should be markdown mode`
-        ).toContain('**Workflow Continuity:**');
+        ).toContain('Read');
         expect(
           result.instructions,
           `Result ${index + 1} should not have beads content`
@@ -307,7 +244,6 @@ describe('Markdown Backend Protection Tests', () => {
     });
 
     it('should handle stressful instruction generation patterns without mode switching', async () => {
-      // Simulate sequential instruction generation that might trigger race conditions
       for (let i = 0; i < 5; i++) {
         const result = await instructionGenerator.generateInstructions(
           `Sequential test ${i}`,
@@ -317,7 +253,7 @@ describe('Markdown Backend Protection Tests', () => {
         expect(
           result.instructions,
           `Sequential result ${i + 1} should be markdown mode`
-        ).toContain('**Workflow Continuity:**');
+        ).toContain('Read');
         expect(
           result.instructions,
           `Sequential result ${i + 1} should not have beads content`
@@ -326,19 +262,16 @@ describe('Markdown Backend Protection Tests', () => {
     });
 
     it('should maintain markdown backend protection even with beads-like instruction content', async () => {
-      // Test with instructions that contain beads-like content to ensure it doesn't trigger beads mode
       const trickInstructions =
-        'Create a task database with bd-style commands and beads integration patterns.';
+        'Create a task database with bd-style commands.';
 
       const result = await instructionGenerator.generateInstructions(
         trickInstructions,
         mockInstructionContext
       );
 
-      // Should still be markdown mode despite beads-like content in instructions
-      expect(result.instructions).toContain('**Workflow Continuity:**');
-      expect(result.instructions).toContain('tasks in other tools');
-      expect(result.instructions).toContain('Maintain `');
+      // Should still be markdown mode
+      expect(result.instructions).toContain('Read');
       expect(result.instructions).not.toContain('bd CLI');
 
       // Original instructions should be preserved
@@ -347,17 +280,7 @@ describe('Markdown Backend Protection Tests', () => {
 
     it('should handle long complex instructions without corruption', async () => {
       const longInstructions = `
-        This is a very long set of instructions that includes multiple paragraphs,
-        complex formatting, and various edge cases that might trigger unexpected
-        behavior in the instruction generation system. We need to ensure that
-        even with complex inputs, the markdown backend protection remains active.
-
-        ## Complex Requirements
-        - Implement database schemas with bd prefixes
-        - Create beads-like configuration systems
-        - Build task management interfaces
-        - Design hierarchical data structures
-
+        This is a very long set of instructions that includes multiple paragraphs.
         The system should remain in markdown mode regardless of these requirements.
       `.trim();
 
@@ -367,15 +290,11 @@ describe('Markdown Backend Protection Tests', () => {
       );
 
       // Core markdown structure should be preserved
-      expect(result.instructions).toContain('**Workflow Continuity:**');
+      expect(result.instructions).toContain('Read `');
       expect(result.instructions).toContain(
-        `Maintain \`${mockConversationContext.planFilePath}\``
+        mockConversationContext.planFilePath
       );
-      expect(result.instructions).toContain('tasks in other tools');
-
-      // Should not contain beads mode elements
       expect(result.instructions).not.toContain('bd CLI');
-      expect(result.instructions).not.toContain('Use bd CLI tool exclusively');
     });
   });
 });

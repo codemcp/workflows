@@ -8,10 +8,10 @@
 
 import { writeFile, readFile, mkdir, access } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
-import { createLogger } from './logger.js';
+import { createLogger, type ILogger } from './logger.js';
 import type { BeadsPhaseTask } from './beads-integration.js';
 
-const logger = createLogger('BeadsStateManager');
+const defaultLogger = createLogger('BeadsStateManager');
 
 /**
  * Beads-specific conversation state
@@ -30,9 +30,11 @@ export interface BeadsConversationState {
  */
 export class BeadsStateManager {
   private projectPath: string;
+  private logger: ILogger;
 
-  constructor(projectPath: string) {
+  constructor(projectPath: string, logger: ILogger = defaultLogger) {
     this.projectPath = projectPath;
+    this.logger = logger;
   }
 
   /**
@@ -65,7 +67,7 @@ export class BeadsStateManager {
 
     await this.saveState(state);
 
-    logger.info('Created beads conversation state', {
+    this.logger.info('Created beads conversation state', {
       conversationId,
       epicId,
       phaseCount: phaseTasks.length,
@@ -90,7 +92,7 @@ export class BeadsStateManager {
       const content = await readFile(statePath, 'utf-8');
       const state: BeadsConversationState = JSON.parse(content);
 
-      logger.debug('Retrieved beads conversation state', {
+      this.logger.debug('Retrieved beads conversation state', {
         conversationId,
         epicId: state.epicId,
         phaseCount: state.phaseTasks.length,
@@ -101,7 +103,7 @@ export class BeadsStateManager {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         // File doesn't exist - this is normal for conversations without beads
-        logger.debug('No beads state found for conversation', {
+        this.logger.debug('No beads state found for conversation', {
           conversationId,
           projectPath: this.projectPath,
         });
@@ -111,7 +113,7 @@ export class BeadsStateManager {
       // Other errors (permission, invalid JSON, etc.)
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      logger.warn('Failed to read beads state file', {
+      this.logger.warn('Failed to read beads state file', {
         error: errorMessage,
         conversationId,
         statePath,
@@ -138,7 +140,7 @@ export class BeadsStateManager {
     const phaseTask = state.phaseTasks.find(task => task.phaseId === phase);
 
     if (phaseTask) {
-      logger.debug('Found phase task ID', {
+      this.logger.debug('Found phase task ID', {
         conversationId,
         phase,
         taskId: phaseTask.taskId,
@@ -147,7 +149,7 @@ export class BeadsStateManager {
       return phaseTask.taskId;
     }
 
-    logger.debug('No task ID found for phase', {
+    this.logger.debug('No task ID found for phase', {
       conversationId,
       phase,
       availablePhases: state.phaseTasks.map(t => t.phaseId),
@@ -169,7 +171,7 @@ export class BeadsStateManager {
     const existingState = await this.getState(conversationId);
 
     if (!existingState) {
-      logger.warn('Cannot update non-existent beads state', {
+      this.logger.warn('Cannot update non-existent beads state', {
         conversationId,
         projectPath: this.projectPath,
       });
@@ -185,7 +187,7 @@ export class BeadsStateManager {
 
     await this.saveState(updatedState);
 
-    logger.info('Updated beads conversation state', {
+    this.logger.info('Updated beads conversation state', {
       conversationId,
       updatedFields: Object.keys(updates),
       projectPath: this.projectPath,
@@ -204,7 +206,7 @@ export class BeadsStateManager {
       await access(statePath);
       await writeFile(statePath + '.backup', await readFile(statePath));
 
-      logger.info('Cleaned up beads conversation state', {
+      this.logger.info('Cleaned up beads conversation state', {
         conversationId,
         statePath,
         projectPath: this.projectPath,
@@ -212,7 +214,7 @@ export class BeadsStateManager {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         // File doesn't exist - nothing to clean up
-        logger.debug('No beads state to clean up', {
+        this.logger.debug('No beads state to clean up', {
           conversationId,
           projectPath: this.projectPath,
         });
@@ -221,7 +223,7 @@ export class BeadsStateManager {
 
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      logger.warn('Failed to clean up beads state', {
+      this.logger.warn('Failed to clean up beads state', {
         error: errorMessage,
         conversationId,
         statePath,
@@ -259,7 +261,7 @@ export class BeadsStateManager {
       const content = JSON.stringify(state, null, 2);
       await writeFile(statePath, content, 'utf-8');
 
-      logger.debug('Saved beads state to file', {
+      this.logger.debug('Saved beads state to file', {
         conversationId: state.conversationId,
         statePath,
         fileSize: content.length,
@@ -268,7 +270,7 @@ export class BeadsStateManager {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      logger.error(
+      this.logger.error(
         'Failed to save beads state',
         error instanceof Error ? error : new Error(errorMessage),
         {

@@ -257,46 +257,37 @@ export class FileDetectionManager {
    * Format file suggestions for LLM responses
    */
   formatSuggestions(detectionResult: FileDetectionResult): string {
-    const suggestions: string[] = [];
+    const found: string[] = [];
 
     if (detectionResult.architecture.length > 0) {
-      suggestions.push(`**Architecture files found:**`);
-      for (const file of detectionResult.architecture.slice(0, 3)) {
-        suggestions.push(
-          `  - ${file.relativePath} (${file.confidence} confidence)`
-        );
-      }
+      found.push(
+        `architecture: ${detectionResult.architecture
+          .slice(0, 2)
+          .map(f => f.relativePath)
+          .join(', ')}`
+      );
     }
-
     if (detectionResult.requirements.length > 0) {
-      suggestions.push(`**Requirements files found:**`);
-      for (const file of detectionResult.requirements.slice(0, 3)) {
-        suggestions.push(
-          `  - ${file.relativePath} (${file.confidence} confidence)`
-        );
-      }
+      found.push(
+        `requirements: ${detectionResult.requirements
+          .slice(0, 2)
+          .map(f => f.relativePath)
+          .join(', ')}`
+      );
     }
-
     if (detectionResult.design.length > 0) {
-      suggestions.push(`**Design files found:**`);
-      for (const file of detectionResult.design.slice(0, 3)) {
-        suggestions.push(
-          `  - ${file.relativePath} (${file.confidence} confidence)`
-        );
-      }
+      found.push(
+        `design: ${detectionResult.design
+          .slice(0, 2)
+          .map(f => f.relativePath)
+          .join(', ')}`
+      );
     }
 
-    if (suggestions.length === 0) {
+    if (found.length === 0) {
       return 'No existing documentation files detected.';
     }
 
-    return [
-      'Existing documentation files detected:',
-      '',
-      ...suggestions,
-      '',
-      'You can use these files with `setup_project_docs` by providing the file paths instead of template names.',
-      'Example: `setup_project_docs({ architecture: "README.md", requirements: "docs/requirements.md", design: "freestyle" })`',
-    ].join('\n');
+    return `Found: ${found.join('; ')}. Link existing files via \`setup_project_docs({ architecture: "path/to/file.md" })\` or use template names.`;
   }
 }

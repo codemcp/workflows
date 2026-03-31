@@ -8,10 +8,11 @@
  */
 
 import { execSync } from 'node:child_process';
-import { createLogger } from './logger.js';
+import { createLogger, type ILogger } from './logger.js';
+import { capitalizePhase } from './string-utils.js';
 import { YamlState } from './state-machine-types.js';
 
-const logger = createLogger('BeadsIntegration');
+const defaultLogger = createLogger('BeadsIntegration');
 
 export interface BeadsPhaseTask {
   phaseId: string;
@@ -24,9 +25,11 @@ export interface BeadsPhaseTask {
  */
 export class BeadsIntegration {
   private projectPath: string;
+  private logger: ILogger;
 
-  constructor(projectPath: string) {
+  constructor(projectPath: string, logger: ILogger = defaultLogger) {
     this.projectPath = projectPath;
+    this.logger = logger;
   }
 
   /**
@@ -53,7 +56,7 @@ export class BeadsIntegration {
         errorMessage.includes('no database') ||
         errorMessage.includes('init')
       ) {
-        logger.info('Beads not initialized, running bd init --no-db', {
+        this.logger.info('Beads not initialized, running bd init --no-db', {
           projectPath: this.projectPath,
         });
 
@@ -65,13 +68,13 @@ export class BeadsIntegration {
             stdio: ['ignore', 'pipe', 'pipe'],
           });
 
-          logger.info('Successfully initialized beads in project', {
+          this.logger.info('Successfully initialized beads in project', {
             projectPath: this.projectPath,
           });
         } catch (initError) {
           const initErrorMessage =
             initError instanceof Error ? initError.message : String(initError);
-          logger.error(
+          this.logger.error(
             'Failed to initialize beads',
             initError instanceof Error
               ? initError
@@ -117,7 +120,7 @@ export class BeadsIntegration {
 
     const command = `bd create "${epicTitle}" --description "${epicDescription}" --priority ${priority}`;
 
-    logger.debug('Creating beads project epic', {
+    this.logger.debug('Creating beads project epic', {
       command,
       projectName,
       workflowName,
@@ -139,7 +142,7 @@ export class BeadsIntegration {
         output.match(/Created issue: ([\w\d.-]+)/) ||
         output.match(/Created (bd-[\w\d.]+)/);
       if (!match) {
-        logger.warn('Failed to extract task ID from beads output', {
+        this.logger.warn('Failed to extract task ID from beads output', {
           command: `bd create "${epicTitle}" --description "${epicDescription}" --priority 2`,
           output: output.slice(0, 200), // Truncated for logging
         });
@@ -149,7 +152,7 @@ export class BeadsIntegration {
       }
 
       const epicId = match[1] || '';
-      logger.info('Created beads project epic', {
+      this.logger.info('Created beads project epic', {
         epicId,
         epicTitle,
         projectPath: this.projectPath,
@@ -165,7 +168,7 @@ export class BeadsIntegration {
         projectPath: this.projectPath,
       };
 
-      logger.error(
+      this.logger.error(
         'Failed to create beads project epic',
         error instanceof Error ? error : new Error(errorMessage),
         commandInfo
@@ -174,7 +177,7 @@ export class BeadsIntegration {
       // Include stderr if available for better debugging
       const execError = error as unknown as { stderr?: string };
       if (execError?.stderr) {
-        logger.error(
+        this.logger.error(
           'Beads command stderr output',
           new Error('Command stderr'),
           {
@@ -203,7 +206,7 @@ export class BeadsIntegration {
     const phaseNames = Object.keys(phases);
 
     for (const phase of phaseNames) {
-      const phaseTitle = `${this.capitalizePhase(phase)}`;
+      const phaseTitle = capitalizePhase(phase);
       const priority = 3;
       const stateDefinition = phases[phase];
 
@@ -219,7 +222,7 @@ export class BeadsIntegration {
 
       const command = `bd create "${phaseTitle}" --description "${description}" --parent ${epicId} --priority ${priority}`;
 
-      logger.debug('Creating beads phase task', {
+      this.logger.debug('Creating beads phase task', {
         command,
         phase,
         epicId,
@@ -241,10 +244,13 @@ export class BeadsIntegration {
           output.match(/Created issue: ([\w\d.-]+)/) ||
           output.match(/Created (bd-[\w\d.]+)/);
         if (!match) {
-          logger.warn('Failed to extract phase task ID from beads output', {
-            command,
-            output: output.slice(0, 200), // Truncated for logging
-          });
+          this.logger.warn(
+            'Failed to extract phase task ID from beads output',
+            {
+              command,
+              output: output.slice(0, 200), // Truncated for logging
+            }
+          );
           throw new Error(
             `Failed to extract task ID from beads output: ${output.slice(0, 100)}...`
           );
@@ -257,7 +263,7 @@ export class BeadsIntegration {
           taskId: phaseTaskId,
         });
 
-        logger.debug('Created beads phase task', {
+        this.logger.debug('Created beads phase task', {
           phase,
           phaseTaskId,
           epicId,
@@ -273,7 +279,7 @@ export class BeadsIntegration {
           projectPath: this.projectPath,
         };
 
-        logger.error(
+        this.logger.error(
           'Failed to create beads phase task',
           error instanceof Error ? error : new Error(errorMessage),
           commandInfo
@@ -282,7 +288,7 @@ export class BeadsIntegration {
         // Include stderr if available for better debugging
         const execError = error as unknown as { stderr?: string };
         if (execError?.stderr) {
-          logger.error(
+          this.logger.error(
             'Beads phase command stderr output',
             new Error('Command stderr'),
             {
@@ -298,7 +304,7 @@ export class BeadsIntegration {
       }
     }
 
-    logger.info('Created all beads phase tasks', {
+    this.logger.info('Created all beads phase tasks', {
       count: phaseTasks.length,
       epicId,
       projectPath: this.projectPath,
@@ -312,14 +318,14 @@ export class BeadsIntegration {
    */
   async createPhaseDependencies(phaseTasks: BeadsPhaseTask[]): Promise<void> {
     if (phaseTasks.length < 2) {
-      logger.debug('Skipping phase dependencies - less than 2 phases', {
+      this.logger.debug('Skipping phase dependencies - less than 2 phases', {
         phaseCount: phaseTasks.length,
         projectPath: this.projectPath,
       });
       return;
     }
 
-    logger.info('Creating sequential phase dependencies', {
+    this.logger.info('Creating sequential phase dependencies', {
       phaseCount: phaseTasks.length,
       projectPath: this.projectPath,
     });
@@ -337,7 +343,7 @@ export class BeadsIntegration {
       const nextPhase = phaseTasks[i + 1];
 
       if (!currentPhase || !nextPhase) {
-        logger.warn('Skipping phase dependency - missing phase data', {
+        this.logger.warn('Skipping phase dependency - missing phase data', {
           currentPhaseIndex: i,
           nextPhaseIndex: i + 1,
           totalPhases: phaseTasks.length,
@@ -353,7 +359,7 @@ export class BeadsIntegration {
 
       const command = `bd dep ${currentPhase.taskId} --blocks ${nextPhase.taskId}`;
 
-      logger.debug('Creating phase dependency', {
+      this.logger.debug('Creating phase dependency', {
         command,
         currentPhase: currentPhase.phaseName,
         nextPhase: nextPhase.phaseName,
@@ -369,7 +375,7 @@ export class BeadsIntegration {
           stdio: ['ignore', 'pipe', 'pipe'],
         });
 
-        logger.debug('Successfully created phase dependency', {
+        this.logger.debug('Successfully created phase dependency', {
           currentPhase: currentPhase.phaseName,
           nextPhase: nextPhase.phaseName,
           projectPath: this.projectPath,
@@ -378,18 +384,21 @@ export class BeadsIntegration {
         // Log as warning but don't fail the entire setup
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        logger.warn('Failed to create phase dependency - continuing anyway', {
-          error: errorMessage,
-          command,
-          currentPhase: currentPhase.phaseName,
-          nextPhase: nextPhase.phaseName,
-          projectPath: this.projectPath,
-        });
+        this.logger.warn(
+          'Failed to create phase dependency - continuing anyway',
+          {
+            error: errorMessage,
+            command,
+            currentPhase: currentPhase.phaseName,
+            nextPhase: nextPhase.phaseName,
+            projectPath: this.projectPath,
+          }
+        );
 
         // Include stderr if available for better debugging
         const execError = error as unknown as { stderr?: string };
         if (execError?.stderr) {
-          logger.debug('Beads dependency command stderr', {
+          this.logger.debug('Beads dependency command stderr', {
             stderr: execError.stderr.toString(),
             command,
             projectPath: this.projectPath,
@@ -406,7 +415,7 @@ export class BeadsIntegration {
     }
 
     if (failedDependencies.length > 0) {
-      logger.warn(
+      this.logger.warn(
         'Some phase dependencies could not be created - app continues without these dependencies',
         {
           failedCount: failedDependencies.length,
@@ -416,22 +425,12 @@ export class BeadsIntegration {
       );
     }
 
-    logger.info('Completed phase dependency creation', {
+    this.logger.info('Completed phase dependency creation', {
       dependencyCount: phaseTasks.length - 1,
       successCount: phaseTasks.length - 1 - failedDependencies.length,
       failedCount: failedDependencies.length,
       projectPath: this.projectPath,
     });
-  }
-
-  /**
-   * Capitalize phase name for display
-   */
-  private capitalizePhase(phase: string): string {
-    return phase
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
   }
 
   /**

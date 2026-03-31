@@ -7,9 +7,9 @@
  */
 
 import { execSync } from 'node:child_process';
-import { createLogger } from './logger.js';
+import { createLogger, type ILogger } from './logger.js';
 
-const logger = createLogger('TaskBackend');
+const defaultLogger = createLogger('TaskBackend');
 
 export type TaskBackend = 'markdown' | 'beads';
 
@@ -33,8 +33,9 @@ export class TaskBackendManager {
    * When TASK_BACKEND is explicitly set:
    * - Uses the specified backend (markdown or beads)
    * - For beads, validates availability and provides setup instructions if not available
+   *
    */
-  static detectTaskBackend(): TaskBackendConfig {
+  static detectTaskBackend(logger: ILogger = defaultLogger): TaskBackendConfig {
     const envBackend = process.env['TASK_BACKEND']?.toLowerCase().trim();
 
     // Handle invalid values by treating as not set
@@ -46,9 +47,9 @@ export class TaskBackendManager {
 
     // Auto-detect backend when not explicitly configured
     if (!envBackend || !['markdown', 'beads'].includes(envBackend)) {
-      const beadsAvailable = TaskBackendManager.checkBeadsAvailability();
+      const beadsAvailable = TaskBackendManager.checkBeadsAvailability(logger);
       if (beadsAvailable.isAvailable) {
-        logger.info('Auto-detected beads backend (bd command available)', {
+        logger.debug('Auto-detected beads backend (bd command available)', {
           reason: 'TASK_BACKEND not set, bd command found',
         });
         return {
@@ -76,7 +77,7 @@ export class TaskBackendManager {
     }
 
     // backend === 'beads' is the only remaining case (explicitly configured)
-    const beadsAvailable = TaskBackendManager.checkBeadsAvailability();
+    const beadsAvailable = TaskBackendManager.checkBeadsAvailability(logger);
     if (beadsAvailable.isAvailable) {
       logger.debug('Using explicitly configured beads backend');
       return {
@@ -95,7 +96,7 @@ export class TaskBackendManager {
   /**
    * Check if beads command is available and functional
    */
-  static checkBeadsAvailability(): {
+  static checkBeadsAvailability(logger: ILogger = defaultLogger): {
     isAvailable: boolean;
     errorMessage?: string;
   } {
@@ -188,9 +189,12 @@ export TASK_BACKEND=markdown
 
   /**
    * Validate task backend configuration and throw error if invalid
+   *
    */
-  static validateTaskBackend(): TaskBackendConfig {
-    const config = this.detectTaskBackend();
+  static validateTaskBackend(
+    logger: ILogger = defaultLogger
+  ): TaskBackendConfig {
+    const config = this.detectTaskBackend(logger);
 
     if (!config.isAvailable) {
       const setupInstructions =

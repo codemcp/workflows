@@ -11,6 +11,7 @@ import { dirname } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { createLogger } from './logger.js';
 import { getPathBasename } from './path-validation-utils.js';
+import { capitalizePhase } from './string-utils.js';
 
 import type { YamlStateMachine } from './state-machine-types.js';
 import type { TaskBackendConfig } from './task-backend.js';
@@ -39,8 +40,8 @@ export class PlanManager implements IPlanManager {
    * Set the task backend configuration
    */
   setTaskBackend(taskBackend: TaskBackendConfig): void {
-    // Default plan manager only supports markdown backend
-    // Task backend information is not stored as it's not used for markdown plan generation
+    // PlanManager only handles the markdown backend. BeadsPlanManager overrides
+    // this method to use the beads-specific task backend configuration.
     logger.debug('Task backend set for plan manager (markdown mode)', {
       backend: taskBackend.backend,
       available: taskBackend.isAvailable,
@@ -176,7 +177,7 @@ export class PlanManager implements IPlanManager {
 
 `;
 
-    content += `## ${this.capitalizePhase(initialPhase)}
+    content += `## ${capitalizePhase(initialPhase)}
 ### Tasks
 - [ ] *Tasks will be added as they are identified*
 
@@ -188,7 +189,7 @@ export class PlanManager implements IPlanManager {
     // Generate simple sections for each phase
     for (const phase of phases) {
       if (phase !== initialPhase) {
-        content += `## ${this.capitalizePhase(phase)}
+        content += `## ${capitalizePhase(phase)}
 ### Tasks
 - [ ] *To be added when this phase becomes active*
 
@@ -256,10 +257,10 @@ export class PlanManager implements IPlanManager {
     const phaseDefinition = this.stateMachine.states[phase];
     if (!phaseDefinition) {
       logger.warn('Unknown phase for plan file guidance', { phase });
-      return `Update the ${this.capitalizePhase(phase)} section with current progress and mark completed tasks.`;
+      return `Update the ${capitalizePhase(phase)} section with current progress and mark completed tasks.`;
     }
 
-    const capitalizedPhase = this.capitalizePhase(phase);
+    const capitalizedPhase = capitalizePhase(phase);
 
     return `Update the ${capitalizedPhase} section with progress. Mark completed tasks with [x] and add new tasks as they are identified.`;
   }
@@ -325,16 +326,6 @@ export class PlanManager implements IPlanManager {
   }
 
   /**
-   * Capitalize phase name for display
-   */
-  private capitalizePhase(phase: string): string {
-    return phase
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
-
-  /**
    * Generate workflow documentation URL for predefined workflows
    * Returns undefined for custom workflows
    */
@@ -348,5 +339,23 @@ export class PlanManager implements IPlanManager {
 
     // Generate URL for predefined workflows
     return `https://mrsimpson.github.io/responsible-vibe-mcp/workflows/${workflowName}`;
+  }
+
+  /**
+   * Generate base instructions for the LLM after a workflow is started.
+   * Instructs the LLM to populate the Goal section and define phase entrance
+   * criteria in the freshly created plan file.
+   */
+  getInitialPlanGuidance(
+    planFilePath: string,
+    workflowDocUrl?: string
+  ): string {
+    const docInfo = workflowDocUrl
+      ? `\n\nInform the user about the chosen workflow. They can visit: ${workflowDocUrl} to get detailed information.`
+      : '';
+
+    const i18nNote = `\n\nNOTE: If the user is communicating in a non-English language, translate plan file content to that language while keeping markdown headers (##, ###) in English to maintain structure parsing. Continue all interactions in the user's language.`;
+
+    return `**Read ${planFilePath}** to understand the workflow structure. Add entrance criteria for each phase (what must be true to enter), then call \`whats_next()\`.${docInfo}${i18nNote}`;
   }
 }

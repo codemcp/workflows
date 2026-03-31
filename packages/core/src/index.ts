@@ -28,6 +28,7 @@ export * from './beads-integration.js';
 export * from './beads-state-manager.js';
 
 // Utilities and generators
+export * from './string-utils.js';
 export * from './logger.js';
 export * from './interaction-logger.js';
 export * from './instruction-generator.js';

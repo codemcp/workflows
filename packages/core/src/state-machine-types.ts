@@ -45,6 +45,15 @@ export interface YamlState {
 
   /** Transitions from this state */
   transitions: YamlTransition[];
+
+  /**
+   * Optional glob patterns for files that can be modified in this phase.
+   * Supports glob syntax (*, **, ?).
+   * If omitted, all files are allowed.
+   * @example ["*.md", "*.yaml", ".vibe/**"]
+   * @example ["*"] // Allow all files (same as omitting)
+   */
+  allowed_file_patterns?: string[];
 }
 
 /**

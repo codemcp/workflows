@@ -11,7 +11,6 @@ import { InstructionGenerator } from '../../src/instruction-generator.js';
 import type { ConversationContext } from '../../src/types.js';
 import type { InstructionContext } from '../../src/interfaces/instruction-generator.interface.js';
 import type { ProjectDocsManager } from '../../src/project-docs-manager.js';
-import { PlanManager } from '../../src/plan-manager.js';
 import { TestAccess } from '../utils/test-access.js';
 import { join } from 'node:path';
 
@@ -36,8 +35,7 @@ describe('InstructionGenerator - Core Functionality', () => {
     };
 
     // Create instruction generator
-    const mockPlanManager = {} as unknown as PlanManager;
-    instructionGenerator = new InstructionGenerator(mockPlanManager);
+    instructionGenerator = new InstructionGenerator();
     TestAccess.injectMock(
       instructionGenerator,
       'projectDocsManager',
@@ -58,7 +56,7 @@ describe('InstructionGenerator - Core Functionality', () => {
       conversationContext: mockConversationContext,
       transitionReason: 'Test transition',
       isModeled: false,
-      planFileExists: true,
+      instructionSource: 'whats_next',
     };
   });
 
@@ -69,12 +67,9 @@ describe('InstructionGenerator - Core Functionality', () => {
       mockInstructionContext
     );
 
-    // Core InstructionGenerator always produces markdown-style instructions
-    expect(result.instructions).toContain('tasks in other tools');
-    expect(result.instructions).toContain('Maintain `');
-    expect(result.instructions).toContain('Call `whats_next()`');
-    expect(result.instructions).toContain('**Workflow Continuity:**');
-    expect(result.instructions).toContain('Add newly discovered tasks');
+    // Core InstructionGenerator produces minimal markdown-style instructions
+    expect(result.instructions).toContain('Read `');
+    expect(result.instructions).toContain('whats_next()');
   });
 
   it('should not contain beads-specific instructions', async () => {
@@ -100,8 +95,7 @@ describe('InstructionGenerator - Core Functionality', () => {
     );
 
     expect(result.instructions).toContain('/test/project/.vibe/docs/design.md');
-    expect(result.instructions).toContain('tasks in other tools');
-    expect(result.instructions).toContain('Maintain `');
+    expect(result.instructions).toContain('Read `');
   });
 
   it('should provide consistent instruction structure', async () => {
@@ -111,10 +105,9 @@ describe('InstructionGenerator - Core Functionality', () => {
       mockInstructionContext
     );
 
-    // Check for expected sections
-    expect(result.instructions).toContain('**Workflow Continuity:**');
-    expect(result.instructions).toContain('Add newly discovered tasks');
-    expect(result.instructions).toContain('Call `whats_next()`');
+    // Check for expected minimal content
+    expect(result.instructions).toContain('Read');
+    expect(result.instructions).toContain('whats_next()');
   });
 
   it('should not include transition reason in instructions', async () => {
@@ -138,7 +131,6 @@ describe('InstructionGenerator - Core Functionality', () => {
   it('should handle missing plan file scenario', async () => {
     const contextWithoutPlan = {
       ...mockInstructionContext,
-      planFileExists: false,
     };
 
     const result = await instructionGenerator.generateInstructions(
@@ -146,8 +138,7 @@ describe('InstructionGenerator - Core Functionality', () => {
       contextWithoutPlan
     );
 
-    expect(result.instructions).toContain(
-      'plan file will be created on first update'
-    );
+    // Plan file existence no longer affects output (minimal instructions)
+    expect(result.instructions).toContain('Read');
   });
 });

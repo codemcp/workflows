@@ -67,4 +67,14 @@ export interface IPlanManager {
    * Ensure plan file is deleted (verify deletion)
    */
   ensurePlanFileDeleted(planFilePath: string): Promise<boolean>;
+
+  /**
+   * Generate base instructions for the LLM after a workflow is started.
+   * Instructs the LLM to populate the Goal section and define phase entrance
+   * criteria in the freshly created plan file.
+   *
+   * @param planFilePath - Path to the plan file
+   * @param workflowDocUrl - Optional URL for workflow documentation
+   */
+  getInitialPlanGuidance(planFilePath: string, workflowDocUrl?: string): string;
 }
