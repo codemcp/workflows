@@ -16,9 +16,12 @@ export function createStartDevelopmentTool(
   updateCachedState: (result: WhatsNextResult, workflowName?: string) => void
 ): ToolDefinition {
   // Load available workflows for description
+  // NOTE: Using getAvailableWorkflowsForProject() to respect:
+  //   1. VIBE_WORKFLOW_DOMAINS configuration (domain filtering)
+  //   2. Project-specific workflow configuration
   const workflowManager = new WorkflowManager();
-  workflowManager.loadProjectWorkflows(projectDir);
-  const availableWorkflows = workflowManager.getAvailableWorkflows();
+  const availableWorkflows =
+    workflowManager.getAvailableWorkflowsForProject(projectDir);
   const workflowNames = availableWorkflows.map(w => w.name);
 
   // Build tool description with workflow list
