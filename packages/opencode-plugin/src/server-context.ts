@@ -15,6 +15,7 @@ import {
   TransitionEngine,
   WorkflowManager,
   FileStorage,
+  InteractionLogger,
   type IPlanManager,
   type IInstructionGenerator,
   type LoggerFactory,
@@ -45,7 +46,8 @@ export function createServerContext(
   const workflowManager = new WorkflowManager();
   workflowManager.loadProjectWorkflows(projectDir);
 
-  // Create file storage and conversation manager
+  // Create file storage — shared across ConversationManager and InteractionLogger
+  // so both operate on the same underlying persistence instance
   const fileStorage = new FileStorage(
     path.join(projectDir, '.vibe', 'storage')
   );
@@ -54,6 +56,11 @@ export function createServerContext(
     workflowManager,
     projectDir
   );
+
+  // InteractionLogger uses the same fileStorage so hasInteractions() works correctly.
+  // Without this, isFirstCallFromInitialState() always returns true on session resume,
+  // causing WhatsNextHandler to reset the phase to explore on every plugin load.
+  const interactionLogger = new InteractionLogger(fileStorage);
 
   // Create transition engine
   const transitionEngine = new TransitionEngine(projectDir);
@@ -73,6 +80,7 @@ export function createServerContext(
     planManager,
     instructionGenerator,
     workflowManager,
+    interactionLogger,
     projectPath: projectDir,
     pluginRegistry,
     loggerFactory,
@@ -88,7 +96,10 @@ export function createServerContext(
 export async function initializeServerContext(
   context: ServerContext
 ): Promise<void> {
-  // Initialize file storage (ConversationManager needs this)
+  // Initialize the file storage that the context's ConversationManager uses.
+  // initialize() creates the conversations directory if it doesn't exist.
+  // We access it via the conversationManager's database — but since it's not
+  // exposed, we create a fresh instance pointing to the same path and initialize it.
   const fileStorage = new FileStorage(
     path.join(context.projectPath, '.vibe', 'storage')
   );

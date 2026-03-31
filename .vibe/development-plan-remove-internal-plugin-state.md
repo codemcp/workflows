@@ -23,6 +23,17 @@ Remove redundant `CachedWorkflowState` from the opencode plugin. The plugin main
 - `FileStorage.initialize()` only creates directories — the shared ServerContext's FileStorage works because the directory already exists from previous operations
 - Minor pre-existing issue: `initializeServerContext` creates a throwaway `FileStorage` — out of scope
 
+## Follow-up: Session-Resume Phase Reset Bug
+
+On session resume (e.g. `opencode -c`), `WhatsNextHandler` auto-resets the phase to `explore` every time. Root cause:
+1. The plugin's `createServerContext` does NOT set `interactionLogger` on `ServerContext`
+2. So `logInteraction` in `WhatsNextHandler`/`ProceedToPhaseHandler` is a no-op
+3. `hasInteractions(conversationId)` always returns `false`
+4. `isFirstCallFromInitialState()` returns `true` on every new plugin load
+5. `analyzePhaseTransition` auto-transitions to first development phase, overwriting the phase set by `proceed_to_phase`
+
+**Fix**: Add `InteractionLogger` to the plugin's `ServerContext` in `server-context.ts` (same as `server-config.ts` does in the MCP server). This is a separate task.
+
 ## Explore
 <!-- beads-phase-id: responsible-vibe-23.1 -->
 ### Tasks
