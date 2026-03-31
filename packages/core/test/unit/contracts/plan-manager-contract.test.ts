@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { mkdtemp } from 'node:fs/promises';
 import {
   BaseInterfaceContract,
   ValidationHelpers,
@@ -55,10 +56,12 @@ const mockStateMachine = {
   },
 };
 
-// Create test paths using temp directory
-const testDir = join(tmpdir(), 'plan-manager-contract-tests');
-const testPlanPath = join(testDir, 'plan.md');
-const testProjectPath = join(testDir, 'project');
+// Paths are resolved lazily in setup() so each test run gets a unique directory.
+// Using a static path caused flakiness when cleanup in one test deleted the
+// directory while another concurrent test was still writing to it.
+let testDir = join(tmpdir(), 'plan-manager-contract-tests');
+let testPlanPath = join(testDir, 'plan.md');
+let testProjectPath = join(testDir, 'project');
 
 /**
  * Plan Manager Contract Test Suite
@@ -315,9 +318,10 @@ describe('IPlanManager Interface Contract', () => {
       return new PlanManager();
     },
     setup: async (instance: IPlanManager) => {
-      // Ensure test directory exists
-      const { mkdir } = await import('node:fs/promises');
-      await mkdir(testDir, { recursive: true });
+      // Create a unique temp directory per test run to avoid concurrent-cleanup races
+      testDir = await mkdtemp(join(tmpdir(), 'plan-manager-contract-'));
+      testPlanPath = join(testDir, 'plan.md');
+      testProjectPath = join(testDir, 'project');
 
       // Set up state machine for PlanManager
       (
