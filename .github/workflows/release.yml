@@ -166,6 +166,7 @@ jobs:
           # Using pnpm publish with --filter to exclude private packages
           pnpm --filter '@codemcp/workflows-server' publish --access public --no-git-checks
           pnpm --filter '@codemcp/workflows' publish --access public --no-git-checks
+          pnpm --filter '@codemcp/workflows-opencode' publish --access public --no-git-checks
           pnpm --filter '@codemcp/workflows-opencode-tui' publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
