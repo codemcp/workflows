@@ -159,25 +159,20 @@ export class ConductReviewHandler extends ConversationRequiredToolHandler<
     currentPhase: string,
     targetPhase: string
   ): Promise<ConductReviewResult> {
-    const instructions = `Conduct a review of the ${currentPhase} phase before proceeding to ${targetPhase}.
+    const perspectiveDetails = perspectives
+      .map(
+        (p, i) => `${i + 1}. **${p.perspective.toUpperCase()}**: ${p.prompt}`
+      )
+      .join('\n');
 
-First, identify the artifacts and decisions from the ${currentPhase} phase by:
-1. Reviewing the plan file to see completed tasks and key decisions
-2. Using git status/diff to see what files were changed (if in a git repository)
-3. Analyzing recent conversation history for important decisions
+    const instructions = `Review ${currentPhase} phase before proceeding to ${targetPhase}.
 
-Then, for each perspective below, analyze these artifacts and provide feedback:
+**Check:** plan file (tasks/decisions), git diff (changes), conversation history.
 
-${perspectives
-  .map(
-    (p, i) => `**${i + 1}. ${p.perspective.toUpperCase()} PERSPECTIVE:**
-${p.prompt}
+**Perspectives:**
+${perspectiveDetails}
 
-`
-  )
-  .join('')}
-
-After completing all perspective reviews, summarize your findings and ask the user if they're ready to proceed to the ${targetPhase} phase.`;
+Summarize findings and ask user if ready to proceed.`;
 
     return {
       instructions,

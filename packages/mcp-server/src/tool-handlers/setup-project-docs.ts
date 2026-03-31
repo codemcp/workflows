@@ -37,11 +37,13 @@ export class SetupProjectDocsHandler extends BaseToolHandler<
   SetupProjectDocsArgs,
   SetupProjectDocsResult
 > {
-  private projectDocsManager: ProjectDocsManager;
+  private projectDocsManager: ProjectDocsManager | null = null;
 
-  constructor() {
-    super();
-    this.projectDocsManager = new ProjectDocsManager();
+  private getProjectDocsManager(): ProjectDocsManager {
+    if (!this.projectDocsManager) {
+      this.projectDocsManager = new ProjectDocsManager(this.logger);
+    }
+    return this.projectDocsManager;
   }
 
   protected async executeHandler(
@@ -54,6 +56,8 @@ export class SetupProjectDocsHandler extends BaseToolHandler<
       context.projectPath || process.cwd()
     );
 
+    const projectDocsManager = this.getProjectDocsManager();
+
     this.logger.info(
       'Setting up project docs with enhanced file linking support',
       { args, projectPath }
@@ -62,7 +66,7 @@ export class SetupProjectDocsHandler extends BaseToolHandler<
     try {
       // Get available templates for validation
       const availableTemplates =
-        await this.projectDocsManager.templateManager.getAvailableTemplates();
+        await projectDocsManager.templateManager.getAvailableTemplates();
 
       // Validate and process each parameter
       const processedArgs = await this.validateAndProcessArgs(
@@ -77,7 +81,7 @@ export class SetupProjectDocsHandler extends BaseToolHandler<
           created: [],
           linked: [],
           skipped: [],
-          paths: this.projectDocsManager.getDocumentPaths(projectPath),
+          paths: projectDocsManager.getDocumentPaths(projectPath),
           message: processedArgs.error || 'Unknown error during validation',
         };
       }
@@ -89,14 +93,14 @@ export class SetupProjectDocsHandler extends BaseToolHandler<
         );
       }
 
-      const result = await this.projectDocsManager.createOrLinkProjectDocs(
+      const result = await projectDocsManager.createOrLinkProjectDocs(
         projectPath,
         processedArgs.templateOptions,
         processedArgs.filePaths
       );
 
       // Get document paths for response
-      const paths = this.projectDocsManager.getDocumentPaths(projectPath);
+      const paths = projectDocsManager.getDocumentPaths(projectPath);
 
       // Create success message
       let message = 'Project documentation setup completed.';
@@ -136,7 +140,7 @@ export class SetupProjectDocsHandler extends BaseToolHandler<
         created: [],
         linked: [],
         skipped: [],
-        paths: this.projectDocsManager.getDocumentPaths(projectPath),
+        paths: projectDocsManager.getDocumentPaths(projectPath),
         message: `Failed to setup project docs: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }

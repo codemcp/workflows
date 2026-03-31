@@ -6,7 +6,7 @@
  * current development phase, and plan file location.
  */
 
-import { createLogger } from '@codemcp/workflows-core';
+import { createLogger, type ILogger } from '@codemcp/workflows-core';
 import {
   ResourceHandler,
   ServerContext,
@@ -15,17 +15,29 @@ import {
 } from '../types.js';
 import { safeExecute } from '../server-helpers.js';
 
-const logger = createLogger('ConversationStateResourceHandler');
+// Default logger for standalone use (MCP server mode)
+const defaultLogger = createLogger('ConversationStateResourceHandler');
 
 /**
  * Conversation State resource handler implementation
  */
 export class ConversationStateResourceHandler implements ResourceHandler {
+  private logger: ILogger;
+
+  constructor(logger?: ILogger) {
+    this.logger = logger ?? defaultLogger;
+  }
+
   async handle(
     uri: URL,
     context: ServerContext
   ): Promise<HandlerResult<ResourceContent>> {
-    logger.debug('Processing conversation state resource request', {
+    // Use context's loggerFactory if available
+    if (context.loggerFactory) {
+      this.logger = context.loggerFactory('ConversationStateResourceHandler');
+    }
+
+    this.logger.debug('Processing conversation state resource request', {
       uri: uri.href,
     });
 

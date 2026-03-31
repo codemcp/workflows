@@ -27,6 +27,11 @@ export interface ProceedToPhaseResult {
   instructions: string;
   plan_file_path: string;
   transition_reason: string;
+  /**
+   * Glob patterns for files allowed to be edited in this phase.
+   * Defaults to ['**\/*'] (all files) if not restricted.
+   */
+  allowed_file_patterns: string[];
 }
 
 /**
@@ -77,6 +82,11 @@ export class ProceedToPhaseHandler extends ConversationRequiredToolHandler<
       context
     );
 
+    // Check current plan file state before transition
+    const prePlanInfo = await context.planManager.getPlanFileInfo(
+      conversationContext.planFilePath
+    );
+
     // Execute plugin hooks before phase transition (replaces if-statement pattern)
     const pluginContext = {
       conversationId,
@@ -85,6 +95,7 @@ export class ProceedToPhaseHandler extends ConversationRequiredToolHandler<
       workflow: conversationContext.workflowName,
       projectPath: conversationContext.projectPath,
       gitBranch: conversationContext.gitBranch,
+      planFileExists: prePlanInfo.exists,
       targetPhase: target_phase,
     };
 
@@ -133,7 +144,15 @@ export class ProceedToPhaseHandler extends ConversationRequiredToolHandler<
       conversationContext.planFilePath
     );
 
-    // Generate enhanced instructions
+    // Get allowed file patterns for the new phase
+    const stateMachine = context.workflowManager.loadWorkflowForProject(
+      conversationContext.projectPath,
+      conversationContext.workflowName
+    );
+    const phaseState = stateMachine.states[transitionResult.newPhase];
+    const allowedFilePatterns = phaseState?.allowed_file_patterns ?? ['**/*'];
+
+    // Generate enhanced instructions (includes file restriction info)
     const instructions =
       await context.instructionGenerator.generateInstructions(
         transitionResult.instructions,
@@ -145,23 +164,51 @@ export class ProceedToPhaseHandler extends ConversationRequiredToolHandler<
           },
           transitionReason: transitionResult.transitionReason,
           isModeled: transitionResult.isModeled,
-          planFileExists: planInfo.exists,
           instructionSource: 'proceed_to_phase',
+          allowedFilePatterns,
         }
       );
 
-    instructions.instructions += `
+    // Execute afterInstructionsGenerated hook for plugin enrichment
+    let finalInstructions = instructions.instructions;
+    if (context.pluginRegistry?.hasHook('afterInstructionsGenerated')) {
+      const hookContext = {
+        conversationId,
+        planFilePath: conversationContext.planFilePath,
+        currentPhase: transitionResult.newPhase,
+        workflow: conversationContext.workflowName,
+        projectPath: conversationContext.projectPath,
+        gitBranch: conversationContext.gitBranch,
+        planFileExists: planInfo.exists,
+      };
+      const enriched = await context.pluginRegistry.executeHook(
+        'afterInstructionsGenerated',
+        hookContext,
+        {
+          instructions: instructions.instructions,
+          planFilePath: conversationContext.planFilePath,
+          phase: transitionResult.newPhase,
+          instructionSource: 'proceed_to_phase',
+        }
+      );
+      if (
+        enriched &&
+        typeof enriched === 'object' &&
+        'instructions' in enriched
+      ) {
+        finalInstructions = (enriched as { instructions: string }).instructions;
+      }
+    }
 
-    After transitioning to the ${transitionResult.newPhase} phase, check the already created tasks and add those that are missing based on the key decisions noted in the plan file.
-    While doing this, also denote dependencies for each task.
-    `;
+    finalInstructions += ` Review tasks for ${transitionResult.newPhase} phase, add missing ones based on key decisions.`;
 
     // Prepare response (commit behavior now handled by CommitPlugin)
     const response: ProceedToPhaseResult = {
       phase: transitionResult.newPhase,
-      instructions: instructions.instructions,
+      instructions: finalInstructions,
       plan_file_path: conversationContext.planFilePath,
       transition_reason: transitionResult.transitionReason,
+      allowed_file_patterns: allowedFilePatterns,
     };
 
     // Log interaction

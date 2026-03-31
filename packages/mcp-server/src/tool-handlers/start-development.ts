@@ -17,11 +17,8 @@ import { resolve } from 'node:path';
 import type { YamlStateMachine } from '@codemcp/workflows-core';
 import { ProjectDocsManager, ProjectDocsInfo } from '@codemcp/workflows-core';
 import { TaskBackendManager } from '@codemcp/workflows-core';
-import { createLogger } from '@codemcp/workflows-core';
 import { ServerContext } from '../types.js';
 import type { PluginHookContext } from '../plugin-system/plugin-interfaces.js';
-
-const logger = createLogger('StartDevelopmentHandler');
 
 /**
  * Arguments for the start_development tool
@@ -40,6 +37,11 @@ export interface StartDevelopmentResult {
   instructions: string;
   plan_file_path: string;
   workflowDocumentationUrl?: string;
+  /**
+   * Glob patterns for files allowed to be edited in this phase.
+   * Defaults to ['**\/*'] (all files) if not restricted.
+   */
+  allowed_file_patterns: string[];
 }
 
 /**
@@ -49,11 +51,13 @@ export class StartDevelopmentHandler extends BaseToolHandler<
   StartDevelopmentArgs,
   StartDevelopmentResult
 > {
-  private projectDocsManager: ProjectDocsManager;
+  private projectDocsManager: ProjectDocsManager | null = null;
 
-  constructor() {
-    super();
-    this.projectDocsManager = new ProjectDocsManager();
+  private getProjectDocsManager(): ProjectDocsManager {
+    if (!this.projectDocsManager) {
+      this.projectDocsManager = new ProjectDocsManager(this.logger);
+    }
+    return this.projectDocsManager;
   }
 
   protected async executeHandler(
@@ -63,8 +67,10 @@ export class StartDevelopmentHandler extends BaseToolHandler<
     // Validate required arguments
     validateRequiredArgs(args, ['workflow']);
 
-    // Validate task backend configuration
-    const taskBackendConfig = TaskBackendManager.validateTaskBackend();
+    // Validate task backend configuration (pass logger to avoid stderr output)
+    const taskBackendConfig = TaskBackendManager.validateTaskBackend(
+      this.logger
+    );
 
     const selectedWorkflow = args.workflow;
     const requireReviews = args.require_reviews ?? false;
@@ -110,8 +116,9 @@ export class StartDevelopmentHandler extends BaseToolHandler<
       const suggestedBranchName = this.generateBranchSuggestion();
       const branchPromptResponse: StartDevelopmentResult = {
         phase: 'branch-prompt',
-        instructions: `You're currently on the ${currentBranch} branch. It's recommended to create a feature branch for development. Propose a branch creation by suggesting a branch command to the user call start_development again.\n\nSuggested command: \`git checkout -b ${suggestedBranchName}\`\n\nPlease create a new branch and then call start_development again to begin development.`,
+        instructions: `On ${currentBranch}. Create feature branch: \`git checkout -b ${suggestedBranchName}\`, then retry \`start_development\`.`,
         plan_file_path: '',
+        allowed_file_patterns: ['**/*'], // Allow all files during branch prompt
       };
 
       this.logger.debug(
@@ -193,6 +200,7 @@ export class StartDevelopmentHandler extends BaseToolHandler<
       workflow: selectedWorkflow,
       projectPath,
       gitBranch: conversationContext.gitBranch,
+      planFileExists: true, // we just created/ensured the plan file exists
       stateMachine: {
         name: stateMachine.name,
         description: stateMachine.description,
@@ -226,7 +234,7 @@ export class StartDevelopmentHandler extends BaseToolHandler<
       } catch (error) {
         // Gracefully handle cases where plan file doesn't exist (e.g., in tests)
         // This is not a critical error - plugins can still function without modifying the plan file
-        logger.debug('Could not execute afterPlanFileCreated hook', {
+        this.logger.debug('Could not execute afterPlanFileCreated hook', {
           error: error instanceof Error ? error.message : String(error),
           planFilePath: conversationContext.planFilePath,
         });
@@ -259,24 +267,43 @@ export class StartDevelopmentHandler extends BaseToolHandler<
     const workflowDocumentationUrl =
       this.generateWorkflowDocumentationUrl(selectedWorkflow);
 
-    // Generate instructions with simple i18n guidance
-    const baseInstructions = `Look at the plan file (${conversationContext.planFilePath}). Define entrance criteria for each phase of the workflow except the initial phase. Those criteria shall be based on the contents of the previous phase. \n      Example: \n      \`\`\`\n      ## Design\n\n      ### Phase Entrance Criteria:\n      - [ ] The requirements have been thoroughly defined.\n      - [ ] Alternatives have been evaluated and are documented. \n      - [ ] It's clear what's in scope and out of scope\n      \`\`\`\n      \n      IMPORTANT: Once you added reasonable entrance call the whats_next() tool to get guided instructions for the next current phase.`;
+    // Generate instructions via PlanManager — single source of truth for initial plan guidance
+    let finalInstructions = context.planManager.getInitialPlanGuidance(
+      conversationContext.planFilePath,
+      workflowDocumentationUrl
+    );
 
-    const i18nGuidance = `\n\nNOTE: If the user is communicating in a non-English language, please translate the plan file content to that language while keeping the structure intact, and continue all interactions in the user's language.`;
+    // Get allowed file patterns for the initial phase (reuse already loaded stateMachine)
+    const phaseState = stateMachine.states[transitionResult.newPhase];
+    const allowedFilePatterns = phaseState?.allowed_file_patterns ?? ['**/*'];
 
-    // Add workflow documentation information if available
-    const workflowDocumentationInfo = workflowDocumentationUrl
-      ? `\n\nInform the user about the chose workflow: He can visit: ${workflowDocumentationUrl} to get detailed information.`
-      : '';
-
-    const finalInstructions =
-      baseInstructions + workflowDocumentationInfo + i18nGuidance;
+    // Execute afterInstructionsGenerated hook for plugin enrichment (e.g., beads CLI guidance)
+    if (context.pluginRegistry?.hasHook('afterInstructionsGenerated')) {
+      const enriched = await context.pluginRegistry.executeHook(
+        'afterInstructionsGenerated',
+        pluginContext,
+        {
+          instructions: finalInstructions,
+          planFilePath: conversationContext.planFilePath,
+          phase: transitionResult.newPhase,
+          instructionSource: 'start_development',
+        }
+      );
+      if (
+        enriched &&
+        typeof enriched === 'object' &&
+        'instructions' in enriched
+      ) {
+        finalInstructions = (enriched as { instructions: string }).instructions;
+      }
+    }
 
     const response: StartDevelopmentResult = {
       phase: transitionResult.newPhase,
       instructions: finalInstructions,
       plan_file_path: conversationContext.planFilePath,
       workflowDocumentationUrl,
+      allowed_file_patterns: allowedFilePatterns,
     };
 
     // Log interaction
@@ -339,7 +366,7 @@ export class StartDevelopmentHandler extends BaseToolHandler<
 
       // Check which referenced documents are missing
       const docsInfo =
-        await this.projectDocsManager.getProjectDocsInfo(projectPath);
+        await this.getProjectDocsManager().getProjectDocsInfo(projectPath);
       const missingDocs = this.getMissingReferencedDocuments(
         referencedVariables,
         docsInfo,
@@ -361,9 +388,7 @@ export class StartDevelopmentHandler extends BaseToolHandler<
       // Generate guidance for setting up missing artifacts
       const setupGuidance = await this.generateArtifactSetupGuidance(
         missingDocs,
-        workflowName,
-        docsInfo,
-        referencedVariables
+        workflowName
       );
 
       this.logger.info(
@@ -377,10 +402,19 @@ export class StartDevelopmentHandler extends BaseToolHandler<
         }
       );
 
+      // Get the initial phase's allowed file patterns from the workflow
+      const initialPhase = stateMachine.initial_state;
+      const initialPhaseState = stateMachine.states[initialPhase];
+      const allowedFilePatterns = initialPhaseState?.allowed_file_patterns ?? [
+        '**/*',
+      ];
+
       return {
         phase: 'artifact-setup',
         instructions: setupGuidance,
         plan_file_path: '',
+        // Use the initial phase's file restrictions during artifact setup
+        allowed_file_patterns: allowedFilePatterns,
       };
     } catch (error) {
       this.logger.warn(
@@ -403,7 +437,7 @@ export class StartDevelopmentHandler extends BaseToolHandler<
   ): string[] {
     // Get available document variables from ProjectDocsManager
     const variableSubstitutions =
-      this.projectDocsManager.getVariableSubstitutions(projectPath);
+      this.getProjectDocsManager().getVariableSubstitutions(projectPath);
     const documentVariables = Object.keys(variableSubstitutions);
     const referencedVariables: Set<string> = new Set();
 
@@ -438,7 +472,10 @@ export class StartDevelopmentHandler extends BaseToolHandler<
 
     // Get variable substitutions to derive the mapping
     const variableSubstitutions =
-      this.projectDocsManager.getVariableSubstitutions(projectPath, undefined);
+      this.getProjectDocsManager().getVariableSubstitutions(
+        projectPath,
+        undefined
+      );
 
     // Create reverse mapping from variable to document type
     const variableToDocMap: { [key: string]: string } = {};
@@ -467,144 +504,21 @@ export class StartDevelopmentHandler extends BaseToolHandler<
    */
   private async generateArtifactSetupGuidance(
     missingDocs: string[],
-    workflowName: string,
-    docsInfo: ProjectDocsInfo,
-    referencedVariables: string[]
+    workflowName: string
   ): Promise<string> {
-    const missingList = missingDocs.map(doc => `- ${doc}`).join('\n');
-    const existingDocs = [];
-
-    if (docsInfo.architecture.exists) {
-      const fileName = basename(docsInfo.architecture.path);
-      existingDocs.push(`✅ ${fileName}`);
-    }
-    if (docsInfo.requirements.exists) {
-      const fileName = basename(docsInfo.requirements.path);
-      existingDocs.push(`✅ ${fileName}`);
-    }
-    if (docsInfo.design.exists) {
-      const fileName = basename(docsInfo.design.path);
-      existingDocs.push(`✅ ${fileName}`);
-    }
-
-    const existingList =
-      existingDocs.length > 0
-        ? `\n\n**Existing Documents:**\n${existingDocs.join('\n')}`
-        : '';
-
-    const referencedVariablesList = referencedVariables
-      .map(v => `\`${v}\``)
-      .join(', ');
-
     // Get available templates dynamically
     const availableTemplates =
-      await this.projectDocsManager.templateManager.getAvailableTemplates();
-    const defaults =
-      await this.projectDocsManager.templateManager.getDefaults();
+      await this.getProjectDocsManager().templateManager.getAvailableTemplates();
 
-    // Generate template options dynamically
-    const templateOptionsText =
-      this.generateTemplateOptionsText(availableTemplates);
+    return `Missing docs for **${workflowName}**: ${missingDocs.join(', ')}
 
-    return `## Project Documentation Setup Required
+Run \`setup_project_docs()\` with templates: ${Object.entries(
+      availableTemplates
+    )
+      .map(([type, templates]) => `${type}: ${templates.join('/')}`)
+      .join('; ')}
 
-The **${workflowName}** workflow references project documentation that doesn't exist yet.
-
-**Referenced Variables:** ${referencedVariablesList}
-
-**Missing Documents:**
-${missingList}${existingList}
-
-## 🚀 **Quick Setup**
-
-Use the \`setup_project_docs\` tool to create these documents with templates:
-
-\`\`\`
-setup_project_docs({
-  architecture: "${defaults.architecture}",        // or other available options
-  requirements: "${defaults.requirements}",         // or other available options
-  design: "${defaults.design}"       // or other available options
-})
-\`\`\`
-
-${templateOptionsText}
-
-## ⚡ **Next Steps**
-
-1. **Call \`setup_project_docs\`** with your preferred templates
-2. **Call \`start_development\`** again to begin the ${workflowName} workflow
-3. The workflow will reference these documents using the detected variables: ${referencedVariablesList}
-
-**Note:** You can also proceed without structured docs, but the workflow instructions will reference missing files.`;
-  }
-
-  /**
-   * Generate template options text dynamically
-   */
-  private generateTemplateOptionsText(availableTemplates: {
-    architecture: string[];
-    requirements: string[];
-    design: string[];
-  }): string {
-    const sections = [];
-
-    if (availableTemplates.architecture.length > 0) {
-      const archOptions = availableTemplates.architecture
-        .map(template => {
-          const description = this.getTemplateDescription(
-            template,
-            'architecture'
-          );
-          return `- **${template}**: ${description}`;
-        })
-        .join('\n');
-      sections.push(`**Architecture Templates:**\n${archOptions}`);
-    }
-
-    if (availableTemplates.requirements.length > 0) {
-      const reqOptions = availableTemplates.requirements
-        .map(template => {
-          const description = this.getTemplateDescription(
-            template,
-            'requirements'
-          );
-          return `- **${template}**: ${description}`;
-        })
-        .join('\n');
-      sections.push(`**Requirements Templates:**\n${reqOptions}`);
-    }
-
-    if (availableTemplates.design.length > 0) {
-      const designOptions = availableTemplates.design
-        .map(template => {
-          const description = this.getTemplateDescription(template, 'design');
-          return `- **${template}**: ${description}`;
-        })
-        .join('\n');
-      sections.push(`**Design Templates:**\n${designOptions}`);
-    }
-
-    return sections.length > 0
-      ? `## 📋 **Template Options**\n\n${sections.join('\n\n')}`
-      : '';
-  }
-
-  /**
-   * Get description for a template based on its name and type
-   */
-  private getTemplateDescription(template: string, type: string): string {
-    switch (template) {
-      case 'arc42':
-        return 'Comprehensive software architecture template with diagrams';
-      case 'ears':
-        return 'WHEN...THEN format for clear, testable requirements';
-      case 'comprehensive':
-        return 'Full implementation guide with testing strategy';
-      case 'freestyle':
-        return `Simple, flexible ${type} documentation`;
-      default:
-        return `${template} format for ${type} documentation`;
-    }
+Then retry \`start_development\`.`;
   }
 
   /**

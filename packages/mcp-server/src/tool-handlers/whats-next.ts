@@ -30,6 +30,11 @@ export interface WhatsNextResult {
   phase: string;
   instructions: string;
   plan_file_path: string;
+  /**
+   * Glob patterns for files allowed to be edited in this phase.
+   * Defaults to ['**\/*'] (all files) if not restricted.
+   */
+  allowed_file_patterns: string[];
 }
 
 /**
@@ -153,7 +158,15 @@ export class WhatsNextHandler extends ConversationRequiredToolHandler<
       conversationContext.planFilePath
     );
 
-    // Generate enhanced instructions
+    // Get allowed file patterns for the new phase
+    const stateMachine = context.workflowManager.loadWorkflowForProject(
+      conversationContext.projectPath,
+      conversationContext.workflowName
+    );
+    const phaseState = stateMachine.states[transitionResult.newPhase];
+    const allowedFilePatterns = phaseState?.allowed_file_patterns ?? ['**/*'];
+
+    // Generate enhanced instructions (includes file restriction info)
     const instructions =
       await context.instructionGenerator.generateInstructions(
         transitionResult.instructions,
@@ -165,19 +178,48 @@ export class WhatsNextHandler extends ConversationRequiredToolHandler<
           },
           transitionReason: transitionResult.transitionReason,
           isModeled: transitionResult.isModeled,
-          planFileExists: planInfo.exists,
           instructionSource: 'whats_next',
+          allowedFilePatterns,
         }
       );
 
-    // Note: Commit behavior now handled by CommitPlugin
-    // Note: Beads-specific instructions are now handled by BeadsInstructionGenerator via strategy pattern
+    // Execute afterInstructionsGenerated hook for plugin enrichment
+    let finalInstructions = instructions.instructions;
+    if (context.pluginRegistry?.hasHook('afterInstructionsGenerated')) {
+      const hookContext = {
+        conversationId,
+        planFilePath: conversationContext.planFilePath,
+        currentPhase: transitionResult.newPhase,
+        workflow: conversationContext.workflowName,
+        projectPath: conversationContext.projectPath,
+        gitBranch: conversationContext.gitBranch,
+        planFileExists: planInfo.exists,
+      };
+      const enriched = await context.pluginRegistry.executeHook(
+        'afterInstructionsGenerated',
+        hookContext,
+        {
+          instructions: instructions.instructions,
+          planFilePath: conversationContext.planFilePath,
+          phase: transitionResult.newPhase,
+          instructionSource: 'whats_next',
+        }
+      );
+      if (
+        enriched &&
+        typeof enriched === 'object' &&
+        'instructions' in enriched
+      ) {
+        finalInstructions = (enriched as { instructions: string }).instructions;
+      }
+    }
 
     // Prepare response
     const response: WhatsNextResult = {
       phase: transitionResult.newPhase,
-      instructions: instructions.instructions,
+      instructions: finalInstructions,
       plan_file_path: conversationContext.planFilePath,
+      allowed_file_patterns: allowedFilePatterns,
     };
 
     // Log interaction
@@ -239,8 +281,4 @@ export class WhatsNextHandler extends ConversationRequiredToolHandler<
 
     return true;
   }
-
-  // Beads-specific instruction logic has been moved to BeadsInstructionGenerator strategy
-
-  // Utility methods moved to strategy implementations where needed
 }

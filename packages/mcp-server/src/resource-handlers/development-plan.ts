@@ -5,7 +5,7 @@
  * development plan document (markdown) that tracks project progress, tasks, and decisions.
  */
 
-import { createLogger } from '@codemcp/workflows-core';
+import { createLogger, type ILogger } from '@codemcp/workflows-core';
 import {
   ResourceHandler,
   ServerContext,
@@ -14,17 +14,29 @@ import {
 } from '../types.js';
 import { safeExecute } from '../server-helpers.js';
 
-const logger = createLogger('DevelopmentPlanResourceHandler');
+// Default logger for standalone use (MCP server mode)
+const defaultLogger = createLogger('DevelopmentPlanResourceHandler');
 
 /**
  * Development Plan resource handler implementation
  */
 export class DevelopmentPlanResourceHandler implements ResourceHandler {
+  private logger: ILogger;
+
+  constructor(logger?: ILogger) {
+    this.logger = logger ?? defaultLogger;
+  }
+
   async handle(
     uri: URL,
     context: ServerContext
   ): Promise<HandlerResult<ResourceContent>> {
-    logger.debug('Processing development plan resource request', {
+    // Use context's loggerFactory if available
+    if (context.loggerFactory) {
+      this.logger = context.loggerFactory('DevelopmentPlanResourceHandler');
+    }
+
+    this.logger.debug('Processing development plan resource request', {
       uri: uri.href,
     });
 

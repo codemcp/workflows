@@ -6,7 +6,7 @@
  * system prompt through the MCP protocol. The system prompt is workflow-independent.
  */
 
-import { createLogger } from '@codemcp/workflows-core';
+import { createLogger, type ILogger } from '@codemcp/workflows-core';
 import {
   ResourceHandler,
   ServerContext,
@@ -17,17 +17,29 @@ import { safeExecute } from '../server-helpers.js';
 import { generateSystemPrompt } from '@codemcp/workflows-core';
 import { StateMachineLoader } from '@codemcp/workflows-core';
 
-const logger = createLogger('SystemPromptResourceHandler');
+// Default logger for standalone use (MCP server mode)
+const defaultLogger = createLogger('SystemPromptResourceHandler');
 
 /**
  * System Prompt resource handler implementation
  */
 export class SystemPromptResourceHandler implements ResourceHandler {
+  private logger: ILogger;
+
+  constructor(logger?: ILogger) {
+    this.logger = logger ?? defaultLogger;
+  }
+
   async handle(
     uri: URL,
-    _context: ServerContext
+    context: ServerContext
   ): Promise<HandlerResult<ResourceContent>> {
-    logger.debug('Processing system prompt resource request', {
+    // Use context's loggerFactory if available
+    if (context.loggerFactory) {
+      this.logger = context.loggerFactory('SystemPromptResourceHandler');
+    }
+
+    this.logger.debug('Processing system prompt resource request', {
       uri: uri.href,
     });
 
@@ -40,7 +52,7 @@ export class SystemPromptResourceHandler implements ResourceHandler {
       // Generate the system prompt
       const systemPrompt = generateSystemPrompt(stateMachine);
 
-      logger.debug('Generated system prompt for resource', {
+      this.logger.debug('Generated system prompt for resource', {
         promptLength: systemPrompt.length,
         workflowName: stateMachine.name,
       });

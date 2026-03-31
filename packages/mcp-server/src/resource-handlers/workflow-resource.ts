@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createLogger } from '@codemcp/workflows-core';
+import { createLogger, type ILogger } from '@codemcp/workflows-core';
 import {
   ResourceHandler,
   ServerContext,
@@ -17,18 +17,32 @@ import {
 } from '../types.js';
 import { safeExecute } from '../server-helpers.js';
 
-const logger = createLogger('WorkflowResourceHandler');
+// Default logger for standalone use (MCP server mode)
+const defaultLogger = createLogger('WorkflowResourceHandler');
 
 /**
  * Resource handler for workflow:// URIs
  * Returns raw YAML content from workflow definition files
  */
 export class WorkflowResourceHandler implements ResourceHandler {
+  private logger: ILogger;
+
+  constructor(logger?: ILogger) {
+    this.logger = logger ?? defaultLogger;
+  }
+
   async handle(
     uri: URL,
     context: ServerContext
   ): Promise<HandlerResult<ResourceContent>> {
-    logger.debug('Processing workflow resource request', { uri: uri.href });
+    // Use context's loggerFactory if available
+    if (context.loggerFactory) {
+      this.logger = context.loggerFactory('WorkflowResourceHandler');
+    }
+
+    this.logger.debug('Processing workflow resource request', {
+      uri: uri.href,
+    });
 
     return safeExecute(async () => {
       // Extract workflow name from URI (workflow://workflow-name)
@@ -40,7 +54,10 @@ export class WorkflowResourceHandler implements ResourceHandler {
         );
       }
 
-      logger.info('Loading workflow resource', { workflowName, uri: uri.href });
+      this.logger.info('Loading workflow resource', {
+        workflowName,
+        uri: uri.href,
+      });
 
       let yamlContent: string;
       let filePath: string;
@@ -85,7 +102,7 @@ export class WorkflowResourceHandler implements ResourceHandler {
         );
         if (!fs.existsSync(workflowFileYml)) {
           // Log debug info to help troubleshoot
-          logger.error(
+          this.logger.error(
             'Workflow file not found',
             new Error(`Workflow '${workflowName}' not found`),
             {
@@ -111,7 +128,7 @@ export class WorkflowResourceHandler implements ResourceHandler {
 
       yamlContent = fs.readFileSync(filePath, 'utf-8');
 
-      logger.info('Successfully loaded workflow resource', {
+      this.logger.info('Successfully loaded workflow resource', {
         workflowName,
         filePath,
         contentLength: yamlContent.length,

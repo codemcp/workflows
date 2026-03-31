@@ -5,7 +5,7 @@
  * error handling, logging, and conversation state management.
  */
 
-import { createLogger } from '@codemcp/workflows-core';
+import { createLogger, type ILogger } from '@codemcp/workflows-core';
 import { ToolHandler, ServerContext, HandlerResult } from '../types.js';
 import type { ConversationContext } from '@codemcp/workflows-core';
 import {
@@ -23,7 +23,7 @@ export abstract class BaseToolHandler<
   TArgs = unknown,
   TResult = unknown,
 > implements ToolHandler<TArgs, TResult> {
-  protected readonly logger: ReturnType<typeof createLogger>;
+  protected logger: ILogger;
 
   constructor() {
     this.logger = createLogger(this.constructor.name);
@@ -37,22 +37,29 @@ export abstract class BaseToolHandler<
     context: ServerContext
   ): Promise<HandlerResult<TResult>> {
     const handlerName = this.constructor.name;
-    logHandlerExecution(handlerName, args);
+
+    // Use context's loggerFactory if available (e.g., OpenCode plugin provides this)
+    if (context.loggerFactory) {
+      this.logger = context.loggerFactory(handlerName);
+    }
+
+    logHandlerExecution(handlerName, args, this.logger);
 
     const result = await safeExecute(
       () => this.executeHandler(args, context),
-      `${handlerName} execution failed`
+      `${handlerName} execution failed`,
+      this.logger
     );
 
     // Check if this is a CONVERSATION_NOT_FOUND error and provide helpful guidance
     if (!result.success && result.error?.includes('CONVERSATION_NOT_FOUND')) {
       const availableWorkflows = context.workflowManager.getWorkflowNames();
       const helpfulError = createConversationNotFoundResult(availableWorkflows);
-      logHandlerCompletion(handlerName, helpfulError);
+      logHandlerCompletion(handlerName, helpfulError, this.logger);
       return helpfulError as HandlerResult<TResult>;
     }
 
-    logHandlerCompletion(handlerName, result);
+    logHandlerCompletion(handlerName, result, this.logger);
     return result;
   }
 
