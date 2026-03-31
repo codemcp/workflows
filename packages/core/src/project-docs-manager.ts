@@ -18,10 +18,10 @@ import {
   readdir,
 } from 'node:fs/promises';
 import { join, dirname, relative, extname, basename } from 'node:path';
-import { createLogger } from './logger.js';
+import { createLogger, ILogger } from './logger.js';
 import { TemplateManager, TemplateOptions } from './template-manager.js';
 
-const logger = createLogger('ProjectDocsManager');
+const defaultLogger = createLogger('ProjectDocsManager');
 
 export interface ProjectDocsInfo {
   architecture: { path: string; exists: boolean };
@@ -37,9 +37,11 @@ export interface CreateOrLinkResult {
 
 export class ProjectDocsManager {
   public templateManager: TemplateManager; // Make public for access from other classes
+  private logger: ILogger;
 
-  constructor() {
+  constructor(logger: ILogger = defaultLogger) {
     this.templateManager = new TemplateManager();
+    this.logger = logger;
   }
 
   /**
@@ -325,7 +327,7 @@ export class ProjectDocsManager {
       skipped.push('design.md');
     }
 
-    logger.info('Project docs creation/linking completed', {
+    this.logger.info('Project docs creation/linking completed', {
       created,
       linked,
       skipped,
@@ -351,13 +353,13 @@ export class ProjectDocsManager {
 
       await symlink(relativePath, targetPath);
 
-      logger.debug('Symlink created successfully', {
+      this.logger.debug('Symlink created successfully', {
         sourcePath,
         targetPath,
         relativePath,
       });
     } catch (error) {
-      logger.error('Failed to create symlink', error as Error, {
+      this.logger.error('Failed to create symlink', error as Error, {
         sourcePath,
         targetPath,
       });
@@ -375,7 +377,7 @@ export class ProjectDocsManager {
       const stats = await lstat(documentPath);
       await unlink(documentPath);
 
-      logger.debug('Existing document removed', {
+      this.logger.debug('Existing document removed', {
         documentPath,
         wasSymlink: stats.isSymbolicLink(),
       });
@@ -387,7 +389,7 @@ export class ProjectDocsManager {
         'code' in nodeError &&
         nodeError.code !== 'ENOENT'
       ) {
-        logger.debug('Failed to remove existing document', {
+        this.logger.debug('Failed to remove existing document', {
           documentPath,
           error: nodeError.message,
         });
@@ -427,9 +429,9 @@ export class ProjectDocsManager {
         }
       }
 
-      logger.debug(`Created ${type} document`, { documentPath, template });
+      this.logger.debug(`Created ${type} document`, { documentPath, template });
     } catch (error) {
-      logger.error(`Failed to create ${type} document`, error as Error, {
+      this.logger.error(`Failed to create ${type} document`, error as Error, {
         documentPath,
         template,
       });

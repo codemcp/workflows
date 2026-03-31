@@ -8,7 +8,7 @@ import { IPlanManager } from '@codemcp/workflows-core';
 import { IInstructionGenerator } from '@codemcp/workflows-core';
 import { WorkflowManager } from '@codemcp/workflows-core';
 import { InteractionLogger } from '@codemcp/workflows-core';
-import type { TaskBackendConfig } from '@codemcp/workflows-core';
+import type { TaskBackendConfig, LoggerFactory } from '@codemcp/workflows-core';
 import type { IPluginRegistry } from './plugin-system/plugin-interfaces.js';
 
 /**
@@ -24,6 +24,8 @@ export interface ServerContext {
   interactionLogger?: InteractionLogger;
   projectPath: string;
   pluginRegistry?: IPluginRegistry;
+  /** Logger factory for creating component loggers - if not provided, handlers use global createLogger */
+  loggerFactory?: LoggerFactory;
 }
 
 /**

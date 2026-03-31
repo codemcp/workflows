@@ -1,17 +1,15 @@
 /**
- * Logging utility for Vibe Feature MCP Server
+ * Logging utility for workflows-core
  *
- * Provides structured logging with proper MCP compliance:
- * - Uses stderr for all local logging (MCP requirement)
- * - Supports MCP log message notifications to client
+ * Provides structured logging with pluggable sinks:
+ * - Uses stderr for all local logging by default
+ * - Supports external log sinks (e.g., MCP notifications) via LogSink interface
  * - Provides structured logging with proper levels:
  *   - debug: Tracing and detailed execution flow
  *   - info: Success operations and important milestones
  *   - warn: Expected errors and recoverable issues
  *   - error: Caught but unexpected errors
  */
-
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 export enum LogLevel {
   DEBUG = 0,
@@ -29,27 +27,58 @@ export interface LogContext {
   [key: string]: unknown;
 }
 
-// Global MCP server reference for log notifications
-let mcpServerInstance: McpServer | null = null;
+/**
+ * Interface for external log sinks (e.g., MCP notifications, console, file)
+ * Implementations can be registered to receive log messages
+ */
+export interface LogSink {
+  /**
+   * Called when a log message should be sent to the sink
+   * @param level - Log level (debug, info, warning, error)
+   * @param logger - Component name that generated the log
+   * @param message - Log message
+   * @param context - Optional structured context
+   */
+  log(
+    level: 'debug' | 'info' | 'warning' | 'error',
+    logger: string,
+    message: string,
+    context?: LogContext
+  ): Promise<void>;
+}
 
-// Unified logging level - can be set by MCP client or environment
+/**
+ * Logger interface for dependency injection
+ * Allows handlers to receive a logger without importing the global createLogger
+ */
+export interface ILogger {
+  debug(message: string, context?: LogContext): void;
+  info(message: string, context?: LogContext): void;
+  warn(message: string, context?: LogContext): void;
+  error(message: string, error?: Error, context?: LogContext): void;
+}
+
+/**
+ * Factory function type for creating loggers
+ * Can be injected to provide different logging implementations
+ */
+export type LoggerFactory = (component: string) => ILogger;
+
+// Global log sink reference (e.g., MCP server, custom sink)
+let logSinkInstance: LogSink | null = null;
+
+// Unified logging level - can be set externally or via environment
 let currentLoggingLevel: LogLevel | null = null;
 
 // Test mode detection function to check at runtime
 function isTestMode(): boolean {
   // Check explicit environment variables
-  if (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true') {
-    return true;
-  }
-
-  // Check if running in a temporary directory (common for tests)
-  const cwd = process.cwd();
-  if (cwd.includes('/tmp/') || cwd.includes('temp') || cwd.includes('test-')) {
+  if (process.env['NODE_ENV'] === 'test' || process.env['VITEST'] === 'true') {
     return true;
   }
 
   // Check if LOG_LEVEL is explicitly set to ERROR
-  if (process.env.LOG_LEVEL === 'ERROR') {
+  if (process.env['LOG_LEVEL'] === 'ERROR') {
     return true;
   }
 
@@ -57,17 +86,32 @@ function isTestMode(): boolean {
 }
 
 /**
- * Set the MCP server instance for log notifications
+ * Register a log sink to receive log messages
+ * Used by mcp-server to register MCP notification sink
  */
-export function setMcpServerForLogging(server: McpServer): void {
-  mcpServerInstance = server;
+export function registerLogSink(sink: LogSink): void {
+  logSinkInstance = sink;
 }
 
 /**
- * Set the logging level from MCP client request
+ * Clear the registered log sink
  */
-export function setMcpLoggingLevel(level: string): void {
-  // Map MCP levels to our internal levels
+export function clearLogSink(): void {
+  logSinkInstance = null;
+}
+
+/**
+ * Set the logging level programmatically
+ */
+export function setLoggingLevel(level: LogLevel): void {
+  currentLoggingLevel = level;
+}
+
+/**
+ * Set the logging level from a string (e.g., from MCP client request)
+ */
+export function setLoggingLevelFromString(level: string): void {
+  // Map string levels to our internal levels
   const levelMap: Record<string, LogLevel> = {
     debug: LogLevel.DEBUG,
     info: LogLevel.INFO,
@@ -84,7 +128,7 @@ export function setMcpLoggingLevel(level: string): void {
 
 class Logger {
   private component: string;
-  private explicitLogLevel?: LogLevel;
+  private explicitLogLevel: LogLevel | undefined;
 
   constructor(component: string, logLevel?: LogLevel) {
     this.component = component;
@@ -103,7 +147,7 @@ class Logger {
       return LogLevel.ERROR;
     }
 
-    // Use MCP-set level if available (takes precedence)
+    // Use externally-set level if available (takes precedence)
     if (currentLoggingLevel !== null) {
       return currentLoggingLevel;
     }
@@ -123,7 +167,7 @@ class Logger {
   }
 
   private getLogLevelFromEnv(): LogLevel | null {
-    const envLevel = process.env.LOG_LEVEL?.toUpperCase();
+    const envLevel = process.env['LOG_LEVEL']?.toUpperCase();
     switch (envLevel) {
       case 'DEBUG':
         return LogLevel.DEBUG;
@@ -155,41 +199,21 @@ class Logger {
   }
 
   /**
-   * Send log message to MCP client if server is available and level is appropriate
+   * Send log message to registered sink if available
    */
-  private async sendMcpLogMessage(
+  private async sendToSink(
     level: 'debug' | 'info' | 'warning' | 'error',
     message: string,
     context?: LogContext
   ): Promise<void> {
-    if (mcpServerInstance) {
+    if (logSinkInstance) {
       try {
-        // Safely serialize context to avoid JSON issues
-        let logData = message;
-        if (context) {
-          try {
-            const contextStr = JSON.stringify(context, null, 0);
-            logData = `${message} ${contextStr}`;
-          } catch (_error) {
-            // If JSON serialization fails, just use the message
-            logData = `${message} [context serialization failed]`;
-          }
-        }
-
-        await mcpServerInstance.server.notification({
-          method: 'notifications/message',
-          params: {
-            level,
-            logger: this.component,
-            data: logData,
-          },
-        });
+        await logSinkInstance.log(level, this.component, message, context);
       } catch (error) {
-        // Fallback to stderr if MCP notification fails
-        // Don't use this.error to avoid infinite recursion
+        // Fallback to stderr if sink fails
         if (!isTestMode()) {
           process.stderr.write(
-            `[MCP-LOG-ERROR] Failed to send log notification: ${error}\n`
+            `[LOG-SINK-ERROR] Failed to send log to sink: ${error}\n`
           );
         }
       }
@@ -198,120 +222,40 @@ class Logger {
 
   debug(message: string, context?: LogContext): void {
     if (this.shouldLog(LogLevel.DEBUG)) {
-      const formattedMessage = this.formatMessage('debug', message, context);
-      // Always log to stderr for MCP compliance
-      process.stderr.write(formattedMessage + '\n');
-      // Also send to MCP client if available (only for debug level)
-      this.sendMcpLogMessage('debug', message, context).catch(() => {
-        // Ignore MCP notification errors for debug messages
+      // Avoid duplicate output when a sink is active (sink owns its own output channel)
+      if (!logSinkInstance) {
+        const formattedMessage = this.formatMessage('debug', message, context);
+        process.stderr.write(formattedMessage + '\n');
+      }
+      this.sendToSink('debug', message, context).catch(() => {
+        // Sink errors are non-fatal for debug messages
       });
     }
   }
 
   info(message: string, context?: LogContext): void {
     if (this.shouldLog(LogLevel.INFO)) {
-      const formattedMessage = this.formatMessage('info', message, context);
-      // Always log to stderr for MCP compliance
-      process.stderr.write(formattedMessage + '\n');
-
-      // Send enhanced notifications for important events
-      this.sendEnhancedMcpNotification('info', message, context).catch(() => {
-        // Ignore MCP notification errors for info messages
+      // Avoid duplicate output when a sink is active (sink owns its own output channel)
+      if (!logSinkInstance) {
+        const formattedMessage = this.formatMessage('info', message, context);
+        process.stderr.write(formattedMessage + '\n');
+      }
+      this.sendToSink('info', message, context).catch(() => {
+        // Sink errors are non-fatal for info messages
       });
     }
   }
 
-  /**
-   * Send enhanced MCP notifications with better formatting for important events
-   */
-  private async sendEnhancedMcpNotification(
-    level: 'debug' | 'info' | 'warning' | 'error',
-    message: string,
-    context?: LogContext
-  ): Promise<void> {
-    if (mcpServerInstance) {
-      try {
-        let enhancedMessage = message;
-        let notificationLevel = level;
-
-        // Enhance phase transition messages
-        if (
-          context &&
-          (context.from || context.to) &&
-          message.includes('transition')
-        ) {
-          const from = context.from
-            ? this.capitalizePhase(context.from as string)
-            : '';
-          const to = context.to
-            ? this.capitalizePhase(context.to as string)
-            : '';
-          if (from && to) {
-            enhancedMessage = `Phase Transition: ${from} → ${to}`;
-            notificationLevel = 'info';
-          }
-        }
-
-        // Enhance initialization messages
-        if (message.includes('initialized successfully')) {
-          enhancedMessage = '🚀 Vibe Feature MCP Server Ready';
-          notificationLevel = 'info';
-        }
-
-        // Safely serialize context to avoid JSON issues
-        let logData = enhancedMessage;
-        if (context) {
-          try {
-            const contextStr = JSON.stringify(context, null, 0);
-            logData = `${enhancedMessage} ${contextStr}`;
-          } catch (_error) {
-            // If JSON serialization fails, just use the message
-            logData = `${enhancedMessage} [context serialization failed]`;
-          }
-        }
-
-        // Use the underlying server's notification method
-        await mcpServerInstance.server.notification({
-          method: 'notifications/message',
-          params: {
-            level: notificationLevel,
-            logger: this.component,
-            data: logData,
-          },
-        });
-      } catch (error) {
-        // Fallback to stderr if MCP notification fails
-        // Don't use this.error to avoid infinite recursion
-        if (!isTestMode()) {
-          process.stderr.write(
-            `[MCP-LOG-ERROR] Failed to send log notification: ${error}\n`
-          );
-        }
-      }
-    }
-  }
-
-  /**
-   * Capitalize phase name for display
-   */
-  private capitalizePhase(phase: string): string {
-    return phase
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
-
   warn(message: string, context?: LogContext): void {
     if (this.shouldLog(LogLevel.WARN)) {
-      const formattedMessage = this.formatMessage('warn', message, context);
-      // Always log to stderr for MCP compliance
-      process.stderr.write(formattedMessage + '\n');
-      // Also send to MCP client if available
-      this.sendEnhancedMcpNotification('warning', message, context).catch(
-        () => {
-          // Ignore MCP notification errors for warn messages
-        }
-      );
+      // Avoid duplicate output when a sink is active (sink owns its own output channel)
+      if (!logSinkInstance) {
+        const formattedMessage = this.formatMessage('warn', message, context);
+        process.stderr.write(formattedMessage + '\n');
+      }
+      this.sendToSink('warning', message, context).catch(() => {
+        // Sink errors are non-fatal for warn messages
+      });
     }
   }
 
@@ -320,19 +264,18 @@ class Logger {
       const errorContext = error
         ? { ...context, error: error.message, stack: error.stack }
         : context;
-      const formattedMessage = this.formatMessage(
-        'error',
-        message,
-        errorContext
-      );
-      // Always log to stderr for MCP compliance
-      process.stderr.write(formattedMessage + '\n');
-      // Also send to MCP client if available
-      this.sendEnhancedMcpNotification('error', message, errorContext).catch(
-        () => {
-          // Ignore MCP notification errors for error messages
-        }
-      );
+      // Avoid duplicate output when a sink is active (sink owns its own output channel)
+      if (!logSinkInstance) {
+        const formattedMessage = this.formatMessage(
+          'error',
+          message,
+          errorContext
+        );
+        process.stderr.write(formattedMessage + '\n');
+      }
+      this.sendToSink('error', message, errorContext).catch(() => {
+        // Sink errors are non-fatal — error already written to stderr above
+      });
     }
   }
 
@@ -350,4 +293,4 @@ export function createLogger(component: string, logLevel?: LogLevel): Logger {
 }
 
 // Default logger for the main application
-export const logger = createLogger('VibeFeatureMCP');
+export const logger = createLogger('workflows-core');
