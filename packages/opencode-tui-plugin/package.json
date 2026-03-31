@@ -1,0 +1,46 @@
+{
+  "name": "@codemcp/workflows-opencode-tui",
+  "version": "6.4.0",
+  "description": "OpenCode TUI sidebar plugin that displays the current responsible-vibe workflow phase and name",
+  "main": "workflows-phase.tsx",
+  "exports": {
+    "./tui": "./workflows-phase.tsx"
+  },
+  "files": [
+    "workflows-phase.tsx"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format:check": "prettier --check .",
+    "format": "prettier --write ."
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "*",
+    "@opentui/solid": "*",
+    "solid-js": "*"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "*",
+    "@opentui/solid": "*",
+    "@types/node": "^22.0.0",
+    "solid-js": "*",
+    "typescript": "^5.9.3"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "opencode-tui-plugin",
+    "workflows",
+    "responsible-vibe"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mrsimpson/responsible-vibe-mcp"
+  }
+}
