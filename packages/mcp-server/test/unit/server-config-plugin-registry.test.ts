@@ -1,5 +1,9 @@
 /**
  * Test plugin registration in server-config
+ *
+ * Design principle: Plugins are always REGISTERED, but only ENABLED when their
+ * activation conditions are met. This allows plugins to activate/deactivate
+ * dynamically based on conditions that may change after registration.
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
@@ -42,19 +46,19 @@ describe('Server Config Plugin Registration', () => {
     });
 
     expect(components.context.pluginRegistry).toBeDefined();
+    const pluginRegistry = components.context.pluginRegistry!;
 
     // Check that BeadsPlugin was registered
-    const pluginNames = components.context.pluginRegistry.getPluginNames();
+    const pluginNames = pluginRegistry.getPluginNames();
     expect(pluginNames).toContain('BeadsPlugin');
 
     // Check that it's enabled
-    const enabledPlugins =
-      components.context.pluginRegistry.getEnabledPlugins();
+    const enabledPlugins = pluginRegistry.getEnabledPlugins();
     expect(enabledPlugins).toHaveLength(1);
     expect(enabledPlugins[0].getName()).toBe('BeadsPlugin');
   });
 
-  it('should not register BeadsPlugin when TASK_BACKEND is markdown', async () => {
+  it('should register BeadsPlugin but not enable it when TASK_BACKEND is markdown', async () => {
     // Explicitly set markdown to disable beads
     vi.stubEnv('TASK_BACKEND', 'markdown');
 
@@ -63,18 +67,19 @@ describe('Server Config Plugin Registration', () => {
     });
 
     expect(components.context.pluginRegistry).toBeDefined();
+    const pluginRegistry = components.context.pluginRegistry!;
 
-    // Check that no plugins are registered
-    const pluginNames = components.context.pluginRegistry.getPluginNames();
-    expect(pluginNames).toHaveLength(0);
+    // Both plugins should be REGISTERED
+    const pluginNames = pluginRegistry.getPluginNames();
+    expect(pluginNames).toContain('CommitPlugin');
+    expect(pluginNames).toContain('BeadsPlugin');
 
-    // Check that no plugins are enabled
-    const enabledPlugins =
-      components.context.pluginRegistry.getEnabledPlugins();
+    // But neither should be ENABLED (CommitPlugin needs COMMIT_BEHAVIOR, BeadsPlugin needs beads)
+    const enabledPlugins = pluginRegistry.getEnabledPlugins();
     expect(enabledPlugins).toHaveLength(0);
   });
 
-  it('should not register BeadsPlugin when bd is not available', async () => {
+  it('should register BeadsPlugin but not enable it when bd is not available', async () => {
     // Explicitly clear TASK_BACKEND - triggers auto-detection
     delete process.env.TASK_BACKEND;
 
@@ -88,10 +93,15 @@ describe('Server Config Plugin Registration', () => {
     });
 
     expect(components.context.pluginRegistry).toBeDefined();
-    expect(components.context.pluginRegistry.getPluginNames()).toHaveLength(0);
-    expect(components.context.pluginRegistry.getEnabledPlugins()).toHaveLength(
-      0
-    );
+    const pluginRegistry = components.context.pluginRegistry!;
+
+    // Both plugins should be REGISTERED
+    const pluginNames = pluginRegistry.getPluginNames();
+    expect(pluginNames).toContain('CommitPlugin');
+    expect(pluginNames).toContain('BeadsPlugin');
+
+    // But neither should be ENABLED
+    expect(pluginRegistry.getEnabledPlugins()).toHaveLength(0);
   });
 
   // Note: Auto-detection tests are covered in E2E tests (beads-plugin-integration.test.ts)

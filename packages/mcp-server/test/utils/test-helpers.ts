@@ -150,6 +150,11 @@ export class MockContextFactory {
       planManager: {
         setStateMachine: vi.fn(),
         ensurePlanFile: vi.fn(),
+        getInitialPlanGuidance: vi
+          .fn()
+          .mockReturnValue(
+            'Look at the plan file and define entrance criteria.'
+          ),
       },
       ...overrides,
     };
@@ -275,7 +280,7 @@ export class TestAssertions {
 
   static expectArtifactSetupPhase(result: StartDevelopmentResult): void {
     expect(result.phase).toBe('artifact-setup');
-    expect(result.instructions).toContain('Referenced Variables');
+    expect(result.instructions).toContain('Missing docs for');
   }
 
   static expectNormalPhase(
