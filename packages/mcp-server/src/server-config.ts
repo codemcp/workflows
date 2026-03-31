@@ -19,7 +19,10 @@ import { TransitionEngine } from '@codemcp/workflows-core';
 import { InteractionLogger } from '@codemcp/workflows-core';
 import { WorkflowManager } from '@codemcp/workflows-core';
 import { TemplateManager } from '@codemcp/workflows-core';
-import { createLogger, setMcpLoggingLevel } from '@codemcp/workflows-core';
+import {
+  createLogger,
+  setLoggingLevelFromString,
+} from '@codemcp/workflows-core';
 
 import {
   ServerConfig,
@@ -42,8 +45,6 @@ import {
 import { PluginRegistry } from './plugin-system/plugin-registry.js';
 import { BeadsPlugin } from './plugin-system/beads-plugin.js';
 import { CommitPlugin } from './plugin-system/commit-plugin.js';
-import { BeadsPlanManager } from './components/beads/beads-plan-manager.js';
-import { BeadsInstructionGenerator } from './components/beads/beads-instruction-generator.js';
 
 const logger = createLogger('ServerConfig');
 
@@ -103,7 +104,7 @@ export async function initializeServerComponents(
     logger.info('Setting logging level from MCP client', { level });
 
     // Set the unified logging level
-    setMcpLoggingLevel(level);
+    setLoggingLevelFromString(level);
 
     return {};
   });
@@ -126,8 +127,6 @@ export async function initializeServerComponents(
   // - If TASK_BACKEND env var is set, use that value
   // - If not set, auto-detect based on 'bd' command availability
   const taskBackendConfig = TaskBackendManager.detectTaskBackend();
-  const isBeadsBackend =
-    taskBackendConfig.backend === 'beads' && taskBackendConfig.isAvailable;
 
   logger.info('Task backend configuration', {
     backend: taskBackendConfig.backend,
@@ -135,45 +134,38 @@ export async function initializeServerComponents(
     autoDetected: !process.env['TASK_BACKEND'],
   });
 
-  const planManager = isBeadsBackend
-    ? new BeadsPlanManager()
-    : new PlanManager();
-  const instructionGenerator = isBeadsBackend
-    ? new BeadsInstructionGenerator()
-    : new InstructionGenerator(planManager as InstanceType<typeof PlanManager>);
+  // Always use PlanManager - beads-specific plan format happens via afterPlanFileCreated hook
+  const planManager = new PlanManager();
+  // Always use InstructionGenerator - beads-specific enrichment happens via afterInstructionsGenerated hook
+  const instructionGenerator = new InstructionGenerator();
 
   // Always create interaction logger as it's critical for transition engine logic
   // (determining first call from initial state)
   const interactionLogger = new InteractionLogger(database);
 
   // Initialize plugin registry and register plugins
+  // Plugins are always registered; isEnabled() is checked at hook execution time
   const pluginRegistry = new PluginRegistry();
 
-  // Register CommitPlugin if commit behavior is configured
-  if (process.env.COMMIT_BEHAVIOR) {
-    const commitPlugin = new CommitPlugin({ projectPath });
-    if (commitPlugin.isEnabled()) {
-      pluginRegistry.registerPlugin(commitPlugin);
-      logger.info('CommitPlugin registered successfully', {
-        enabled: commitPlugin.isEnabled(),
-        sequence: commitPlugin.getSequence(),
-        behavior: process.env.COMMIT_BEHAVIOR,
-      });
-    }
-  }
+  // Register CommitPlugin - isEnabled() checks COMMIT_BEHAVIOR internally
+  const commitPlugin = new CommitPlugin({ projectPath });
+  pluginRegistry.registerPlugin(commitPlugin);
+  logger.info('CommitPlugin registered', {
+    enabled: commitPlugin.isEnabled(),
+    sequence: commitPlugin.getSequence(),
+    behavior: process.env.COMMIT_BEHAVIOR || '(not set)',
+  });
 
-  // Register BeadsPlugin if beads backend is detected and available
-  if (isBeadsBackend) {
-    const beadsPlugin = new BeadsPlugin({ projectPath });
-    if (beadsPlugin.isEnabled()) {
-      pluginRegistry.registerPlugin(beadsPlugin);
-      logger.info('BeadsPlugin registered successfully', {
-        enabled: beadsPlugin.isEnabled(),
-        sequence: beadsPlugin.getSequence(),
-        autoDetected: !process.env['TASK_BACKEND'],
-      });
-    }
-  }
+  // Register BeadsPlugin - isEnabled() checks beads backend availability internally
+  const beadsPlugin = new BeadsPlugin({ projectPath });
+  pluginRegistry.registerPlugin(beadsPlugin);
+  logger.info('BeadsPlugin registered', {
+    enabled: beadsPlugin.isEnabled(),
+    sequence: beadsPlugin.getSequence(),
+    backend: taskBackendConfig.backend,
+    isAvailable: taskBackendConfig.isAvailable,
+    autoDetected: !process.env['TASK_BACKEND'],
+  });
 
   // Create server context
   const context: ServerContext = {
@@ -505,17 +497,7 @@ export async function registerMcpTools(
     'setup_project_docs',
     {
       description:
-        'Create project documentation artifacts (architecture.md, requirements.md, design.md) using configurable templates OR by linking existing files via symlinks. ' +
-        '**Linking existing documents Examples:**\n' +
-        '- `README.md` (project root)\n' +
-        '- `docs/architecture.md` (relative path)\n' +
-        '- `/absolute/path/to/requirements.txt`\n\n' +
-        '**Using "none" Option:**\n' +
-        '- Use `"none"` to create a placeholder that instructs LLM to use plan file instead\n' +
-        '- Useful when you prefer plan-file-only workflows\n\n' +
-        '**Mixed Usage Examples:**\n' +
-        '- `setup_project_docs({ architecture: "README.md", requirements: "none", design: "comprehensive" })`\n' +
-        '- `setup_project_docs({ architecture: "arc42", requirements: "ears", design: "none" })`',
+        'Create or link project docs (architecture.md, requirements.md, design.md). Use template names or file paths.',
       inputSchema: {
         architecture: z
           .string()

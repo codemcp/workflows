@@ -15,6 +15,16 @@ export {
   ResponsibleVibeMCPServer,
   createResponsibleVibeMCPServer,
 } from './server.js';
+
+// Re-export tool handlers for external use (e.g., OpenCode plugin)
+export * from './tool-handlers/index.js';
+
+// Re-export types needed by external consumers
+export type { ServerContext, HandlerResult } from './types.js';
+
+// Re-export plugin system for external use (e.g., OpenCode plugin)
+export { PluginRegistry } from './plugin-system/index.js';
+export { BeadsPlugin } from './plugin-system/beads-plugin.js';
 import { createLogger } from '@codemcp/workflows-core';
 
 const logger = createLogger('Main');
