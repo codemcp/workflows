@@ -12,13 +12,14 @@ export class PluginRegistry implements IPluginRegistry {
   private plugins: Map<string, IPlugin> = new Map();
 
   /**
-   * Register a plugin if it's enabled
+   * Register a plugin.
+   *
+   * Note: Plugins are always registered regardless of isEnabled() state.
+   * The isEnabled() check happens at hook execution time in getEnabledPlugins().
+   * This allows plugins to activate/deactivate dynamically based on conditions
+   * that may change after registration (e.g., backend availability).
    */
   registerPlugin(plugin: IPlugin): void {
-    if (!plugin.isEnabled()) {
-      return;
-    }
-
     const name = plugin.getName();
     if (this.plugins.has(name)) {
       throw new Error(`Plugin with name '${name}' is already registered`);

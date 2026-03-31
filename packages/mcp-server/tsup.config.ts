@@ -5,7 +5,11 @@ export default defineConfig({
     index: 'src/index.ts',
   },
   format: ['esm'],
-  dts: false,
+  dts: {
+    compilerOptions: {
+      incremental: false, // Override base tsconfig to avoid conflict with DTS generation
+    },
+  },
   clean: true,
   bundle: true,
   // SDK and zod are peer/external deps
