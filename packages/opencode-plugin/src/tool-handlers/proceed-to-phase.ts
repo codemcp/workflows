@@ -54,7 +54,9 @@ export function createProceedToPhaseTool(
 
         const data = unwrapResult(result);
 
-        // Update cached state with new phase info
+        // Update cached state with new phase info and instructions
+        // This is the proper way: the tool provides the instructions directly
+        // so chat.message hook will use them instead of re-querying
         updateCachedState({
           phase: data.phase,
           instructions: data.instructions,

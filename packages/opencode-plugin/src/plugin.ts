@@ -41,8 +41,9 @@ import {
 import { stripWhatsNextReferences } from './utils.js';
 
 /**
- * Cached workflow state from the last WhatsNextHandler call.
+ * Cached workflow state from tools or WhatsNextHandler.
  * Used by tool.execute.before hook for file edit validation.
+ * Used by chat.message hook for phase instructions.
  */
 interface CachedWorkflowState {
   active: boolean;
@@ -51,6 +52,7 @@ interface CachedWorkflowState {
   allowedFilePatterns: string[];
   workflowName: string | null;
   planFilePath: string | null;
+  instructions: string | null;
 }
 
 /**
@@ -133,7 +135,8 @@ export const WorkflowsPlugin: Plugin = async (
   > | null = null;
   let serverContextInitialized = false;
 
-  // Cached workflow state - updated by chat.message hook, used by tool.execute.before
+  // Cached workflow state - updated by tools and WhatsNextHandler
+  // Used by chat.message hook for instructions and tool.execute.before for file patterns
   let cachedState: CachedWorkflowState = {
     active: false,
     phase: null,
@@ -141,6 +144,7 @@ export const WorkflowsPlugin: Plugin = async (
     allowedFilePatterns: ['**/*'],
     workflowName: null,
     planFilePath: null,
+    instructions: null,
   };
 
   // Helper to get an initialized ServerContext for handler delegation
@@ -177,7 +181,7 @@ export const WorkflowsPlugin: Plugin = async (
       // Ignore errors during startup plugin check
     });
 
-  // Helper to update cached state from WhatsNextResult
+  // Helper to update cached state from WhatsNextResult or tool result
   function updateCachedState(result: WhatsNextResult, workflowName?: string) {
     cachedState = {
       active: true,
@@ -186,6 +190,7 @@ export const WorkflowsPlugin: Plugin = async (
       allowedFilePatterns: result.allowed_file_patterns,
       workflowName: workflowName ?? cachedState.workflowName,
       planFilePath: result.plan_file_path,
+      instructions: result.instructions,
     };
   }
 
@@ -230,6 +235,7 @@ export const WorkflowsPlugin: Plugin = async (
         allowedFilePatterns,
         workflowName: context.workflowName,
         planFilePath: context.planFilePath,
+        instructions: null, // Will be populated by chat.message or tools
       };
 
       return true;
@@ -301,14 +307,41 @@ export const WorkflowsPlugin: Plugin = async (
             allowedFilePatterns: ['**/*'],
             workflowName: null,
             planFilePath: null,
+            instructions: null,
           };
           return;
         }
 
         result = handlerResult.data;
 
-        // Update cached state for use by tool.execute.before
-        updateCachedState(result);
+        // PROPER FIX: If we already have cached instructions (from a tool call like
+        // proceed_to_phase), use those instead of re-querying. This eliminates the
+        // race condition entirely - the tool's instructions are authoritative.
+        if (cachedState.instructions && cachedState.planFilePath) {
+          // We have instructions from a tool call, use them instead of WhatsNextHandler result
+          logger.info(
+            'chat.message: Using instructions from cached state (tool call)',
+            {
+              phase: cachedState.phase,
+              source: 'tool-cache',
+            }
+          );
+          result = {
+            phase: cachedState.phase || '',
+            instructions: cachedState.instructions,
+            plan_file_path: cachedState.planFilePath,
+            allowed_file_patterns: cachedState.allowedFilePatterns,
+          };
+        } else {
+          // No cached instructions, update from WhatsNextHandler (first message or external state change)
+          updateCachedState(result);
+          logger.debug(
+            'chat.message: Updated cached state from WhatsNextHandler',
+            {
+              phase: result.phase,
+            }
+          );
+        }
 
         logger.info('chat.message hook fired', {
           sessionID: hookInput.sessionID,
@@ -343,6 +376,7 @@ export const WorkflowsPlugin: Plugin = async (
             allowedFilePatterns: ['**/*'],
             workflowName: null,
             planFilePath: null,
+            instructions: null,
           };
           return;
         }
@@ -353,6 +387,10 @@ export const WorkflowsPlugin: Plugin = async (
       }
 
       // Strip whats_next() references - plugin auto-injects instructions
+      if (!result) {
+        logger.error('chat.message: Result is null after processing');
+        return;
+      }
       const instructionText = stripWhatsNextReferences(result.instructions);
 
       if (!instructionText.trim()) {
