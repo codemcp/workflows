@@ -36,9 +36,9 @@
       }
     },
     "workflows": {
-      "prompt": "whenever you execute the tool, check whether the result returns instructions. Follow those instructions closely. When instructed to interact with the user (e. g. ask questions), don't just move on autonomously, but interact!",
       "permission": {
-        "proceed_to_phase": "ask"
+        "proceed_to_phase": "ask",
+        "proceed-to-phase": "ask"
       }
     }
   }
