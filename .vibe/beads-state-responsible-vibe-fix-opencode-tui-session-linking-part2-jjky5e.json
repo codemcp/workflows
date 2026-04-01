@@ -1,0 +1,29 @@
+{
+  "conversationId": "responsible-vibe-fix-opencode-tui-session-linking-part2-jjky5e",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe",
+  "epicId": "responsible-vibe-27",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "responsible-vibe-27.1"
+    },
+    {
+      "phaseId": "plan",
+      "phaseName": "Plan",
+      "taskId": "responsible-vibe-27.2"
+    },
+    {
+      "phaseId": "code",
+      "phaseName": "Code",
+      "taskId": "responsible-vibe-27.3"
+    },
+    {
+      "phaseId": "commit",
+      "phaseName": "Commit",
+      "taskId": "responsible-vibe-27.4"
+    }
+  ],
+  "createdAt": "2026-04-01T08:44:56.181Z",
+  "updatedAt": "2026-04-01T08:44:56.181Z"
+}

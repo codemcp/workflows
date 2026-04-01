@@ -199,19 +199,13 @@ export const WorkflowsPlugin: Plugin = async (
     return cachedServerContext;
   }
 
-  // Log registered plugins at startup (once)
-  getServerContext()
-    .then(context => {
-      const pluginNames = context.pluginRegistry?.getPluginNames() ?? [];
-      if (pluginNames.length > 0) {
-        logger.info('Registered plugins', { plugins: pluginNames });
-      } else {
-        logger.debug('No plugins registered');
-      }
-    })
-    .catch(() => {
-      // Ignore errors during startup plugin check
-    });
+  // Note: We don't call getServerContext() at startup because currentSessionId is not yet available.
+  // The first call to getServerContext() will happen when the first hook is invoked, which ensures
+  // that the ServerContext is created with the correct session metadata. This is critical for
+  // properly linking workflow state to OpenCode sessions.
+  //
+  // The plugin registry logging that was previously done here was non-critical and can be removed
+  // to ensure session metadata is properly set when workflows are started.
 
   /**
    * Read current workflow state from ConversationManager via shared ServerContext.
