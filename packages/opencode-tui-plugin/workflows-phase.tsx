@@ -86,49 +86,6 @@ function readStateBySessionId(
   }
 }
 
-/**
- * Fallback: Read the most recently modified state.
- * Used when no matching session ID is found or for backward compatibility.
- * This is deprecated in favor of sessionId-based lookup.
- */
-function readLatestState(
-  sessionDir: string
-): { phase: string; workflow: string } | null {
-  try {
-    // require() is intentional: top-level ESM imports of Node built-ins are not
-    // supported in the Bun plugin runtime.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fsSync = require('node:fs') as typeof fs;
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pathSync = require('node:path') as typeof path;
-    const vibeDir = pathSync.join(sessionDir, '.vibe', 'conversations');
-    const dirs = fsSync.readdirSync(vibeDir);
-    let latest: { mtime: number; file: string } | null = null;
-    for (const dir of dirs) {
-      const file = pathSync.join(vibeDir, dir, 'state.json');
-      try {
-        const stat = fsSync.statSync(file);
-        if (!latest || stat.mtimeMs > latest.mtime) {
-          latest = { mtime: stat.mtimeMs, file };
-        }
-      } catch {
-        // unreadable entry — skip silently
-      }
-    }
-    if (!latest) return null;
-    const state = JSON.parse(
-      fsSync.readFileSync(latest.file, 'utf8')
-    ) as StateJson;
-    if (!state.currentPhase && !state.workflowName) return null;
-    return {
-      phase: state.currentPhase ?? '—',
-      workflow: state.workflowName ?? '—',
-    };
-  } catch {
-    return null;
-  }
-}
-
 // eslint-disable-next-line @typescript-eslint/require-await -- TuiPlugin signature requires Promise<void>; plugin body is synchronous
 const tui: TuiPlugin = async api => {
   api.slots.register({
@@ -145,9 +102,11 @@ const tui: TuiPlugin = async api => {
         // not only after the first tool call.
         const dir = api.state.path.directory;
         if (dir) {
-          // Try session ID-based lookup first, fall back to most recent state
+          // ONLY use session ID-based lookup. Do NOT fall back to readLatestState,
+          // as that would show workflow state from a different session.
+          // If no matching session state exists, that means no workflow is active in this session.
           const stateBySession = readStateBySessionId(dir, props.session_id);
-          setState(stateBySession || readLatestState(dir));
+          setState(stateBySession);
         }
 
         const offPart = api.event.on('message.part.updated', e => {
@@ -158,9 +117,10 @@ const tui: TuiPlugin = async api => {
           if (part.type !== 'tool') return;
           if (!part.tool || !WORKFLOW_TOOLS.has(part.tool)) return;
           if (!dir) return;
-          // Use session ID-based lookup to get the correct state for this session
+          // ONLY use session ID-based lookup. Do NOT fall back to readLatestState,
+          // as that would show workflow state from a different session.
           const stateBySession = readStateBySessionId(dir, props.session_id);
-          setState(stateBySession || readLatestState(dir));
+          setState(stateBySession);
         });
         onCleanup(offPart);
 

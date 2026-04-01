@@ -123,13 +123,16 @@ export const WorkflowsPlugin: Plugin = async (
   const planManager = new PlanManager();
   const instructionGenerator = new InstructionGenerator();
 
-  // Cached ServerContext - created once, reused for all requests
+  // Cached ServerContext - created once, reused for all requests within a session
   // This avoids creating new WorkflowManager/PluginRegistry instances per request
+  // When the OpenCode session changes, the context is invalidated to prevent
+  // showing workflow state from a previous session
   let cachedServerContext: Awaited<
     ReturnType<typeof createServerContext>
   > | null = null;
   let serverContextInitialized = false;
   let currentSessionId: string | null = null;
+  let lastKnownSessionId: string | null = null;
 
   // Buffered instructions from tools (proceed_to_phase, start_development).
   // Consumed and cleared by the next chat.message hook call.
@@ -149,8 +152,21 @@ export const WorkflowsPlugin: Plugin = async (
   }
 
   // Helper to get an initialized ServerContext for handler delegation
-  // Creates once, reuses for all subsequent calls
+  // Creates once per session, reuses for all subsequent calls within the same session.
+  // If the session ID changes, the cached context is invalidated to prevent
+  // showing workflow state from a previous OpenCode session.
   async function getServerContext() {
+    // Invalidate cache if session ID has changed
+    if (currentSessionId && currentSessionId !== lastKnownSessionId) {
+      logger.debug('Session ID changed, invalidating cached ServerContext', {
+        oldSessionId: lastKnownSessionId,
+        newSessionId: currentSessionId,
+      });
+      cachedServerContext = null;
+      serverContextInitialized = false;
+      lastKnownSessionId = currentSessionId;
+    }
+
     if (!cachedServerContext) {
       const sessionMetadata = currentSessionId
         ? {
@@ -234,10 +250,22 @@ export const WorkflowsPlugin: Plugin = async (
      * We add a synthetic part with phase instructions.
      */
     'chat.message': async (hookInput, output) => {
-      // Capture session ID from the first hook that has it
-      if (hookInput.sessionID && !currentSessionId) {
-        currentSessionId = hookInput.sessionID;
-        logger.debug('Captured session ID', { sessionId: currentSessionId });
+      // Capture session ID and detect session changes
+      if (hookInput.sessionID) {
+        if (!currentSessionId) {
+          currentSessionId = hookInput.sessionID;
+          lastKnownSessionId = hookInput.sessionID;
+          logger.debug('Captured initial session ID', {
+            sessionId: currentSessionId,
+          });
+        } else if (currentSessionId !== hookInput.sessionID) {
+          // Session has changed - the getServerContext() function will handle invalidation
+          currentSessionId = hookInput.sessionID;
+          logger.info('Session ID changed', {
+            oldSessionId: lastKnownSessionId,
+            newSessionId: currentSessionId,
+          });
+        }
       }
 
       // Skip if workflows are disabled
