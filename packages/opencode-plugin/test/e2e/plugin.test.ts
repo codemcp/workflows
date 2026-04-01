@@ -261,6 +261,42 @@ describe('OpenCode Workflows Plugin E2E', () => {
       expect(injectedPart.text).toContain('Explore');
     });
 
+    it('marks injected phase instruction parts as synthetic to prevent undo restoring them', async () => {
+      // Setup workflow state
+      await setupWorkflowState(testDir, {
+        workflowName: 'epcc',
+        currentPhase: 'explore',
+      });
+
+      hooks = await WorkflowsPlugin(mockInput);
+
+      const hookInput = {
+        sessionID: 'test-session',
+        messageID: 'msg-123',
+      };
+
+      const mockMessage: UserMessage = {
+        id: 'msg-123',
+        sessionID: 'test-session',
+        role: 'user',
+      };
+
+      const output = {
+        message: mockMessage,
+        parts: [] as Part[],
+      };
+
+      await hooks['chat.message']!(hookInput, output);
+
+      // All injected parts must be synthetic so opencode's undo flow
+      // (extractPromptFromParts) does not restore plugin instructions
+      // as the user's message text.
+      expect(output.parts.length).toBeGreaterThan(0);
+      for (const part of output.parts) {
+        expect((part as { synthetic?: boolean }).synthetic).toBe(true);
+      }
+    });
+
     it('injects start workflow prompt when no workflow is active', async () => {
       // No workflow setup - directory exists but no .vibe
       hooks = await WorkflowsPlugin(mockInput);
@@ -285,9 +321,15 @@ describe('OpenCode Workflows Plugin E2E', () => {
 
       // Should inject a "start workflow" prompt
       expect(output.parts.length).toBe(1);
-      const part = output.parts[0] as { type: string; text: string };
+      const part = output.parts[0] as {
+        type: string;
+        text: string;
+        synthetic?: boolean;
+      };
       expect(part.type).toBe('text');
       expect(part.text).toContain('start_development');
+      // Must be synthetic so undo doesn't restore it as the user's message
+      expect(part.synthetic).toBe(true);
     });
   });
 

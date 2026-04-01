@@ -1,0 +1,34 @@
+{
+  "conversationId": "responsible-vibe-fix-undo-opencode-3i1hbo",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe",
+  "epicId": "responsible-vibe-29",
+  "phaseTasks": [
+    {
+      "phaseId": "reproduce",
+      "phaseName": "Reproduce",
+      "taskId": "responsible-vibe-29.1"
+    },
+    {
+      "phaseId": "analyze",
+      "phaseName": "Analyze",
+      "taskId": "responsible-vibe-29.2"
+    },
+    {
+      "phaseId": "fix",
+      "phaseName": "Fix",
+      "taskId": "responsible-vibe-29.3"
+    },
+    {
+      "phaseId": "verify",
+      "phaseName": "Verify",
+      "taskId": "responsible-vibe-29.4"
+    },
+    {
+      "phaseId": "finalize",
+      "phaseName": "Finalize",
+      "taskId": "responsible-vibe-29.5"
+    }
+  ],
+  "createdAt": "2026-04-01T14:13:57.020Z",
+  "updatedAt": "2026-04-01T14:13:57.020Z"
+}

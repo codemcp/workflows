@@ -302,6 +302,7 @@ export const WorkflowsPlugin: Plugin = async (
               sessionID: hookInput.sessionID,
               messageID: hookInput.messageID || output.message.id,
               type: 'text' as const,
+              synthetic: true,
               text: `No Active Workflow Use the \`start_development\` tool to begin.`,
             } as (typeof output.parts)[0]);
             return;
@@ -320,6 +321,7 @@ export const WorkflowsPlugin: Plugin = async (
               sessionID: hookInput.sessionID,
               messageID: hookInput.messageID || output.message.id,
               type: 'text' as const,
+              synthetic: true,
               text: `No Active Workflow Use the \`start_development\` tool to begin.`,
             } as (typeof output.parts)[0]);
             return;
@@ -349,6 +351,7 @@ export const WorkflowsPlugin: Plugin = async (
         sessionID: hookInput.sessionID,
         messageID: hookInput.messageID || output.message.id,
         type: 'text' as const,
+        synthetic: true,
         text: instructionText,
       } as (typeof output.parts)[0]);
 
