@@ -126,15 +126,19 @@ const tui: TuiPlugin = async api => {
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- JSX element typed as `error` by @opentui/solid's JSX types; safe at runtime
         return (
-          <box flexDirection="column" visible={!!state()}>
+          <box flexDirection="column">
             <text fg={theme().text}>
               <b>Workflow</b>
             </text>
-            <text fg={theme().textMuted}>
-              {state()?.workflow}:{' '}
-              {/* eslint-disable-next-line solid/style-prop -- `fg` is an OpenTUI-specific style prop, not a standard CSS property */}
-              <span style={{ fg: theme().text }}>{state()?.phase}</span>
-            </text>
+            {state() ? (
+              <text fg={theme().textMuted}>
+                {state()?.workflow}:{' '}
+                {/* eslint-disable-next-line solid/style-prop -- `fg` is an OpenTUI-specific style prop, not a standard CSS property */}
+                <span style={{ fg: theme().text }}>{state()?.phase}</span>
+              </text>
+            ) : (
+              <text fg={theme().textMuted}>No Active Workflow</text>
+            )}
           </box>
         );
       },
