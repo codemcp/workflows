@@ -39,13 +39,23 @@ export function createStartDevelopmentTool(
         .optional()
         .describe('Require reviews before phase transitions'),
     },
-    execute: async args => {
+    execute: async (args, context) => {
       const serverContext = await getServerContext();
       const logger = serverContext.loggerFactory
         ? serverContext.loggerFactory('start_development')
         : createLogger('start_development');
 
       logger.debug('start_development called', { workflow: args.workflow });
+
+      // Request permission before starting new development workflow
+      if (context && typeof context.ask === 'function') {
+        await context.ask({
+          permission: 'start_development',
+          patterns: ['*'],
+          always: ['*'],
+          metadata: { workflow: args.workflow },
+        });
+      }
 
       try {
         // Delegate to StartDevelopmentHandler

@@ -26,7 +26,7 @@ export function createResetDevelopmentTool(
       reason: z.string().optional().describe('Reason for reset'),
       delete_plan: z.boolean().optional().describe('Also delete plan file'),
     },
-    execute: async args => {
+    execute: async (args, context) => {
       const { confirm, reason, delete_plan } = args;
       const serverContext = await getServerContext();
       const logger = serverContext.loggerFactory
@@ -34,6 +34,16 @@ export function createResetDevelopmentTool(
         : createLogger('reset_development');
 
       logger.debug('reset_development called', { confirm, delete_plan });
+
+      // Request permission before resetting development state (DESTRUCTIVE)
+      if (context && typeof context.ask === 'function') {
+        await context.ask({
+          permission: 'reset_development',
+          patterns: ['*'],
+          always: ['*'],
+          metadata: { delete_plan, reason },
+        });
+      }
 
       if (!confirm) {
         return `Reset requires confirm: true. Will delete conversation state${delete_plan ? ' and plan file' : ''}.`;

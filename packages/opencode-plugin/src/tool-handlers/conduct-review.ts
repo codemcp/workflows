@@ -16,7 +16,7 @@ export function createConductReviewTool(
     args: {
       target_phase: z.string().describe('Target phase after review'),
     },
-    execute: async args => {
+    execute: async (args, context) => {
       const { target_phase } = args;
       const serverContext = await getServerContext();
       const logger = serverContext.loggerFactory
@@ -24,6 +24,16 @@ export function createConductReviewTool(
         : createLogger('conduct_review');
 
       logger.debug('conduct_review called', { targetPhase: target_phase });
+
+      // Request permission before conducting review
+      if (context && typeof context.ask === 'function') {
+        await context.ask({
+          permission: 'conduct_review',
+          patterns: ['*'],
+          always: ['*'],
+          metadata: { target_phase },
+        });
+      }
 
       try {
         // Delegate to ConductReviewHandler
