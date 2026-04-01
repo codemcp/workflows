@@ -6,13 +6,15 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "resources/**/*"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsup && pnpm copy-resources",
+    "copy-resources": "rm -rf resources && cp -r ../core/resources .",
     "dev": "tsc --watch",
     "clean:build": "rimraf ./dist",
     "test": "vitest --run",
@@ -22,12 +24,13 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@codemcp/workflows-core": "workspace:*",
-    "@codemcp/workflows-server": "workspace:*",
     "zod": "^4.1.8"
   },
   "devDependencies": {
+    "@codemcp/workflows-core": "workspace:*",
+    "@codemcp/workflows-server": "workspace:*",
     "rimraf": "^6.0.1",
+    "tsup": "^8.0.0",
     "vitest": "4.0.18"
   },
   "peerDependencies": {
