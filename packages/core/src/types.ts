@@ -3,6 +3,14 @@
  */
 
 /**
+ * Session metadata linking workflow state to an external session/context
+ */
+export interface SessionMetadata {
+  referenceId: string;
+  createdAt: string;
+}
+
+/**
  * Interface for interaction log entries
  */
 export interface InteractionLog {
@@ -42,6 +50,7 @@ export interface ConversationState {
   requireReviewsBeforePhaseTransition: boolean;
   createdAt: string;
   updatedAt: string;
+  sessionMetadata?: SessionMetadata;
 }
 
 /**

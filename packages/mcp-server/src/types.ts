@@ -12,6 +12,14 @@ import type { TaskBackendConfig, LoggerFactory } from '@codemcp/workflows-core';
 import type { IPluginRegistry } from './plugin-system/plugin-interfaces.js';
 
 /**
+ * Session metadata linking workflow state to an external session/context
+ */
+export interface SessionMetadata {
+  referenceId: string;
+  createdAt: string;
+}
+
+/**
  * Server context shared across all handlers
  * Contains all the core dependencies needed by tool and resource handlers
  */
@@ -26,6 +34,8 @@ export interface ServerContext {
   pluginRegistry?: IPluginRegistry;
   /** Logger factory for creating component loggers - if not provided, handlers use global createLogger */
   loggerFactory?: LoggerFactory;
+  /** Session metadata linking workflow state to external session context */
+  sessionMetadata?: SessionMetadata;
 }
 
 /**

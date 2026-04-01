@@ -12,7 +12,11 @@ import { existsSync } from 'node:fs';
 import { createLogger } from './logger.js';
 import { getPathBasename } from './path-validation-utils.js';
 import type { IPersistence } from './persistence-interface.js';
-import type { ConversationState, ConversationContext } from './types.js';
+import type {
+  ConversationState,
+  ConversationContext,
+  SessionMetadata,
+} from './types.js';
 import { WorkflowManager } from './workflow-manager.js';
 import { PlanManager } from './plan-manager.js';
 
@@ -22,6 +26,7 @@ export class ConversationManager {
   private database: IPersistence;
   private projectPath: string;
   private workflowManager: WorkflowManager;
+  private currentSessionMetadata: SessionMetadata | null = null;
 
   constructor(
     database: IPersistence,
@@ -31,6 +36,26 @@ export class ConversationManager {
     this.database = database;
     this.workflowManager = workflowManager;
     this.projectPath = projectPath;
+  }
+
+  /**
+   * Set session metadata for subsequent conversation state operations.
+   * This links the workflow state to an external session context.
+   *
+   * @param sessionMetadata - Session metadata to store with conversation state
+   */
+  setSessionMetadata(sessionMetadata: SessionMetadata): void {
+    this.currentSessionMetadata = sessionMetadata;
+    logger.debug('Session metadata set', {
+      referenceId: sessionMetadata.referenceId,
+    });
+  }
+
+  /**
+   * Get current session metadata
+   */
+  getSessionMetadata(): SessionMetadata | null {
+    return this.currentSessionMetadata;
   }
 
   /**
@@ -256,6 +281,9 @@ export class ConversationManager {
       requireReviewsBeforePhaseTransition: false, // Default to false for new conversations
       createdAt: timestamp,
       updatedAt: timestamp,
+      ...(this.currentSessionMetadata && {
+        sessionMetadata: this.currentSessionMetadata,
+      }),
     };
 
     // Save to database

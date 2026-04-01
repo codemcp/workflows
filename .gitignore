@@ -139,5 +139,8 @@ dist
 # Mac
 .DS_Store
 **/.DS_Store
+
+# Generated resources by build scripts
 packages/mcp-server/resources
 packages/cli/resources
+packages/opencode-plugin/resources

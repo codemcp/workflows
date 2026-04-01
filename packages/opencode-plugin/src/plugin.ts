@@ -129,6 +129,7 @@ export const WorkflowsPlugin: Plugin = async (
     ReturnType<typeof createServerContext>
   > | null = null;
   let serverContextInitialized = false;
+  let currentSessionId: string | null = null;
 
   // Buffered instructions from tools (proceed_to_phase, start_development).
   // Consumed and cleared by the next chat.message hook call.
@@ -151,12 +152,27 @@ export const WorkflowsPlugin: Plugin = async (
   // Creates once, reuses for all subsequent calls
   async function getServerContext() {
     if (!cachedServerContext) {
+      const sessionMetadata = currentSessionId
+        ? {
+            referenceId: currentSessionId,
+            createdAt: new Date().toISOString(),
+          }
+        : undefined;
+
       cachedServerContext = createServerContext({
         projectDir: input.directory,
         planManager,
         instructionGenerator,
         loggerFactory,
+        sessionMetadata,
       });
+
+      // Set session metadata in the conversation manager for new conversations
+      if (sessionMetadata) {
+        cachedServerContext.conversationManager.setSessionMetadata(
+          sessionMetadata
+        );
+      }
     }
 
     if (!serverContextInitialized) {
@@ -218,6 +234,12 @@ export const WorkflowsPlugin: Plugin = async (
      * We add a synthetic part with phase instructions.
      */
     'chat.message': async (hookInput, output) => {
+      // Capture session ID from the first hook that has it
+      if (hookInput.sessionID && !currentSessionId) {
+        currentSessionId = hookInput.sessionID;
+        logger.debug('Captured session ID', { sessionId: currentSessionId });
+      }
+
       // Skip if workflows are disabled
       if (!workflowsEnabled) {
         logger.debug('chat.message: Workflows disabled, skipping hook');

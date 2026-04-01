@@ -20,7 +20,7 @@ export {
 export * from './tool-handlers/index.js';
 
 // Re-export types needed by external consumers
-export type { ServerContext, HandlerResult } from './types.js';
+export type { ServerContext, HandlerResult, SessionMetadata } from './types.js';
 
 // Re-export plugin system for external use (e.g., OpenCode plugin)
 export { PluginRegistry } from './plugin-system/index.js';

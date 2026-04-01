@@ -20,6 +20,7 @@ import {
   type IInstructionGenerator,
   type LoggerFactory,
 } from '@codemcp/workflows-core';
+import type { SessionMetadata } from '@codemcp/workflows-server';
 import * as path from 'node:path';
 
 export interface ServerContextOptions {
@@ -28,6 +29,8 @@ export interface ServerContextOptions {
   instructionGenerator: IInstructionGenerator;
   /** Optional logger factory - if provided, handlers will use this instead of global createLogger */
   loggerFactory?: LoggerFactory;
+  /** Optional session metadata to link workflow state to external context */
+  sessionMetadata?: SessionMetadata;
 }
 
 /**
@@ -39,8 +42,13 @@ export interface ServerContextOptions {
 export function createServerContext(
   options: ServerContextOptions
 ): ServerContext {
-  const { projectDir, planManager, instructionGenerator, loggerFactory } =
-    options;
+  const {
+    projectDir,
+    planManager,
+    instructionGenerator,
+    loggerFactory,
+    sessionMetadata,
+  } = options;
 
   // Create workflow manager and load project workflows
   const workflowManager = new WorkflowManager();
@@ -84,6 +92,7 @@ export function createServerContext(
     projectPath: projectDir,
     pluginRegistry,
     loggerFactory,
+    sessionMetadata,
   };
 }
 
