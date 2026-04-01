@@ -345,7 +345,7 @@ export class BeadsPlugin implements IPlugin {
    * This hook ensures the plan has the proper structure to receive them.
    */
   private async handleAfterPlanFileCreated(
-    _context: PluginHookContext,
+    context: PluginHookContext,
     planFilePath: string,
     content: string
   ): Promise<string> {
@@ -354,30 +354,45 @@ export class BeadsPlugin implements IPlugin {
       contentLength: content.length,
     });
 
-    // Transform standard plan file to beads-optimized format:
-    // 1. Replace markdown checkbox tasks with beads CLI reference
-    // 2. Add beads-phase-id placeholders after phase headers
-    // 3. Update footer to mention beads CLI
+    // Build the set of phase headers from the state machine so we can
+    // identify which `## Heading` lines are workflow phases (vs. sections
+    // like "## Goal" or "## Key Decisions").
+    const phaseHeaders = context.stateMachine
+      ? new Set(
+          Object.keys(context.stateMachine.states).map(
+            phase => `## ${this.capitalizePhase(phase)}`
+          )
+        )
+      : new Set<string>();
 
-    let transformed = content;
+    if (phaseHeaders.size === 0) {
+      this.logger.debug(
+        'BeadsPlugin: No state machine phases available, skipping plan file transformation'
+      );
+      return content;
+    }
 
-    // Replace task checkbox sections with beads CLI reference
-    // Match "### Tasks\n- [ ] *Tasks will be added..." or similar patterns
-    transformed = transformed.replace(
-      /### Tasks\n- \[ \] \*Tasks will be added as they are identified\*\n\n### Completed\n- \[x\] Created development plan file/g,
-      '<!-- beads-phase-id: TBD -->\n### Tasks\n\n*Tasks managed via `bd` CLI*'
-    );
+    // Walk the file line by line.  After every phase header that is not
+    // already followed by a beads-phase-id comment, inject the TBD
+    // placeholder.  This is robust against LLM-modified plan files
+    // (entrance-criteria sections, custom task lists, etc.) because it
+    // does not depend on exact surrounding text.
+    const lines = content.split('\n');
+    const result: string[] = [];
 
-    transformed = transformed.replace(
-      /### Tasks\n- \[ \] \*To be added when this phase becomes active\*\n\n### Completed\n\*None yet\*/g,
-      '<!-- beads-phase-id: TBD -->\n### Tasks\n\n*Tasks managed via `bd` CLI*'
-    );
+    for (let i = 0; i < lines.length; i++) {
+      result.push(lines[i]);
 
-    // Update footer to mention beads CLI
-    transformed = transformed.replace(
-      /\*This plan is maintained by the LLM\. Tool responses provide guidance on which section to focus on and what tasks to work on\.\*/,
-      '*This plan is maintained by the LLM and uses beads CLI for task management. Tool responses provide guidance on which bd commands to use for task management.*'
-    );
+      if (phaseHeaders.has(lines[i].trim())) {
+        // Only insert if the very next line is not already a beads comment.
+        const nextLine = lines[i + 1] ?? '';
+        if (!nextLine.includes('beads-phase-id:')) {
+          result.push('<!-- beads-phase-id: TBD -->');
+        }
+      }
+    }
+
+    const transformed = result.join('\n');
 
     this.logger.debug('BeadsPlugin: Plan file transformed for beads', {
       planFilePath,
