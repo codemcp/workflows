@@ -25,7 +25,7 @@ export function createProceedToPhaseTool(
         .optional()
         .describe('Review state'),
     },
-    execute: async args => {
+    execute: async (args, context) => {
       const { target_phase, reason, review_state } = args;
       const serverContext = await getServerContext();
       const logger = serverContext.loggerFactory
@@ -33,6 +33,16 @@ export function createProceedToPhaseTool(
         : createLogger('proceed_to_phase');
 
       logger.debug('proceed_to_phase called', { to: target_phase, reason });
+
+      // Request permission before proceeding to new phase
+      if (context && typeof context.ask === 'function') {
+        await context.ask({
+          permission: 'proceed_to_phase',
+          patterns: ['*'],
+          always: ['*'],
+          metadata: { target_phase, reason },
+        });
+      }
 
       try {
         // Delegate to ProceedToPhaseHandler
