@@ -296,19 +296,31 @@ const tui: TuiPlugin = async api => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- JSX element typed as `error` by @opentui/solid's JSX types; safe at runtime
         return (
           <box flexDirection="column">
-            {/* Header row — clickable to collapse/expand when phases are available */}
+            {/* Header row — clickable to collapse/expand when an active workflow is present */}
             <text
               fg={theme().text}
-              onMouseDown={() =>
-                state()?.phases?.length && setCollapsed(c => !c)
-              }
+              onMouseDown={() => state() && setCollapsed(c => !c)}
             >
               {state() ? (
                 (state()?.phases ?? []).length === 0 ? (
-                  // Phases unknown — bold Workflow header + workflowName phaseName, no arrow
-                  <span>
-                    <b>Workflow</b>
-                  </span>
+                  // Phases unknown
+                  collapsed() ? (
+                    // Collapsed: ▶ workflowName phaseName
+                    <span>
+                      {'▶ '}
+                      <b>{state()?.workflow}</b>
+                      <span style={{ fg: theme().textMuted }}>
+                        {' '}
+                        {state()?.phase}
+                      </span>
+                    </span>
+                  ) : (
+                    // Expanded: ▼ Workflow (body shows workflowName phaseName)
+                    <span>
+                      {'▼ '}
+                      <b>Workflow</b>
+                    </span>
+                  )
                 ) : collapsed() ? (
                   // Collapsed + active: ▶ workflowName phaseName
                   <span>
