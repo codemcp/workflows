@@ -47,8 +47,6 @@ export interface ConversationState {
   currentPhase: string;
   planFilePath: string;
   workflowName: string;
-  /** Ordered list of all phases in the active workflow */
-  workflowPhases?: string[];
   requireReviewsBeforePhaseTransition: boolean;
   createdAt: string;
   updatedAt: string;

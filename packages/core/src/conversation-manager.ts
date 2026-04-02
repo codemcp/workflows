@@ -269,7 +269,6 @@ export class ConversationManager {
       workflowName
     );
     const initialPhase = stateMachine.initial_state;
-    const workflowPhases = Object.keys(stateMachine.states);
 
     // Create new state
     const newState: ConversationState = {
@@ -279,7 +278,6 @@ export class ConversationManager {
       currentPhase: initialPhase,
       planFilePath,
       workflowName,
-      workflowPhases,
       requireReviewsBeforePhaseTransition: false, // Default to false for new conversations
       createdAt: timestamp,
       updatedAt: timestamp,

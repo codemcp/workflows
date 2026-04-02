@@ -29,7 +29,6 @@ const WORKFLOW_TOOLS = new Set([
 interface StateJson {
   currentPhase?: string;
   workflowName?: string;
-  workflowPhases?: string[];
   sessionMetadata?: {
     referenceId: string;
     createdAt: string;
@@ -44,6 +43,91 @@ interface MessagePartUpdatedEvent {
       tool?: string;
     };
   };
+}
+
+/**
+ * Extract ordered phase names from a workflow YAML file without a YAML parser.
+ *
+ * The workflow YAML format is consistent: phase names are top-level keys under
+ * the `states:` map, each indented with exactly two spaces. We use a simple
+ * line-based scan rather than js-yaml because js-yaml is not a built-in Node
+ * module and is not available in the TUI plugin's node_modules — it is a
+ * dependency of @codemcp/workflows-core but is not hoisted into this package's
+ * scope.
+ */
+function parsePhasesFromYaml(content: string): string[] {
+  const phases: string[] = [];
+  let inStates = false;
+  for (const line of content.split('\n')) {
+    if (line.startsWith('states:')) {
+      inStates = true;
+      continue;
+    }
+    if (inStates) {
+      // A new top-level key (no leading spaces) ends the states block
+      if (/^\S/.test(line) && line.trim() !== '') {
+        break;
+      }
+      // A key at exactly two-space indent is a phase name
+      const match = /^  ([\w-]+):/.exec(line);
+      if (match?.[1]) {
+        phases.push(match[1]);
+      }
+    }
+  }
+  return phases;
+}
+
+/**
+ * Look up the ordered phase list for a workflow name.
+ *
+ * Checks project-local workflows (.vibe/workflows/) first, then falls back to
+ * the built-in workflows bundled in @codemcp/workflows-core.
+ *
+ * We read YAML files directly rather than delegating to WorkflowManager
+ * because WorkflowManager is ESM-only: it uses `import.meta.url` to locate
+ * the bundled resources/workflows/ directory at runtime. When loaded via
+ * require() — which is required in the Bun TUI plugin runtime because
+ * top-level ESM imports of Node built-ins are not supported there —
+ * `import.meta` is undefined and the module throws on load, before the
+ * constructor is even reached.
+ */
+function getWorkflowPhases(projectDir: string, workflowName: string): string[] {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fsSync = require('node:fs') as typeof fs;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pathSync = require('node:path') as typeof path;
+
+    // 1. Project-local workflow
+    const localPath = pathSync.join(
+      projectDir,
+      '.vibe',
+      'workflows',
+      `${workflowName}.yaml`
+    );
+    if (fsSync.existsSync(localPath)) {
+      return parsePhasesFromYaml(fsSync.readFileSync(localPath, 'utf8'));
+    }
+
+    // 2. Built-in workflow bundled with @codemcp/workflows-core
+    const corePkgDir = pathSync.dirname(
+      require.resolve('@codemcp/workflows-core/package.json')
+    );
+    const builtinPath = pathSync.join(
+      corePkgDir,
+      'resources',
+      'workflows',
+      `${workflowName}.yaml`
+    );
+    if (fsSync.existsSync(builtinPath)) {
+      return parsePhasesFromYaml(fsSync.readFileSync(builtinPath, 'utf8'));
+    }
+
+    return [];
+  } catch {
+    return [];
+  }
 }
 
 function readStateBySessionId(
@@ -71,10 +155,13 @@ function readStateBySessionId(
         // Check if this state's sessionMetadata matches the current session ID
         if (state.sessionMetadata?.referenceId === sessionId) {
           if (!state.currentPhase && !state.workflowName) return null;
+          const phases = state.workflowName
+            ? getWorkflowPhases(sessionDir, state.workflowName)
+            : [];
           return {
             phase: state.currentPhase ?? '—',
             workflow: state.workflowName ?? '—',
-            phases: state.workflowPhases ?? [],
+            phases,
           };
         }
       } catch {
