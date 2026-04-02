@@ -20,11 +20,13 @@
     "format": "prettier --write ."
   },
   "peerDependencies": {
+    "@codemcp/workflows-core": "*",
     "@opencode-ai/plugin": "*",
     "@opentui/solid": "*",
     "solid-js": "*"
   },
   "devDependencies": {
+    "@codemcp/workflows-core": "*",
     "@opencode-ai/plugin": "*",
     "@opentui/solid": "*",
     "@types/node": "^22.0.0",
