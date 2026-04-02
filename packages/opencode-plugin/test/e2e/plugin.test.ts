@@ -743,3 +743,151 @@ describe('File Pattern Restrictions', () => {
     });
   }
 });
+
+describe('WORKFLOWS=off environment variable', () => {
+  it('registers tools when WORKFLOWS=off, but execute throws a clear disabled error', async () => {
+    const dir = createTempDir();
+    const originalEnv = process.env.WORKFLOWS;
+    try {
+      process.env.WORKFLOWS = 'off';
+
+      const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
+
+      // Tools are still registered (so /workflow on can re-enable them)
+      expect(hooks.tool).toBeDefined();
+      expect(hooks.tool).toHaveProperty('start_development');
+      expect(hooks.tool).toHaveProperty('proceed_to_phase');
+      expect(hooks.tool).toHaveProperty('conduct_review');
+      expect(hooks.tool).toHaveProperty('reset_development');
+      expect(hooks.tool).toHaveProperty('setup_project_docs');
+
+      // But executing a tool throws with a clear message
+      await expect(
+        hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
+          sessionID: 'test-session',
+        } as unknown)
+      ).rejects.toThrow(/disabled/i);
+
+      // Command hook is available for toggling
+      expect(hooks['command.execute.before']).toBeDefined();
+    } finally {
+      if (originalEnv === undefined) {
+        delete process.env.WORKFLOWS;
+      } else {
+        process.env.WORKFLOWS = originalEnv;
+      }
+      cleanupDir(dir);
+    }
+  });
+
+  it('allows tool execution after /wf on when started with WORKFLOWS=off', async () => {
+    const dir = createTempDir();
+    const originalEnv = process.env.WORKFLOWS;
+    try {
+      process.env.WORKFLOWS = 'off';
+
+      const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
+
+      // Confirm disabled initially
+      await expect(
+        hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
+          sessionID: 'test-session',
+        } as unknown)
+      ).rejects.toThrow(/disabled/i);
+
+      // Toggle on via command
+      const output: { parts: Part[] } = { parts: [] };
+      await hooks['command.execute.before']!(
+        { command: 'workflow', arguments: 'on', sessionID: 'test-session' },
+        output
+      );
+      expect(
+        output.parts[0]?.type === 'text' && output.parts[0].text
+      ).toContain('enabled');
+
+      // Now the tool should no longer throw the disabled error
+      // (it may fail for other reasons like no plan file, but not the disabled guard)
+      let thrownMessage: string | undefined;
+      try {
+        await hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
+          sessionID: 'test-session',
+        } as unknown);
+      } catch (err) {
+        thrownMessage = (err as Error).message;
+      }
+      // If it did throw, it must NOT be the disabled message
+      if (thrownMessage !== undefined) {
+        expect(thrownMessage).not.toMatch(/disabled/i);
+      }
+    } finally {
+      if (originalEnv === undefined) {
+        delete process.env.WORKFLOWS;
+      } else {
+        process.env.WORKFLOWS = originalEnv;
+      }
+      cleanupDir(dir);
+    }
+  });
+
+  it('loads all tools and hooks when WORKFLOWS is not set (default)', async () => {
+    const dir = createTempDir();
+    const originalEnv = process.env.WORKFLOWS;
+    try {
+      delete process.env.WORKFLOWS;
+
+      const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
+
+      // When WORKFLOWS is not set, all hooks and tools should be registered
+      expect(hooks['chat.message']).toBeDefined();
+      expect(hooks['tool.execute.before']).toBeDefined();
+      expect(hooks['experimental.session.compacting']).toBeDefined();
+      expect(hooks['command.execute.before']).toBeDefined();
+      expect(hooks.tool).toBeDefined();
+
+      // Tools should be populated
+      expect(hooks.tool).toHaveProperty('start_development');
+      expect(hooks.tool).toHaveProperty('proceed_to_phase');
+      expect(hooks.tool).toHaveProperty('conduct_review');
+      expect(hooks.tool).toHaveProperty('reset_development');
+      expect(hooks.tool).toHaveProperty('setup_project_docs');
+    } finally {
+      if (originalEnv === undefined) {
+        delete process.env.WORKFLOWS;
+      } else {
+        process.env.WORKFLOWS = originalEnv;
+      }
+      cleanupDir(dir);
+    }
+  });
+
+  it('loads all tools and hooks when WORKFLOWS=on', async () => {
+    const dir = createTempDir();
+    const originalEnv = process.env.WORKFLOWS;
+    try {
+      process.env.WORKFLOWS = 'on';
+
+      const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
+
+      // When WORKFLOWS=on, all hooks and tools should be registered
+      expect(hooks['chat.message']).toBeDefined();
+      expect(hooks['tool.execute.before']).toBeDefined();
+      expect(hooks['experimental.session.compacting']).toBeDefined();
+      expect(hooks['command.execute.before']).toBeDefined();
+      expect(hooks.tool).toBeDefined();
+
+      // Tools should be populated
+      expect(hooks.tool).toHaveProperty('start_development');
+      expect(hooks.tool).toHaveProperty('proceed_to_phase');
+      expect(hooks.tool).toHaveProperty('conduct_review');
+      expect(hooks.tool).toHaveProperty('reset_development');
+      expect(hooks.tool).toHaveProperty('setup_project_docs');
+    } finally {
+      if (originalEnv === undefined) {
+        delete process.env.WORKFLOWS;
+      } else {
+        process.env.WORKFLOWS = originalEnv;
+      }
+      cleanupDir(dir);
+    }
+  });
+});
