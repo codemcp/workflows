@@ -1,5 +1,12 @@
 /** @jsxImportSource @opentui/solid */
-import { Index, createSignal, onCleanup, onMount } from 'solid-js';
+import {
+  Index,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  onMount,
+} from 'solid-js';
 import type { TuiPlugin, TuiPluginModule } from '@opencode-ai/plugin/tui';
 import type fs from 'node:fs';
 import type path from 'node:path';
@@ -196,11 +203,20 @@ const tui: TuiPlugin = async api => {
         // Spinner frames for the current-phase icon
         const SPINNER = ['◐', '◓', '◑', '◒'];
         const [spinnerFrame, setSpinnerFrame] = createSignal(0);
-        onMount(() => {
+        // Only animate when the phase list is visible (expanded + active workflow)
+        createEffect(() => {
+          if (collapsed() || !state()) return;
           const id = setInterval(() => {
             setSpinnerFrame(f => (f + 1) % SPINNER.length);
           }, 150);
           onCleanup(() => clearInterval(id));
+        });
+
+        // Precompute current phase index once per state change to avoid O(n²) indexOf in render
+        const currentPhaseIndex = createMemo(() => {
+          const s = state();
+          if (!s) return -1;
+          return s.phases.indexOf(s.phase);
         });
 
         // Read state eagerly on mount so it's visible immediately on reload,
@@ -266,25 +282,21 @@ const tui: TuiPlugin = async api => {
               <box flexDirection="column">
                 {(state()?.phases ?? []).length > 0 ? (
                   <Index each={state()?.phases ?? []}>
-                    {phase => (
+                    {(phase, index) => (
                       <text
                         fg={
                           phase() === state()?.phase
                             ? theme().warning
-                            : (state()?.phases ?? []).indexOf(phase()) <
-                                (state()?.phases ?? []).indexOf(
-                                  state()?.phase ?? ''
-                                )
+                            : currentPhaseIndex() >= 0 &&
+                                index < currentPhaseIndex()
                               ? theme().success
                               : theme().textMuted
                         }
                       >
                         {phase() === state()?.phase
                           ? `${SPINNER[spinnerFrame()]} `
-                          : (state()?.phases ?? []).indexOf(phase()) <
-                              (state()?.phases ?? []).indexOf(
-                                state()?.phase ?? ''
-                              )
+                          : currentPhaseIndex() >= 0 &&
+                              index < currentPhaseIndex()
                             ? '● '
                             : '○ '}
                         {phase()}

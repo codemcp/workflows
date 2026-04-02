@@ -26,7 +26,7 @@
     "solid-js": "*"
   },
   "devDependencies": {
-    "@codemcp/workflows-core": "*",
+    "@codemcp/workflows-core": "workspace:*",
     "@opencode-ai/plugin": "*",
     "@opentui/solid": "*",
     "@types/node": "^22.0.0",
