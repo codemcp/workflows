@@ -118,9 +118,15 @@ function getWorkflowPhases(projectDir: string, workflowName: string): string[] {
         const fullPath = pathSync.join(workflowsDir, entry);
         try {
           const contents = fsSync.readFileSync(fullPath, 'utf8');
-          // Extract the `name:` field from the YAML without a parser
+          // Extract the `name:` field from the YAML without a parser.
+          // Strip surrounding single/double quotes (e.g. name: 'minor').
           const nameMatch = /^name:\s*(.+)/m.exec(contents);
-          if (nameMatch?.[1]?.trim() === workflowName) {
+          const rawName = nameMatch?.[1]?.trim();
+          const parsedName =
+            rawName !== undefined
+              ? rawName.replace(/^(['"])(.*)\1$/, '$2')
+              : undefined;
+          if (parsedName === workflowName) {
             return parsePhasesFromYaml(contents);
           }
         } catch {
@@ -143,6 +149,32 @@ function getWorkflowPhases(projectDir: string, workflowName: string): string[] {
       const builtinPath = builtinBase + ext;
       if (fsSync.existsSync(builtinPath)) {
         return parsePhasesFromYaml(fsSync.readFileSync(builtinPath, 'utf8'));
+      }
+    }
+
+    // 3. Additional fallback locations: workspace/dev setups where
+    //    @codemcp/workflows-core/resources/workflows has not been built yet,
+    //    and project-local custom workflows under resources/workflows/.
+    const additionalRoots = [
+      pathSync.join(process.cwd(), 'resources', 'workflows'),
+      pathSync.join(projectDir, 'resources', 'workflows'),
+    ];
+    for (const root of additionalRoots) {
+      try {
+        if (!fsSync.existsSync(root) || !fsSync.statSync(root).isDirectory()) {
+          continue;
+        }
+      } catch {
+        continue;
+      }
+      const candidateBase = pathSync.join(root, workflowName);
+      for (const ext of ['.yaml', '.yml']) {
+        const candidatePath = candidateBase + ext;
+        if (fsSync.existsSync(candidatePath)) {
+          return parsePhasesFromYaml(
+            fsSync.readFileSync(candidatePath, 'utf8')
+          );
+        }
       }
     }
 
