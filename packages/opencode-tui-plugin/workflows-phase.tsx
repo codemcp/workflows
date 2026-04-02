@@ -99,35 +99,43 @@ function parsePhasesFromYaml(content: string): string[] {
  * constructor is even reached.
  */
 function getWorkflowPhases(projectDir: string, workflowName: string): string[] {
+  // Guard against path traversal — workflow names must be simple identifiers
+  if (!/^[\w-]+$/.test(workflowName)) return [];
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fsSync = require('node:fs') as typeof fs;
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pathSync = require('node:path') as typeof path;
 
-    // 1. Project-local workflow
-    const localPath = pathSync.join(
+    // 1. Project-local workflow (.yaml then .yml)
+    const localBase = pathSync.join(
       projectDir,
       '.vibe',
       'workflows',
-      `${workflowName}.yaml`
+      workflowName
     );
-    if (fsSync.existsSync(localPath)) {
-      return parsePhasesFromYaml(fsSync.readFileSync(localPath, 'utf8'));
+    for (const ext of ['.yaml', '.yml']) {
+      const localPath = localBase + ext;
+      if (fsSync.existsSync(localPath)) {
+        return parsePhasesFromYaml(fsSync.readFileSync(localPath, 'utf8'));
+      }
     }
 
-    // 2. Built-in workflow bundled with @codemcp/workflows-core
+    // 2. Built-in workflow bundled with @codemcp/workflows-core (.yaml then .yml)
     const corePkgDir = pathSync.dirname(
       require.resolve('@codemcp/workflows-core/package.json')
     );
-    const builtinPath = pathSync.join(
+    const builtinBase = pathSync.join(
       corePkgDir,
       'resources',
       'workflows',
-      `${workflowName}.yaml`
+      workflowName
     );
-    if (fsSync.existsSync(builtinPath)) {
-      return parsePhasesFromYaml(fsSync.readFileSync(builtinPath, 'utf8'));
+    for (const ext of ['.yaml', '.yml']) {
+      const builtinPath = builtinBase + ext;
+      if (fsSync.existsSync(builtinPath)) {
+        return parsePhasesFromYaml(fsSync.readFileSync(builtinPath, 'utf8'));
+      }
     }
 
     return [];
@@ -248,13 +256,20 @@ const tui: TuiPlugin = async api => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- JSX element typed as `error` by @opentui/solid's JSX types; safe at runtime
         return (
           <box flexDirection="column">
-            {/* Header row — clickable when workflow is active */}
+            {/* Header row — clickable to collapse/expand when phases are available */}
             <text
               fg={theme().text}
-              onMouseDown={() => state() && setCollapsed(c => !c)}
+              onMouseDown={() =>
+                state()?.phases?.length && setCollapsed(c => !c)
+              }
             >
               {state() ? (
-                collapsed() ? (
+                (state()?.phases ?? []).length === 0 ? (
+                  // Phases unknown — bold Workflow header + workflowName phaseName, no arrow
+                  <span>
+                    <b>Workflow</b>
+                  </span>
+                ) : collapsed() ? (
                   // Collapsed + active: ▶ workflowName phaseName
                   <span>
                     {'▶ '}
@@ -279,8 +294,8 @@ const tui: TuiPlugin = async api => {
             </text>
             {/* Expanded phase list */}
             {!collapsed() && state() ? (
-              <box flexDirection="column">
-                {(state()?.phases ?? []).length > 0 ? (
+              (state()?.phases ?? []).length > 0 ? (
+                <box flexDirection="column">
                   <Index each={state()?.phases ?? []}>
                     {(phase, index) => (
                       <text
@@ -303,8 +318,17 @@ const tui: TuiPlugin = async api => {
                       </text>
                     )}
                   </Index>
-                ) : null}
-              </box>
+                </box>
+              ) : (
+                // Phases unknown — show workflowName phaseName
+                <text fg={theme().text}>
+                  <b>{state()?.workflow}</b>
+                  <span style={{ fg: theme().textMuted }}>
+                    {' '}
+                    {state()?.phase}
+                  </span>
+                </text>
+              )
             ) : null}
             {/* No active workflow message */}
             {!state() ? (
