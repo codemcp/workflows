@@ -7,6 +7,7 @@ import type { ToolDefinition } from '../types.js';
 import { tool } from './tool-helper.js';
 import { handleMcpError, unwrapResult } from '../server-context.js';
 import { createLogger } from '@codemcp/workflows-core';
+import { requirePrimaryAgent } from '../utils.js';
 
 export function createConductReviewTool(
   getServerContext: () => Promise<ServerContext>
@@ -17,6 +18,9 @@ export function createConductReviewTool(
       target_phase: z.string().describe('Target phase after review'),
     },
     execute: async (args, context) => {
+      // Prevent subagents from using workflow state tools
+      requirePrimaryAgent(context.agent);
+
       const { target_phase } = args;
       const serverContext = await getServerContext();
       const logger = serverContext.loggerFactory
