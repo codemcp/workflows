@@ -9,7 +9,7 @@ describe('Custom Workflow Loading', () => {
   let originalEnv: string | undefined;
 
   beforeEach(() => {
-    originalEnv = process.env.VIBE_WORKFLOW_DOMAINS;
+    originalEnv = process.env.WORKFLOW_DOMAINS;
     testProjectPath = fs.mkdtempSync(
       path.join(tmpdir(), 'custom-workflow-test-')
     );
@@ -17,16 +17,16 @@ describe('Custom Workflow Loading', () => {
 
   afterEach(() => {
     if (originalEnv !== undefined) {
-      process.env.VIBE_WORKFLOW_DOMAINS = originalEnv;
+      process.env.WORKFLOW_DOMAINS = originalEnv;
     } else {
-      delete process.env.VIBE_WORKFLOW_DOMAINS;
+      delete process.env.WORKFLOW_DOMAINS;
     }
 
     fs.rmSync(testProjectPath, { recursive: true, force: true });
   });
 
   it('should load custom workflow from .vibe/workflows directory', () => {
-    process.env.VIBE_WORKFLOW_DOMAINS = 'code';
+    process.env.WORKFLOW_DOMAINS = 'code';
 
     const workflowsDir = path.join(testProjectPath, '.vibe', 'workflows');
     fs.mkdirSync(workflowsDir, { recursive: true });
@@ -73,7 +73,7 @@ describe('Custom Workflow Loading', () => {
   });
 
   it('should load multiple custom workflows', () => {
-    process.env.VIBE_WORKFLOW_DOMAINS = 'code';
+    process.env.WORKFLOW_DOMAINS = 'code';
 
     const workflowsDir = path.join(testProjectPath, '.vibe', 'workflows');
     fs.mkdirSync(workflowsDir, { recursive: true });
@@ -133,7 +133,7 @@ describe('Custom Workflow Loading', () => {
   });
 
   it('should ignore domain filtering for custom workflows', () => {
-    process.env.VIBE_WORKFLOW_DOMAINS = 'code'; // Only code domain
+    process.env.WORKFLOW_DOMAINS = 'code'; // Only code domain
 
     const workflowsDir = path.join(testProjectPath, '.vibe', 'workflows');
     fs.mkdirSync(workflowsDir, { recursive: true });

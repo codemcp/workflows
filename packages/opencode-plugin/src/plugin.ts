@@ -115,7 +115,7 @@ export const WorkflowsPlugin: Plugin = async (
   });
 
   // Initialize workflows enabled state from environment variable
-  const envWorkflows = process.env.WORKFLOWS?.toLowerCase();
+  const envWorkflows = process.env.WORKFLOW?.toLowerCase();
   let workflowsEnabled = envWorkflows === 'off' ? false : true; // default: enabled
   logger.info('Workflows state initialized', { workflowsEnabled });
 
@@ -498,7 +498,7 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
      */
     tool: await (async (): Promise<{ [key: string]: ToolDefinition }> => {
       const DISABLED_MSG =
-        'Workflows are disabled (WORKFLOWS=off). Enable with /workflow on or /wf on';
+        'Workflows are disabled (WORKFLOW=off). Enable with /workflow on or /wf on';
       const wrap = (def: ToolDefinition): ToolDefinition => ({
         ...def,
         execute: async (args, ctx) => {

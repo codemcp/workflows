@@ -40,8 +40,8 @@ describe('Workflow Validation', () => {
 
     it('should load ALL workflow files from resources directory', () => {
       // Temporarily disable domain filtering for this test
-      const originalEnv = process.env.VIBE_WORKFLOW_DOMAINS;
-      process.env.VIBE_WORKFLOW_DOMAINS =
+      const originalEnv = process.env.WORKFLOW_DOMAINS;
+      process.env.WORKFLOW_DOMAINS =
         'code,architecture,office,sdd,sdd-crowd,children,skilled';
 
       try {
@@ -63,9 +63,9 @@ describe('Workflow Validation', () => {
         }
       } finally {
         if (originalEnv !== undefined) {
-          process.env.VIBE_WORKFLOW_DOMAINS = originalEnv;
+          process.env.WORKFLOW_DOMAINS = originalEnv;
         } else {
-          delete process.env.VIBE_WORKFLOW_DOMAINS;
+          delete process.env.WORKFLOW_DOMAINS;
         }
       }
     });

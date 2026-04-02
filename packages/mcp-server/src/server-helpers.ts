@@ -125,10 +125,10 @@ export function createConversationNotFoundResult(
 ): HandlerResult<never> {
   if (availableWorkflows.length === 0) {
     return createErrorResult(
-      'No development conversation has been started for this project. Please call start_development() to begin. First, set up workflows by adjusting the VIBE_WORKFLOW_DOMAINS environment variable or copying a workflow to .vibe/workflows/ directory.',
+      'No development conversation has been started for this project. Please call start_development() to begin. First, set up workflows by adjusting the WORKFLOW_DOMAINS environment variable or copying a workflow to .vibe/workflows/ directory.',
       {
         suggestion:
-          'Set VIBE_WORKFLOW_DOMAINS=code,architecture,office or copy a workflow file to .vibe/workflows/',
+          'Set WORKFLOW_DOMAINS=code,architecture,office or copy a workflow file to .vibe/workflows/',
         availableWorkflows: [],
       }
     );

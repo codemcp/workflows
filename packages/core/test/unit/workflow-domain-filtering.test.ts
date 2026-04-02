@@ -5,19 +5,19 @@ describe('Workflow Domain Filtering', () => {
   let originalEnv: string | undefined;
 
   beforeEach(() => {
-    originalEnv = process.env.VIBE_WORKFLOW_DOMAINS;
+    originalEnv = process.env.WORKFLOW_DOMAINS;
   });
 
   afterEach(() => {
     if (originalEnv !== undefined) {
-      process.env.VIBE_WORKFLOW_DOMAINS = originalEnv;
+      process.env.WORKFLOW_DOMAINS = originalEnv;
     } else {
-      delete process.env.VIBE_WORKFLOW_DOMAINS;
+      delete process.env.WORKFLOW_DOMAINS;
     }
   });
 
   it('should load only code workflows when no domain filter is set', () => {
-    delete process.env.VIBE_WORKFLOW_DOMAINS;
+    delete process.env.WORKFLOW_DOMAINS;
 
     const manager = new WorkflowManager();
     const workflows = manager.getAvailableWorkflows();
@@ -34,8 +34,8 @@ describe('Workflow Domain Filtering', () => {
     expect(nonCodeWorkflows.length).toBe(0);
   });
 
-  it('should filter workflows by domain when VIBE_WORKFLOW_DOMAINS is set', () => {
-    process.env.VIBE_WORKFLOW_DOMAINS = 'code';
+  it('should filter workflows by domain when WORKFLOW_DOMAINS is set', () => {
+    process.env.WORKFLOW_DOMAINS = 'code';
 
     const manager = new WorkflowManager();
     const workflows = manager.getAvailableWorkflows();
@@ -51,7 +51,7 @@ describe('Workflow Domain Filtering', () => {
   });
 
   it('should support multiple domains', () => {
-    process.env.VIBE_WORKFLOW_DOMAINS = 'code,office';
+    process.env.WORKFLOW_DOMAINS = 'code,office';
 
     const manager = new WorkflowManager();
     const workflows = manager.getAvailableWorkflows();
@@ -64,7 +64,7 @@ describe('Workflow Domain Filtering', () => {
   });
 
   it('should handle invalid domains gracefully', () => {
-    process.env.VIBE_WORKFLOW_DOMAINS = 'code,invalid,office';
+    process.env.WORKFLOW_DOMAINS = 'code,invalid,office';
 
     const manager = new WorkflowManager();
     const workflows = manager.getAvailableWorkflows();

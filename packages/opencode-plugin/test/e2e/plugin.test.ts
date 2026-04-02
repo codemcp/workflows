@@ -744,12 +744,12 @@ describe('File Pattern Restrictions', () => {
   }
 });
 
-describe('WORKFLOWS=off environment variable', () => {
-  it('registers tools when WORKFLOWS=off, but execute throws a clear disabled error', async () => {
+describe('WORKFLOW=off environment variable', () => {
+  it('registers tools when WORKFLOW=off, but execute throws a clear disabled error', async () => {
     const dir = createTempDir();
-    const originalEnv = process.env.WORKFLOWS;
+    const originalEnv = process.env.WORKFLOW;
     try {
-      process.env.WORKFLOWS = 'off';
+      process.env.WORKFLOW = 'off';
 
       const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
 
@@ -772,19 +772,19 @@ describe('WORKFLOWS=off environment variable', () => {
       expect(hooks['command.execute.before']).toBeDefined();
     } finally {
       if (originalEnv === undefined) {
-        delete process.env.WORKFLOWS;
+        delete process.env.WORKFLOW;
       } else {
-        process.env.WORKFLOWS = originalEnv;
+        process.env.WORKFLOW = originalEnv;
       }
       cleanupDir(dir);
     }
   });
 
-  it('allows tool execution after /wf on when started with WORKFLOWS=off', async () => {
+  it('allows tool execution after /wf on when started with WORKFLOW=off', async () => {
     const dir = createTempDir();
-    const originalEnv = process.env.WORKFLOWS;
+    const originalEnv = process.env.WORKFLOW;
     try {
-      process.env.WORKFLOWS = 'off';
+      process.env.WORKFLOW = 'off';
 
       const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
 
@@ -821,23 +821,23 @@ describe('WORKFLOWS=off environment variable', () => {
       }
     } finally {
       if (originalEnv === undefined) {
-        delete process.env.WORKFLOWS;
+        delete process.env.WORKFLOW;
       } else {
-        process.env.WORKFLOWS = originalEnv;
+        process.env.WORKFLOW = originalEnv;
       }
       cleanupDir(dir);
     }
   });
 
-  it('loads all tools and hooks when WORKFLOWS is not set (default)', async () => {
+  it('loads all tools and hooks when WORKFLOW is not set (default)', async () => {
     const dir = createTempDir();
-    const originalEnv = process.env.WORKFLOWS;
+    const originalEnv = process.env.WORKFLOW;
     try {
-      delete process.env.WORKFLOWS;
+      delete process.env.WORKFLOW;
 
       const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
 
-      // When WORKFLOWS is not set, all hooks and tools should be registered
+      // When WORKFLOW is not set, all hooks and tools should be registered
       expect(hooks['chat.message']).toBeDefined();
       expect(hooks['tool.execute.before']).toBeDefined();
       expect(hooks['experimental.session.compacting']).toBeDefined();
@@ -852,23 +852,23 @@ describe('WORKFLOWS=off environment variable', () => {
       expect(hooks.tool).toHaveProperty('setup_project_docs');
     } finally {
       if (originalEnv === undefined) {
-        delete process.env.WORKFLOWS;
+        delete process.env.WORKFLOW;
       } else {
-        process.env.WORKFLOWS = originalEnv;
+        process.env.WORKFLOW = originalEnv;
       }
       cleanupDir(dir);
     }
   });
 
-  it('loads all tools and hooks when WORKFLOWS=on', async () => {
+  it('loads all tools and hooks when WORKFLOW=on', async () => {
     const dir = createTempDir();
-    const originalEnv = process.env.WORKFLOWS;
+    const originalEnv = process.env.WORKFLOW;
     try {
-      process.env.WORKFLOWS = 'on';
+      process.env.WORKFLOW = 'on';
 
       const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
 
-      // When WORKFLOWS=on, all hooks and tools should be registered
+      // When WORKFLOW=on, all hooks and tools should be registered
       expect(hooks['chat.message']).toBeDefined();
       expect(hooks['tool.execute.before']).toBeDefined();
       expect(hooks['experimental.session.compacting']).toBeDefined();
@@ -883,9 +883,9 @@ describe('WORKFLOWS=off environment variable', () => {
       expect(hooks.tool).toHaveProperty('setup_project_docs');
     } finally {
       if (originalEnv === undefined) {
-        delete process.env.WORKFLOWS;
+        delete process.env.WORKFLOW;
       } else {
-        process.env.WORKFLOWS = originalEnv;
+        process.env.WORKFLOW = originalEnv;
       }
       cleanupDir(dir);
     }

@@ -28,7 +28,7 @@ Workflows are organized by domains to keep things manageable:
 **Control which domains are loaded:**
 
 ```bash
-export VIBE_WORKFLOW_DOMAINS="code,architecture"
+export WORKFLOW_DOMAINS="code,architecture"
 # Only loads workflows from code and architecture domains
 ```
 
@@ -153,13 +153,13 @@ The copied workflow will have:
 
 ```bash
 # Default: only 'code' domain workflows
-VIBE_WORKFLOW_DOMAINS="code"
+WORKFLOW_DOMAINS="code"
 
 # Multiple domains
-VIBE_WORKFLOW_DOMAINS="code,architecture,office"
+WORKFLOW_DOMAINS="code,architecture,office"
 
 # All domains
-VIBE_WORKFLOW_DOMAINS="code,architecture,office"
+WORKFLOW_DOMAINS="code,architecture,office"
 ```
 
 ## Project-Specific Configuration

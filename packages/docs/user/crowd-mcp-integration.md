@@ -23,7 +23,7 @@ This creates three agent configurations in `.crowd/agents/`:
 Each agent is pre-configured with:
 
 - `VIBE_ROLE` environment variable (business-analyst, architect, or developer)
-- `VIBE_WORKFLOW_DOMAINS=sdd-crowd` to access collaborative workflows
+- `WORKFLOW_DOMAINS=sdd-crowd` to access collaborative workflows
 - System prompts explaining team collaboration
 - MCP server connection to workflows server
 
@@ -248,7 +248,7 @@ mcpServers:
     args: [@codemcp/workflows-server@latest]
     env:
       VIBE_ROLE: business-analyst
-      VIBE_WORKFLOW_DOMAINS: sdd-crowd
+      WORKFLOW_DOMAINS: sdd-crowd
 ```
 
 ## Workflow Features
@@ -444,7 +444,7 @@ When transitioning phases:
 - **VIBE_ROLE**: Agent's role (business-analyst, architect, developer)
   - Required for collaborative workflows
   - Optional for single-agent workflows
-- **VIBE_WORKFLOW_DOMAINS**: Filter workflows by domain
+- **WORKFLOW_DOMAINS**: Filter workflows by domain
   - Set to `sdd-crowd` for collaborative workflows
   - Can combine: `sdd-crowd,sdd` for both
 

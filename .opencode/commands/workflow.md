@@ -14,5 +14,5 @@ When workflows are disabled, the plugin will not inject development instructions
 You can also set the initial state via environment variable:
 
 ```bash
-WORKFLOWS=off opencode
+WORKFLOW=off opencode
 ```

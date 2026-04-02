@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { WorkflowManager } from '../../src/workflow-manager.js';
 
-describe('WORKFLOW_DOMAINS precedence', () => {
+describe('WORKFLOW_DOMAINS precedence (backward compat)', () => {
   const originalVibe = process.env.VIBE_WORKFLOW_DOMAINS;
   const originalWorkflow = process.env.WORKFLOW_DOMAINS;
 
@@ -13,7 +13,7 @@ describe('WORKFLOW_DOMAINS precedence', () => {
     else delete process.env.WORKFLOW_DOMAINS;
   });
 
-  it('should prefer WORKFLOW_DOMAINS over VIBE_WORKFLOW_DOMAINS', () => {
+  it('should prefer WORKFLOW_DOMAINS over legacy VIBE_WORKFLOW_DOMAINS when both are set', () => {
     delete process.env['VIBE_WORKFLOW_DOMAINS'];
     delete process.env['WORKFLOW_DOMAINS'];
 
@@ -40,10 +40,11 @@ describe('WORKFLOW_DOMAINS precedence', () => {
     expect(hasArchitecture).toBe(true);
   });
 
-  it('should use VIBE_WORKFLOW_DOMAINS when WORKFLOW_DOMAINS is not set', () => {
+  it('should fall back to legacy VIBE_WORKFLOW_DOMAINS when WORKFLOW_DOMAINS is not set', () => {
     delete process.env['VIBE_WORKFLOW_DOMAINS'];
     delete process.env['WORKFLOW_DOMAINS'];
 
+    // Simulate a user who still has the old VIBE_WORKFLOW_DOMAINS set
     process.env['VIBE_WORKFLOW_DOMAINS'] = 'code';
 
     const manager = new WorkflowManager();
