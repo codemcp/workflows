@@ -5,7 +5,6 @@ import {
   createMemo,
   createSignal,
   onCleanup,
-  onMount,
 } from 'solid-js';
 import type { TuiPlugin, TuiPluginModule } from '@opencode-ai/plugin/tui';
 import type fs from 'node:fs';
@@ -205,7 +204,8 @@ const tui: TuiPlugin = async api => {
         const [spinnerFrame, setSpinnerFrame] = createSignal(0);
         // Only animate when the phase list is visible (expanded + active workflow)
         createEffect(() => {
-          if (collapsed() || !state()) return;
+          const s = state();
+          if (collapsed() || !s || !s.phases || s.phases.length === 0) return;
           const id = setInterval(() => {
             setSpinnerFrame(f => (f + 1) % SPINNER.length);
           }, 150);
