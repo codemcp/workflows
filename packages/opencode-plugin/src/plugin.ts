@@ -127,13 +127,14 @@ export const WorkflowsPlugin: Plugin = async (
             .filter(Boolean)
         )
       : null; // null = no filter, all agents active
-  // Session-level override: /workflow on|off works on top of the agent filter.
+  // Global override: /workflow on|off toggles this flag for the lifetime of
+  // the plugin instance (i.e. all sessions sharing this instance).
   // Starts as true so the agent filter alone controls whether hooks fire.
   let workflowsEnabled = true;
 
   /**
    * Returns true if workflows should run for the given agent name,
-   * taking both the session-level override and the agent filter into account.
+   * taking both the global on/off override and the agent filter into account.
    */
   function isActiveForAgent(agent: string | undefined): boolean {
     if (!workflowsEnabled) return false;
@@ -527,7 +528,8 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
     /**
      * Hook 4: command.execute.before
      * Intercept /workflow and /wf commands to toggle workflows enabled state.
-     * This is a session-level override on top of the WORKFLOW_ACTIVE_AGENTS filter.
+     * Note: this toggle is global across all sessions for the lifetime of the
+     * plugin instance, not scoped to the current session.
      */
     'command.execute.before': async (hookInput, output) => {
       const cmd = hookInput.command.toLowerCase();

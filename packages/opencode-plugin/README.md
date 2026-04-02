@@ -92,13 +92,13 @@ WORKFLOW_ACTIVE_AGENTS=coder,architect
 
 When the env var is set, hooks and tool-call enforcement are silently skipped for any agent not in the list. This prevents subagents (Tasks) from being interrupted by workflow instructions when they are not expected to follow the workflow.
 
-### Session-level override
+### Global override
 
-Use the `/workflow` command to toggle the plugin on or off for the current session, regardless of the agent filter:
+Use the `/workflow` command to toggle the plugin on or off globally (affects all sessions for the lifetime of the plugin instance), regardless of the agent filter:
 
 ```
-/workflow off   # disable for this session
-/workflow on    # re-enable for this session
+/workflow off   # disable globally
+/workflow on    # re-enable globally
 /workflow       # show current state
 ```
 
