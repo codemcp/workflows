@@ -391,7 +391,7 @@ const tui: TuiPlugin = async api => {
           if (ev.properties?.sessionID !== props.session_id) return;
           const name = ev.properties?.name?.toLowerCase();
           if (name !== 'workflow' && name !== 'wf') return;
-          const args = ev.properties?.arguments?.toLowerCase().trim();
+          const args = (ev.properties?.arguments ?? '').toLowerCase().trim();
           if (args === 'on') {
             sessionOverrideMap.set(props.session_id, true);
             setSessionOverride(true);

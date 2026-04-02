@@ -136,12 +136,60 @@ export const WorkflowsPlugin: Plugin = async (
   // for agents included in that filter.
   // Bounded to the last 50 sessions to prevent unbounded growth.
   const MAX_TRACKED_SESSIONS = 50;
-  const sessionEnabled = new Map<string, boolean>();
+
+  // Bounded set with LRU eviction — used for pendingActivation so it can't
+  // grow unbounded if sessions end without a follow-up chat.message.
+  class BoundedSessionSet extends Set<string> {
+    constructor(private readonly maxSize: number) {
+      super();
+    }
+
+    override add(value: string): this {
+      if (this.has(value)) super.delete(value);
+      super.add(value);
+      while (this.size > this.maxSize) {
+        const oldest = this.values().next().value;
+        if (oldest === undefined) break;
+        super.delete(oldest);
+      }
+      return this;
+    }
+  }
+
+  // Bounded map with LRU eviction. When a session is evicted from
+  // sessionEnabled, it is also removed from pendingActivation.
+  class BoundedSessionMap extends Map<string, boolean> {
+    constructor(
+      private readonly maxSize: number,
+      private readonly onEvict: (sessionID: string) => void
+    ) {
+      super();
+    }
+
+    override set(key: string, value: boolean): this {
+      if (this.has(key)) super.delete(key);
+      super.set(key, value);
+      while (this.size > this.maxSize) {
+        const oldest = this.keys().next().value;
+        if (oldest === undefined) break;
+        super.delete(oldest);
+        this.onEvict(oldest);
+      }
+      return this;
+    }
+  }
 
   // Sessions where /workflow on was just typed by the user. The next
   // chat.message hook will inject a counter-instruction to override any
   // prior "ignore these tools" suppression the LLM may have seen.
-  const pendingActivation = new Set<string>();
+  const pendingActivation = new BoundedSessionSet(MAX_TRACKED_SESSIONS);
+
+  const sessionEnabled = new BoundedSessionMap(
+    MAX_TRACKED_SESSIONS,
+    sessionID => {
+      pendingActivation.delete(sessionID);
+    }
+  );
 
   /**
    * Returns true if workflows should run for the given agent in the given session.
@@ -163,18 +211,8 @@ export const WorkflowsPlugin: Plugin = async (
     return activeAgentFilter.has((agent ?? '').toLowerCase());
   }
 
-  /**
-   * Set per-session enabled state with LRU eviction.
-   * Deletes and re-inserts the key to refresh insertion order, so recently
-   * used sessions are never evicted before truly idle ones.
-   */
   function setSessionEnabled(sessionID: string, value: boolean): void {
-    sessionEnabled.delete(sessionID);
     sessionEnabled.set(sessionID, value);
-    if (sessionEnabled.size > MAX_TRACKED_SESSIONS) {
-      const oldest = sessionEnabled.keys().next().value;
-      if (oldest !== undefined) sessionEnabled.delete(oldest);
-    }
   }
 
   logger.info('Workflows state initialized', {
@@ -623,6 +661,7 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
           });
         } else if (args === 'off') {
           setSessionEnabled(hookInput.sessionID, false);
+          pendingActivation.delete(hookInput.sessionID);
           logger.info('Workflows toggled via command', {
             enabled: false,
             sessionID: hookInput.sessionID,
