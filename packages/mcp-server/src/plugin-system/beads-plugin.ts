@@ -30,7 +30,10 @@ import {
   TaskBackendManager,
   getPathBasename,
 } from '@codemcp/workflows-core';
+import { watch, type FSWatcher } from 'node:fs';
+import { join } from 'node:path';
 import { BeadsTaskBackendClient } from '../components/beads/beads-task-backend-client.js';
+import { BeadsPlanSyncer } from '../components/beads/beads-plan-syncer.js';
 
 /**
  * BeadsPlugin class implementing the IPlugin interface
@@ -47,6 +50,20 @@ export class BeadsPlugin implements IPlugin {
   private planManager: PlanManager;
   private logger: ILogger;
   private loggerFactory?: LoggerFactory;
+  private planSyncer: BeadsPlanSyncer;
+
+  /**
+   * Plan file path captured from the most recent hook context.
+   * Set by afterStartDevelopment and beforePhaseTransition so the watcher
+   * always has the correct path without touching GitManager.
+   */
+  private activePlanFilePath: string | null = null;
+
+  /** Debounce timer for the JSONL file watcher */
+  private syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Active fs.watch watcher (closed on process exit) */
+  private jsonlWatcher: FSWatcher | null = null;
 
   constructor(options: { projectPath: string; loggerFactory?: LoggerFactory }) {
     this.projectPath = options.projectPath;
@@ -69,7 +86,20 @@ export class BeadsPlugin implements IPlugin {
         : undefined
     );
     this.planManager = new PlanManager();
+    this.planSyncer = new BeadsPlanSyncer(
+      options.loggerFactory
+        ? options.loggerFactory('BeadsPlanSyncer')
+        : undefined
+    );
 
+    // Register exit handler once here, regardless of watcher start outcome
+    process.once('exit', () => {
+      this.jsonlWatcher?.close();
+    });
+
+    // Start watching .beads/ directory immediately. The plan file and
+    // issues.jsonl may not exist yet — both are handled gracefully.
+    this.startJsonlWatcher();
     this.logger.debug('BeadsPlugin initialized', {
       projectPath: this.projectPath,
     });
@@ -118,6 +148,7 @@ export class BeadsPlugin implements IPlugin {
     currentPhase: string,
     targetPhase: string
   ): Promise<void> {
+    this.activePlanFilePath = context.planFilePath;
     this.logger.info(
       'BeadsPlugin: Validating task completion before phase transition',
       {
@@ -169,6 +200,8 @@ export class BeadsPlugin implements IPlugin {
     args: StartDevelopmentArgs,
     _result: StartDevelopmentResult
   ): Promise<void> {
+    this.activePlanFilePath = context.planFilePath;
+
     this.logger.info('BeadsPlugin: Setting up beads integration', {
       conversationId: context.conversationId,
       workflow: args.workflow,
@@ -677,6 +710,46 @@ Complete tasks: \`bd close <id>\``;
         }
       );
       // Graceful degradation: continue without beads state validation
+    }
+  }
+
+  /**
+   * Start watching the .beads/ directory for changes to issues.jsonl.
+   * Watching the directory (not the file) means the watcher works even when
+   * issues.jsonl doesn't exist yet. On change, debounces 300ms then syncs.
+   */
+  private startJsonlWatcher(): void {
+    const beadsDir = join(this.projectPath, '.beads');
+
+    try {
+      this.jsonlWatcher = watch(beadsDir, (_event, filename) => {
+        if (filename !== 'issues.jsonl') return;
+        // Debounce: beads may write the file multiple times in quick succession
+        if (this.syncDebounceTimer) {
+          clearTimeout(this.syncDebounceTimer);
+        }
+        this.syncDebounceTimer = setTimeout(() => {
+          this.syncDebounceTimer = null;
+          if (!this.activePlanFilePath) return; // no conversation started yet
+          this.planSyncer
+            .sync(this.activePlanFilePath, this.projectPath)
+            .catch(err => {
+              this.logger.warn(
+                'BeadsPlugin: Error during watcher-triggered plan sync',
+                {
+                  error: err instanceof Error ? err.message : String(err),
+                }
+              );
+            });
+        }, 300);
+      });
+
+      this.logger.info('BeadsPlugin: Started JSONL file watcher', { beadsDir });
+    } catch (error) {
+      this.logger.warn('BeadsPlugin: Could not start JSONL file watcher', {
+        error: error instanceof Error ? error.message : String(error),
+        beadsDir,
+      });
     }
   }
 
