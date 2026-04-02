@@ -107,17 +107,25 @@ function getWorkflowPhases(projectDir: string, workflowName: string): string[] {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pathSync = require('node:path') as typeof path;
 
-    // 1. Project-local workflow (.yaml then .yml)
-    const localBase = pathSync.join(
-      projectDir,
-      '.vibe',
-      'workflows',
-      workflowName
-    );
-    for (const ext of ['.yaml', '.yml']) {
-      const localPath = localBase + ext;
-      if (fsSync.existsSync(localPath)) {
-        return parsePhasesFromYaml(fsSync.readFileSync(localPath, 'utf8'));
+    // 1. Project-local workflows: scan `.vibe/workflows` for a YAML whose `name:` matches workflowName
+    const workflowsDir = pathSync.join(projectDir, '.vibe', 'workflows');
+    if (
+      fsSync.existsSync(workflowsDir) &&
+      fsSync.statSync(workflowsDir).isDirectory()
+    ) {
+      for (const entry of fsSync.readdirSync(workflowsDir)) {
+        if (!entry.endsWith('.yaml') && !entry.endsWith('.yml')) continue;
+        const fullPath = pathSync.join(workflowsDir, entry);
+        try {
+          const contents = fsSync.readFileSync(fullPath, 'utf8');
+          // Extract the `name:` field from the YAML without a parser
+          const nameMatch = /^name:\s*(.+)/m.exec(contents);
+          if (nameMatch?.[1]?.trim() === workflowName) {
+            return parsePhasesFromYaml(contents);
+          }
+        } catch {
+          // unreadable file — skip
+        }
       }
     }
 
@@ -191,9 +199,9 @@ function readStateBySessionId(
 
 // eslint-disable-next-line @typescript-eslint/require-await -- TuiPlugin signature requires Promise<void>; plugin body is synchronous
 const tui: TuiPlugin = async api => {
-  // Respect the same WORKFLOWS env var used by the opencode-plugin.
-  // Set WORKFLOWS=off to disable the TUI sidebar widget.
-  if (process.env.WORKFLOWS?.toLowerCase() === 'off') return;
+  // Respect the WORKFLOW env var used by the opencode-plugin.
+  // Set WORKFLOW=off to disable the TUI sidebar widget.
+  if (process.env.WORKFLOW?.toLowerCase() === 'off') return;
 
   api.slots.register({
     order: 5,
