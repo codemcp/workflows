@@ -13,6 +13,7 @@ import {
 import type { ToolDefinition } from '../types.js';
 import { tool } from './tool-helper.js';
 import { handleMcpError } from '../server-context.js';
+import { requirePrimaryAgent } from '../utils.js';
 
 export function createResetDevelopmentTool(
   projectDir: string,
@@ -27,6 +28,9 @@ export function createResetDevelopmentTool(
       delete_plan: z.boolean().optional().describe('Also delete plan file'),
     },
     execute: async (args, context) => {
+      // Prevent subagents from using workflow state tools
+      requirePrimaryAgent(context.agent);
+
       const { confirm, reason, delete_plan } = args;
       const serverContext = await getServerContext();
       const logger = serverContext.loggerFactory

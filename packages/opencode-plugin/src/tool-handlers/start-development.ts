@@ -8,7 +8,7 @@ import type { ToolDefinition } from '../types.js';
 import { tool } from './tool-helper.js';
 import { handleMcpError, unwrapResult } from '../server-context.js';
 import { WorkflowManager, createLogger } from '@codemcp/workflows-core';
-import { stripWhatsNextReferences } from '../utils.js';
+import { stripWhatsNextReferences, requirePrimaryAgent } from '../utils.js';
 
 export function createStartDevelopmentTool(
   projectDir: string,
@@ -40,6 +40,9 @@ export function createStartDevelopmentTool(
         .describe('Require reviews before phase transitions'),
     },
     execute: async (args, context) => {
+      // Prevent subagents from using workflow state tools
+      requirePrimaryAgent(context.agent);
+
       const serverContext = await getServerContext();
       const logger = serverContext.loggerFactory
         ? serverContext.loggerFactory('start_development')
