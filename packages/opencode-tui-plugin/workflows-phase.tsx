@@ -232,22 +232,36 @@ const tui: TuiPlugin = async api => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- JSX element typed as `error` by @opentui/solid's JSX types; safe at runtime
         return (
           <box flexDirection="column">
-            {/* Clickable header row — toggles expanded/collapsed */}
-            <text fg={theme().text} onMouseDown={() => setCollapsed(c => !c)}>
-              {collapsed() ? '▶ ' : '▼ '}
-              {/* eslint-disable-next-line solid/style-prop -- `fg` is an OpenTUI-specific style prop, not a standard CSS property */}
-              <b>Workflow</b>
+            {/* Header row — clickable when workflow is active */}
+            <text
+              fg={theme().text}
+              onMouseDown={() => state() && setCollapsed(c => !c)}
+            >
               {state() ? (
-                <span style={{ fg: theme().textMuted }}>
-                  : {state()?.workflow}
-                </span>
-              ) : null}
-              {/* In collapsed mode show the current phase inline */}
-              {collapsed() && state() ? (
-                <span style={{ fg: theme().textMuted }}> {state()?.phase}</span>
-              ) : null}
+                collapsed() ? (
+                  // Collapsed + active: ▶ workflowName phaseName
+                  <span>
+                    {'▶ '}
+                    <b>{state()?.workflow}</b>
+                    <span style={{ fg: theme().textMuted }}>
+                      {' '}
+                      {state()?.phase}
+                    </span>
+                  </span>
+                ) : (
+                  // Expanded + active: ▼ Workflow workflowName
+                  <span>
+                    {'▼ '}
+                    <b>Workflow</b> {state()?.workflow}
+                  </span>
+                )
+              ) : (
+                // No active workflow
+                // eslint-disable-next-line solid/style-prop -- `fg` is an OpenTUI-specific style prop, not a standard CSS property
+                <b>Workflow</b>
+              )}
             </text>
-            {/* Expanded content */}
+            {/* Expanded phase list */}
             {!collapsed() && state() ? (
               <box flexDirection="column">
                 {(state()?.phases ?? []).length > 0 ? (
@@ -280,8 +294,8 @@ const tui: TuiPlugin = async api => {
                 ) : null}
               </box>
             ) : null}
-            {/* No active workflow message (only when expanded) */}
-            {!collapsed() && !state() ? (
+            {/* No active workflow message */}
+            {!state() ? (
               <text fg={theme().textMuted}>No Active Workflow</text>
             ) : null}
           </box>
