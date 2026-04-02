@@ -75,6 +75,28 @@ Or for local development:
 }
 ```
 
+## Configuration
+
+### Agent Filtering
+
+By default, the plugin is active for all agents. Set `WORKFLOW_AGENTS` to a comma-separated list of agent names to restrict it to specific agents only:
+
+```bash
+# Only activate for the "coder" and "architect" agents
+WORKFLOW_AGENTS=coder,architect npx opencode
+```
+
+When the env var is set, workflow hooks are skipped and tools throw a clear error for any agent not in the list. This prevents subagents (Tasks) from being interrupted by workflow instructions when they are not expected to follow the workflow.
+
+**When unset**, workflows are active for all agents (default behavior).
+
+### Per-Agent Behavior
+
+- **Agent in filter**: Workflow instructions are injected on every message, tools work normally
+- **Agent not in filter**: Workflow instructions are skipped, tools throw "not enabled for this agent" error
+
+This design makes agent switching automatic—no session state needed. When the user switches agents, the TUI widget visibility and hook behavior adapt immediately based on the new agent.
+
 ## Status
 
 Integrated with `@codemcp/workflows-core` for real state management and phase-based file restrictions.

@@ -1,0 +1,29 @@
+{
+  "conversationId": "responsible-vibe-per-agent-activation-mh4d6e",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe",
+  "epicId": "responsible-vibe-30",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "responsible-vibe-30.1"
+    },
+    {
+      "phaseId": "plan",
+      "phaseName": "Plan",
+      "taskId": "responsible-vibe-30.2"
+    },
+    {
+      "phaseId": "code",
+      "phaseName": "Code",
+      "taskId": "responsible-vibe-30.3"
+    },
+    {
+      "phaseId": "commit",
+      "phaseName": "Commit",
+      "taskId": "responsible-vibe-30.4"
+    }
+  ],
+  "createdAt": "2026-04-02T21:30:35.849Z",
+  "updatedAt": "2026-04-02T21:30:35.849Z"
+}

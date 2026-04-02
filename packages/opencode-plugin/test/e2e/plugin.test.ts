@@ -744,148 +744,174 @@ describe('File Pattern Restrictions', () => {
   }
 });
 
-describe('WORKFLOW=off environment variable', () => {
-  it('registers tools when WORKFLOW=off, but execute throws a clear disabled error', async () => {
+describe('WORKFLOW_AGENTS environment variable', () => {
+  it('skips chat.message hook for agents not in WORKFLOW_AGENTS filter', async () => {
     const dir = createTempDir();
-    const originalEnv = process.env.WORKFLOW;
+    const originalEnv = process.env.WORKFLOW_AGENTS;
     try {
-      process.env.WORKFLOW = 'off';
+      process.env.WORKFLOW_AGENTS = 'general,architect';
 
       const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
 
-      // Tools are still registered (so /workflow on can re-enable them)
-      expect(hooks.tool).toBeDefined();
-      expect(hooks.tool).toHaveProperty('start_development');
-      expect(hooks.tool).toHaveProperty('proceed_to_phase');
-      expect(hooks.tool).toHaveProperty('conduct_review');
-      expect(hooks.tool).toHaveProperty('reset_development');
-      expect(hooks.tool).toHaveProperty('setup_project_docs');
+      // chat.message should not inject when agent is not in filter
+      const output: { message: UserMessage; parts: Part[] } = {
+        message: { id: 'msg1', sessionID: 'sess1', role: 'user' },
+        parts: [],
+      };
 
-      // But executing a tool throws with a clear message
-      await expect(
-        hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
-          sessionID: 'test-session',
-        } as unknown)
-      ).rejects.toThrow(/disabled/i);
+      await hooks['chat.message']!(
+        {
+          sessionID: 'sess1',
+          agent: 'explore', // Not in filter
+          messageID: 'msg1',
+        },
+        output
+      );
 
-      // Command hook is available for toggling
-      expect(hooks['command.execute.before']).toBeDefined();
+      // No workflow prompt should be injected for non-whitelisted agent
+      expect(output.parts.length).toBe(0);
     } finally {
       if (originalEnv === undefined) {
-        delete process.env.WORKFLOW;
+        delete process.env.WORKFLOW_AGENTS;
       } else {
-        process.env.WORKFLOW = originalEnv;
+        process.env.WORKFLOW_AGENTS = originalEnv;
       }
       cleanupDir(dir);
     }
   });
 
-  it('allows tool execution after /wf on when started with WORKFLOW=off', async () => {
+  it('throws error when tool is called by agent not in WORKFLOW_AGENTS', async () => {
     const dir = createTempDir();
-    const originalEnv = process.env.WORKFLOW;
+    const originalEnv = process.env.WORKFLOW_AGENTS;
     try {
-      process.env.WORKFLOW = 'off';
+      process.env.WORKFLOW_AGENTS = 'general,architect';
 
       const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
 
-      // Confirm disabled initially
+      // Tool should throw when agent is not in filter
       await expect(
         hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
           sessionID: 'test-session',
+          agent: 'explore', // Not in filter
         } as unknown)
-      ).rejects.toThrow(/disabled/i);
+      ).rejects.toThrow(/not enabled for this agent/i);
+    } finally {
+      if (originalEnv === undefined) {
+        delete process.env.WORKFLOW_AGENTS;
+      } else {
+        process.env.WORKFLOW_AGENTS = originalEnv;
+      }
+      cleanupDir(dir);
+    }
+  });
 
-      // Toggle on via command
-      const output: { parts: Part[] } = { parts: [] };
-      await hooks['command.execute.before']!(
-        { command: 'workflow', arguments: 'on', sessionID: 'test-session' },
-        output
-      );
-      expect(
-        output.parts[0]?.type === 'text' && output.parts[0].text
-      ).toContain('enabled');
+  it('allows tool execution when agent is in WORKFLOW_AGENTS filter', async () => {
+    const dir = createTempDir();
+    const originalEnv = process.env.WORKFLOW_AGENTS;
+    try {
+      process.env.WORKFLOW_AGENTS = 'general,architect';
 
-      // Now the tool should no longer throw the disabled error
-      // (it may fail for other reasons like no plan file, but not the disabled guard)
+      const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
+
+      // Tool should NOT throw the agent filter error when agent is whitelisted
+      // (it may fail for other reasons like no plan file, but not the filter guard)
       let thrownMessage: string | undefined;
       try {
         await hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
           sessionID: 'test-session',
+          agent: 'general', // In filter
         } as unknown);
       } catch (err) {
         thrownMessage = (err as Error).message;
       }
-      // If it did throw, it must NOT be the disabled message
+      // If it did throw, it must NOT be the agent filter message
       if (thrownMessage !== undefined) {
-        expect(thrownMessage).not.toMatch(/disabled/i);
+        expect(thrownMessage).not.toMatch(/not enabled for this agent/i);
       }
     } finally {
       if (originalEnv === undefined) {
-        delete process.env.WORKFLOW;
+        delete process.env.WORKFLOW_AGENTS;
       } else {
-        process.env.WORKFLOW = originalEnv;
-      }
-      cleanupDir(dir);
-    }
-  });
-
-  it('loads all tools and hooks when WORKFLOW is not set (default)', async () => {
-    const dir = createTempDir();
-    const originalEnv = process.env.WORKFLOW;
-    try {
-      delete process.env.WORKFLOW;
-
-      const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
-
-      // When WORKFLOW is not set, all hooks and tools should be registered
-      expect(hooks['chat.message']).toBeDefined();
-      expect(hooks['tool.execute.before']).toBeDefined();
-      expect(hooks['experimental.session.compacting']).toBeDefined();
-      expect(hooks['command.execute.before']).toBeDefined();
-      expect(hooks.tool).toBeDefined();
-
-      // Tools should be populated
-      expect(hooks.tool).toHaveProperty('start_development');
-      expect(hooks.tool).toHaveProperty('proceed_to_phase');
-      expect(hooks.tool).toHaveProperty('conduct_review');
-      expect(hooks.tool).toHaveProperty('reset_development');
-      expect(hooks.tool).toHaveProperty('setup_project_docs');
-    } finally {
-      if (originalEnv === undefined) {
-        delete process.env.WORKFLOW;
-      } else {
-        process.env.WORKFLOW = originalEnv;
+        process.env.WORKFLOW_AGENTS = originalEnv;
       }
       cleanupDir(dir);
     }
   });
 
-  it('loads all tools and hooks when WORKFLOW=on', async () => {
+  it('allows all agents when WORKFLOW_AGENTS is not set', async () => {
     const dir = createTempDir();
-    const originalEnv = process.env.WORKFLOW;
+    const originalEnv = process.env.WORKFLOW_AGENTS;
     try {
-      process.env.WORKFLOW = 'on';
+      delete process.env.WORKFLOW_AGENTS;
 
       const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
 
-      // When WORKFLOW=on, all hooks and tools should be registered
+      // When WORKFLOW_AGENTS is not set, all hooks and tools should work for any agent
       expect(hooks['chat.message']).toBeDefined();
       expect(hooks['tool.execute.before']).toBeDefined();
       expect(hooks['experimental.session.compacting']).toBeDefined();
-      expect(hooks['command.execute.before']).toBeDefined();
       expect(hooks.tool).toBeDefined();
 
-      // Tools should be populated
+      // Tools should be populated and allow any agent
       expect(hooks.tool).toHaveProperty('start_development');
-      expect(hooks.tool).toHaveProperty('proceed_to_phase');
-      expect(hooks.tool).toHaveProperty('conduct_review');
-      expect(hooks.tool).toHaveProperty('reset_development');
-      expect(hooks.tool).toHaveProperty('setup_project_docs');
+
+      // Tool should not throw agent filter error for any agent
+      let thrownMessage: string | undefined;
+      try {
+        await hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
+          sessionID: 'test-session',
+          agent: 'any-agent', // Should work when no filter is set
+        } as unknown);
+      } catch (err) {
+        thrownMessage = (err as Error).message;
+      }
+      if (thrownMessage !== undefined) {
+        expect(thrownMessage).not.toMatch(/not enabled for this agent/i);
+      }
     } finally {
       if (originalEnv === undefined) {
-        delete process.env.WORKFLOW;
+        delete process.env.WORKFLOW_AGENTS;
       } else {
-        process.env.WORKFLOW = originalEnv;
+        process.env.WORKFLOW_AGENTS = originalEnv;
+      }
+      cleanupDir(dir);
+    }
+  });
+
+  it('handles comma-separated agent list with whitespace', async () => {
+    const dir = createTempDir();
+    const originalEnv = process.env.WORKFLOW_AGENTS;
+    try {
+      process.env.WORKFLOW_AGENTS = '  general  ,  architect  ,  explore  ';
+
+      const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
+
+      // Should parse correctly and allow the whitelisted agents
+      let thrownMessage: string | undefined;
+      try {
+        await hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
+          sessionID: 'test-session',
+          agent: 'architect', // Should work after trimming
+        } as unknown);
+      } catch (err) {
+        thrownMessage = (err as Error).message;
+      }
+      if (thrownMessage !== undefined) {
+        expect(thrownMessage).not.toMatch(/not enabled for this agent/i);
+      }
+
+      // And reject agents not in the list
+      await expect(
+        hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
+          sessionID: 'test-session',
+          agent: 'other-agent', // Not in list
+        } as unknown)
+      ).rejects.toThrow(/not enabled for this agent/i);
+    } finally {
+      if (originalEnv === undefined) {
+        delete process.env.WORKFLOW_AGENTS;
+      } else {
+        process.env.WORKFLOW_AGENTS = originalEnv;
       }
       cleanupDir(dir);
     }

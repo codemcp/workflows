@@ -1,4 +1,6 @@
 {
   "$schema": "https://opencode.ai/tui.json",
-  "plugin": ["@codemcp/workflows-opencode-tui"]
+  "plugin": [
+    "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe/packages/opencode-tui-plugin"
+  ]
 }

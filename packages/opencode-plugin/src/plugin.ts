@@ -114,10 +114,33 @@ export const WorkflowsPlugin: Plugin = async (
     worktree: input.worktree,
   });
 
-  // Initialize workflows enabled state from environment variable
-  const envWorkflows = process.env.WORKFLOW?.toLowerCase();
-  let workflowsEnabled = envWorkflows === 'off' ? false : true; // default: enabled
-  logger.info('Workflows state initialized', { workflowsEnabled });
+  // Parse WORKFLOW_AGENTS env var: comma-separated list of agent names.
+  // When set, workflows only activate for agents in that list.
+  // When not set (or empty), workflows activate for all agents (default).
+  const envAgentFilter = process.env.WORKFLOW_AGENTS;
+  const agentFilter: Set<string> | null =
+    envAgentFilter && envAgentFilter.trim()
+      ? new Set(
+          envAgentFilter
+            .split(',')
+            .map(a => a.trim().toLowerCase())
+            .filter(Boolean)
+        )
+      : null; // null = no filter, all agents active
+
+  /**
+   * Check if workflows should run for the given agent.
+   * If WORKFLOW_AGENTS is set, only agents in that list are active.
+   * If WORKFLOW_AGENTS is not set, all agents are active.
+   */
+  function isAgentEnabled(agent: string | undefined): boolean {
+    if (agentFilter === null) return true; // no filter → all agents active
+    return agentFilter.has((agent ?? '').toLowerCase());
+  }
+
+  logger.info('Workflows state initialized', {
+    agentFilter: agentFilter ? [...agentFilter] : 'all (no filter)',
+  });
 
   // Initialize instruction generator
   const planManager = new PlanManager();
@@ -262,9 +285,11 @@ export const WorkflowsPlugin: Plugin = async (
         }
       }
 
-      // Skip if workflows are disabled
-      if (!workflowsEnabled) {
-        logger.debug('chat.message: Workflows disabled, skipping hook');
+      // Skip if agent is not in the active agent filter
+      if (!isAgentEnabled(hookInput.agent)) {
+        logger.debug('chat.message: Agent does not support workflows', {
+          agent: hookInput.agent,
+        });
         return;
       }
 
@@ -367,12 +392,6 @@ export const WorkflowsPlugin: Plugin = async (
      * Fires before each tool execution. We block disallowed file edits based on phase.
      */
     'tool.execute.before': async (hookInput, output) => {
-      // Skip if workflows are disabled
-      if (!workflowsEnabled) {
-        logger.debug('tool.execute.before: Workflows disabled, skipping hook');
-        return;
-      }
-
       const editTools = ['edit', 'write', 'patch', 'apply_patch', 'multiedit'];
       if (!editTools.includes(hookInput.tool)) {
         return;
@@ -428,14 +447,6 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
      * to preserve and instruct the summary to end with phase continuation.
      */
     'experimental.session.compacting': async (hookInput, output) => {
-      // Skip if workflows are disabled
-      if (!workflowsEnabled) {
-        logger.debug(
-          'experimental.session.compacting: Workflows disabled, skipping hook'
-        );
-        return;
-      }
-
       logger.debug('experimental.session.compacting hook fired', {
         sessionID: hookInput.sessionID,
       });
@@ -457,54 +468,22 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
     },
 
     /**
-     * Hook 4: command.execute.before
-     * Intercept /workflow and /wf commands to toggle workflows enabled state
-     */
-    'command.execute.before': async (hookInput, output) => {
-      const cmd = hookInput.command.toLowerCase();
-      const args = (hookInput.arguments || '').toLowerCase().trim();
-
-      if (cmd === 'workflow' || cmd === 'wf') {
-        if (args === 'on') {
-          workflowsEnabled = true;
-          output.parts.push({
-            id: `prt_workflows_toggle_${Date.now()}`,
-            type: 'text' as const,
-            text: 'Workflows enabled for this session.',
-          });
-          logger.info('Workflows toggled via command', { workflowsEnabled });
-        } else if (args === 'off') {
-          workflowsEnabled = false;
-          output.parts.push({
-            id: `prt_workflows_toggle_${Date.now()}`,
-            type: 'text' as const,
-            text: 'Workflows disabled for this session. Plugin will not inject instructions or enforce file restrictions.',
-          });
-          logger.info('Workflows toggled via command', { workflowsEnabled });
-        } else {
-          output.parts.push({
-            id: `prt_workflows_toggle_${Date.now()}`,
-            type: 'text' as const,
-            text: `Usage: /workflow on|off or /wf on|off\nCurrent state: ${workflowsEnabled ? 'enabled' : 'disabled'}`,
-          });
-        }
-      }
-    },
-
-    /**
-     * Custom tools - always registered so /workflow on can re-enable them mid-session.
-     * Each tool's execute method checks workflowsEnabled at call time and throws a
-     * clear message when disabled, rather than silently failing.
+     * Custom tools - always registered to allow clear error messages.
+     * Each tool's execute method checks the agent filter at call time and throws
+     * an error if the agent is not allowed to use workflows.
      */
     tool: await (async (): Promise<{ [key: string]: ToolDefinition }> => {
-      const DISABLED_MSG =
-        'Workflows are disabled (WORKFLOW=off). Enable with /workflow on or /wf on';
       const wrap = (def: ToolDefinition): ToolDefinition => ({
         ...def,
         execute: async (args, ctx) => {
-          if (!workflowsEnabled) {
-            throw new Error(DISABLED_MSG);
+          const agent = ctx.agent;
+
+          if (!isAgentEnabled(agent)) {
+            throw new Error(
+              `Workflows are not enabled for this agent (${agent}). Set WORKFLOW_AGENTS environment variable to include this agent, or use a different agent.`
+            );
           }
+
           return def.execute(args, ctx);
         },
       });
