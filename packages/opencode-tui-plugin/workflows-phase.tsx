@@ -1,5 +1,5 @@
 /** @jsxImportSource @opentui/solid */
-import { Index, createSignal, onCleanup } from 'solid-js';
+import { Index, createSignal, onCleanup, onMount } from 'solid-js';
 import type { TuiPlugin, TuiPluginModule } from '@opencode-ai/plugin/tui';
 import type fs from 'node:fs';
 import type path from 'node:path';
@@ -191,6 +191,17 @@ const tui: TuiPlugin = async api => {
           workflow: string;
           phases: string[];
         } | null>(null);
+        const [collapsed, setCollapsed] = createSignal(false);
+
+        // Spinner frames for the current-phase icon
+        const SPINNER = ['◐', '◓', '◑', '◒'];
+        const [spinnerFrame, setSpinnerFrame] = createSignal(0);
+        onMount(() => {
+          const id = setInterval(() => {
+            setSpinnerFrame(f => (f + 1) % SPINNER.length);
+          }, 150);
+          onCleanup(() => clearInterval(id));
+        });
 
         // Read state eagerly on mount so it's visible immediately on reload,
         // not only after the first tool call.
@@ -221,7 +232,9 @@ const tui: TuiPlugin = async api => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- JSX element typed as `error` by @opentui/solid's JSX types; safe at runtime
         return (
           <box flexDirection="column">
-            <text fg={theme().text}>
+            {/* Clickable header row — toggles expanded/collapsed */}
+            <text fg={theme().text} onMouseDown={() => setCollapsed(c => !c)}>
+              {collapsed() ? '▶ ' : '▼ '}
               {/* eslint-disable-next-line solid/style-prop -- `fg` is an OpenTUI-specific style prop, not a standard CSS property */}
               <b>Workflow</b>
               {state() ? (
@@ -229,8 +242,13 @@ const tui: TuiPlugin = async api => {
                   : {state()?.workflow}
                 </span>
               ) : null}
+              {/* In collapsed mode show the current phase inline */}
+              {collapsed() && state() ? (
+                <span style={{ fg: theme().textMuted }}> {state()?.phase}</span>
+              ) : null}
             </text>
-            {state() ? (
+            {/* Expanded content */}
+            {!collapsed() && state() ? (
               <box flexDirection="column">
                 {(state()?.phases ?? []).length > 0 ? (
                   <Index each={state()?.phases ?? []}>
@@ -238,20 +256,34 @@ const tui: TuiPlugin = async api => {
                       <text
                         fg={
                           phase() === state()?.phase
-                            ? theme().text
-                            : theme().textMuted
+                            ? theme().warning
+                            : (state()?.phases ?? []).indexOf(phase()) <
+                                (state()?.phases ?? []).indexOf(
+                                  state()?.phase ?? ''
+                                )
+                              ? theme().success
+                              : theme().textMuted
                         }
                       >
-                        {phase() === state()?.phase ? '▶ ' : '  '}
+                        {phase() === state()?.phase
+                          ? `${SPINNER[spinnerFrame()]} `
+                          : (state()?.phases ?? []).indexOf(phase()) <
+                              (state()?.phases ?? []).indexOf(
+                                state()?.phase ?? ''
+                              )
+                            ? '● '
+                            : '○ '}
                         {phase()}
                       </text>
                     )}
                   </Index>
                 ) : null}
               </box>
-            ) : (
+            ) : null}
+            {/* No active workflow message (only when expanded) */}
+            {!collapsed() && !state() ? (
               <text fg={theme().textMuted}>No Active Workflow</text>
-            )}
+            ) : null}
           </box>
         );
       },
