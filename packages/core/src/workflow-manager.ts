@@ -49,13 +49,13 @@ export class WorkflowManager {
   }
 
   /**
-   * Parse enabled domains from environment variable
-   * Supports both WORKFLOW_DOMAINS and VIBE_WORKFLOW_DOMAINS (legacy)
-   * WORKFLOW_DOMAINS takes precedence if both are set (modern, non-prefixed version preferred)
+   * Parse enabled domains from environment variable.
+   * WORKFLOW_DOMAINS is the canonical name.
+   * VIBE_WORKFLOW_DOMAINS is supported as a legacy alias for backward compatibility.
+   * WORKFLOW_DOMAINS takes precedence when both are set.
    */
   private parseEnabledDomains(): Set<string> {
-    // Check both WORKFLOW_DOMAINS and VIBE_WORKFLOW_DOMAINS
-    // WORKFLOW_DOMAINS (modern) takes precedence over VIBE_WORKFLOW_DOMAINS (legacy)
+    // WORKFLOW_DOMAINS (canonical) takes precedence over VIBE_WORKFLOW_DOMAINS (legacy alias)
     const domainsEnv =
       process.env['WORKFLOW_DOMAINS'] || process.env['VIBE_WORKFLOW_DOMAINS'];
 
@@ -74,7 +74,7 @@ export class WorkflowManager {
     logger.debug('Parsed enabled domains', {
       source: process.env['WORKFLOW_DOMAINS']
         ? 'WORKFLOW_DOMAINS'
-        : 'VIBE_WORKFLOW_DOMAINS',
+        : 'VIBE_WORKFLOW_DOMAINS (legacy)',
       domains: Array.from(domains),
     });
 
@@ -187,17 +187,17 @@ export class WorkflowManager {
    */
   public getAllAvailableWorkflows(): WorkflowInfo[] {
     // Create a temporary manager with all domains enabled
-    const originalEnv = process.env.VIBE_WORKFLOW_DOMAINS;
-    process.env.VIBE_WORKFLOW_DOMAINS = 'code,architecture,office,sdd';
+    const originalEnv = process.env['WORKFLOW_DOMAINS'];
+    process.env['WORKFLOW_DOMAINS'] = 'code,architecture,office,sdd';
 
     try {
       const tempManager = new WorkflowManager();
       return tempManager.getAvailableWorkflows();
     } finally {
       if (originalEnv !== undefined) {
-        process.env.VIBE_WORKFLOW_DOMAINS = originalEnv;
+        process.env['WORKFLOW_DOMAINS'] = originalEnv;
       } else {
-        delete process.env.VIBE_WORKFLOW_DOMAINS;
+        delete process.env['WORKFLOW_DOMAINS'];
       }
     }
   }
@@ -323,7 +323,7 @@ export class WorkflowManager {
         this.getAvailableWorkflowsForProject(projectPath);
       if (availableWorkflows.length === 0) {
         throw new Error(
-          'No workflows available. Please install a workflow or adjust VIBE_WORKFLOW_DOMAINS environment variable.'
+          'No workflows available. Please install a workflow or adjust WORKFLOW_DOMAINS environment variable.'
         );
       }
       workflowName = availableWorkflows[0].name;

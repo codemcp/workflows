@@ -19,7 +19,7 @@ Instead, they are organized into multiple domains and you can decide which ones 
 When running the MCP-server (or configuring your agent how to run it), pass an environment variable to define the domains you'd like to use.
 
 ```bash
-export VIBE_WORKFLOW_DOMAINS="code,architecture"
+export WORKFLOW_DOMAINS="code,architecture"
 # Only loads workflows from code and architecture domains
 ```
 

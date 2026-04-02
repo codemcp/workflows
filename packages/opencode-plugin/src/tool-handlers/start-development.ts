@@ -17,7 +17,7 @@ export function createStartDevelopmentTool(
 ): ToolDefinition {
   // Load available workflows for description
   // NOTE: Using getAvailableWorkflowsForProject() to respect:
-  //   1. VIBE_WORKFLOW_DOMAINS configuration (domain filtering)
+  //   1. WORKFLOW_DOMAINS configuration (domain filtering)
   //   2. Project-specific workflow configuration
   const workflowManager = new WorkflowManager();
   const availableWorkflows =
@@ -28,7 +28,7 @@ export function createStartDevelopmentTool(
   const toolDescription =
     workflowNames.length > 0
       ? `Start a development workflow. Available: ${workflowNames.join(', ')}`
-      : 'Start a development workflow (no workflows available - check VIBE_WORKFLOW_DOMAINS)';
+      : 'Start a development workflow (no workflows available - check WORKFLOW_DOMAINS)';
 
   return tool({
     description: toolDescription,

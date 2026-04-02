@@ -9,7 +9,7 @@ describe('Workflow Override by Name', () => {
   let originalEnv: string | undefined;
 
   beforeEach(() => {
-    originalEnv = process.env.VIBE_WORKFLOW_DOMAINS;
+    originalEnv = process.env.WORKFLOW_DOMAINS;
     testProjectPath = fs.mkdtempSync(
       path.join(tmpdir(), 'workflow-override-test-')
     );
@@ -17,16 +17,16 @@ describe('Workflow Override by Name', () => {
 
   afterEach(() => {
     if (originalEnv !== undefined) {
-      process.env.VIBE_WORKFLOW_DOMAINS = originalEnv;
+      process.env.WORKFLOW_DOMAINS = originalEnv;
     } else {
-      delete process.env.VIBE_WORKFLOW_DOMAINS;
+      delete process.env.WORKFLOW_DOMAINS;
     }
 
     fs.rmSync(testProjectPath, { recursive: true, force: true });
   });
 
   it('should override predefined workflow by YAML name, not filename', () => {
-    process.env.VIBE_WORKFLOW_DOMAINS = 'code';
+    process.env.WORKFLOW_DOMAINS = 'code';
 
     const workflowsDir = path.join(testProjectPath, '.vibe', 'workflows');
     fs.mkdirSync(workflowsDir, { recursive: true });
@@ -67,7 +67,7 @@ describe('Workflow Override by Name', () => {
   });
 
   it('should use YAML name as workflow key, not filename', () => {
-    process.env.VIBE_WORKFLOW_DOMAINS = 'code';
+    process.env.WORKFLOW_DOMAINS = 'code';
 
     const workflowsDir = path.join(testProjectPath, '.vibe', 'workflows');
     fs.mkdirSync(workflowsDir, { recursive: true });

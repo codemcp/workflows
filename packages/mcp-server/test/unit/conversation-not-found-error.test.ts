@@ -113,7 +113,7 @@ describe('CONVERSATION_NOT_FOUND error handling', () => {
       // The actual scenario is covered by the server-helpers.ts implementation
 
       // Test is implicit: if no workflows are available, the error should mention
-      // VIBE_WORKFLOW_DOMAINS environment variable (see server-helpers.ts line 113)
+      // WORKFLOW_DOMAINS environment variable (see server-helpers.ts line 113)
       expect(true).toBe(true);
     });
   });

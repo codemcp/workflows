@@ -1,8 +1,8 @@
 /**
  * Unit Tests for Domain Filtering in start_development Tool
  *
- * Tests that the start_development tool respects VIBE_WORKFLOW_DOMAINS
- * and WORKFLOW_DOMAINS configuration and only shows workflows matching enabled domains.
+ * Tests that the start_development tool respects WORKFLOW_DOMAINS
+ * configuration and only shows workflows matching enabled domains.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -29,8 +29,8 @@ function cleanupDir(dir: string): void {
 
 describe('start_development tool - Domain Filtering', () => {
   let testDir: string;
-  const originalVibeEnv = process.env.VIBE_WORKFLOW_DOMAINS;
   const originalWorkflowEnv = process.env.WORKFLOW_DOMAINS;
+  const originalLegacyEnv = process.env.VIBE_WORKFLOW_DOMAINS;
 
   beforeEach(() => {
     testDir = createTempDir();
@@ -38,22 +38,22 @@ describe('start_development tool - Domain Filtering', () => {
 
   afterEach(() => {
     cleanupDir(testDir);
-    // Restore original environment for both variables
-    if (originalVibeEnv !== undefined) {
-      process.env.VIBE_WORKFLOW_DOMAINS = originalVibeEnv;
-    } else {
-      delete process.env.VIBE_WORKFLOW_DOMAINS;
-    }
+    // Restore original environment
     if (originalWorkflowEnv !== undefined) {
       process.env.WORKFLOW_DOMAINS = originalWorkflowEnv;
     } else {
       delete process.env.WORKFLOW_DOMAINS;
     }
+    if (originalLegacyEnv !== undefined) {
+      process.env.VIBE_WORKFLOW_DOMAINS = originalLegacyEnv;
+    } else {
+      delete process.env.VIBE_WORKFLOW_DOMAINS;
+    }
   });
 
-  it('shows only code domain workflows when VIBE_WORKFLOW_DOMAINS=code', () => {
-    process.env.VIBE_WORKFLOW_DOMAINS = 'code';
-    delete process.env.WORKFLOW_DOMAINS;
+  it('shows only code domain workflows when WORKFLOW_DOMAINS=code', () => {
+    process.env.WORKFLOW_DOMAINS = 'code';
+    delete process.env.VIBE_WORKFLOW_DOMAINS;
 
     const mockGetServerContext = async () =>
       ({
@@ -78,16 +78,15 @@ describe('start_development tool - Domain Filtering', () => {
     ).toBe(true);
 
     // Code domain workflows: epcc, tdd, minor, bugfix
-    // The tool description should show only these (or be empty if none available)
     console.log(
-      'Tool description with VIBE_WORKFLOW_DOMAINS=code:',
+      'Tool description with WORKFLOW_DOMAINS=code:',
       tool.description
     );
   });
 
-  it('shows multiple domain workflows when VIBE_WORKFLOW_DOMAINS=code,architecture', () => {
-    process.env.VIBE_WORKFLOW_DOMAINS = 'code,architecture';
-    delete process.env.WORKFLOW_DOMAINS;
+  it('shows multiple domain workflows when WORKFLOW_DOMAINS=code,architecture', () => {
+    process.env.WORKFLOW_DOMAINS = 'code,architecture';
+    delete process.env.VIBE_WORKFLOW_DOMAINS;
 
     const mockGetServerContext = async () =>
       ({
@@ -113,15 +112,14 @@ describe('start_development tool - Domain Filtering', () => {
     ).toBe(true);
 
     console.log(
-      'Tool description with VIBE_WORKFLOW_DOMAINS=code,architecture:',
+      'Tool description with WORKFLOW_DOMAINS=code,architecture:',
       description
     );
   });
 
-  it('shows default code domain workflows when VIBE_WORKFLOW_DOMAINS is not set', () => {
-    // Ensure it's not set
-    delete process.env.VIBE_WORKFLOW_DOMAINS;
+  it('shows default code domain workflows when WORKFLOW_DOMAINS is not set', () => {
     delete process.env.WORKFLOW_DOMAINS;
+    delete process.env.VIBE_WORKFLOW_DOMAINS;
 
     const mockGetServerContext = async () =>
       ({
@@ -148,16 +146,13 @@ describe('start_development tool - Domain Filtering', () => {
         description.includes('no workflows')
     ).toBe(true);
 
-    console.log(
-      'Tool description with default VIBE_WORKFLOW_DOMAINS:',
-      description
-    );
+    console.log('Tool description with default WORKFLOW_DOMAINS:', description);
   });
 
   it('tool description indicates when no workflows are available for configured domains', () => {
     // Set an impossible domain that won't match any workflows
-    process.env.VIBE_WORKFLOW_DOMAINS = 'nonexistent-impossible-domain';
-    delete process.env.WORKFLOW_DOMAINS;
+    process.env.WORKFLOW_DOMAINS = 'nonexistent-impossible-domain';
+    delete process.env.VIBE_WORKFLOW_DOMAINS;
 
     const mockGetServerContext = async () =>
       ({
@@ -175,17 +170,14 @@ describe('start_development tool - Domain Filtering', () => {
 
     // Should indicate no workflows available and mention domain configuration
     expect(description).toContain('no workflows available');
-    expect(
-      description.includes('VIBE_WORKFLOW_DOMAINS') ||
-        description.includes('WORKFLOW_DOMAINS')
-    ).toBe(true);
+    expect(description.includes('WORKFLOW_DOMAINS')).toBe(true);
 
     console.log('Tool description with impossible domain:', description);
   });
 
   it('has proper tool structure with description, args, and execute', () => {
-    process.env.VIBE_WORKFLOW_DOMAINS = 'code';
-    delete process.env.WORKFLOW_DOMAINS;
+    process.env.WORKFLOW_DOMAINS = 'code';
+    delete process.env.VIBE_WORKFLOW_DOMAINS;
 
     const mockGetServerContext = async () =>
       ({
@@ -210,10 +202,9 @@ describe('start_development tool - Domain Filtering', () => {
     expect(typeof tool.execute).toBe('function');
   });
 
-  it('supports WORKFLOW_DOMAINS without VIBE_ prefix', () => {
-    // Clear VIBE_WORKFLOW_DOMAINS and use WORKFLOW_DOMAINS instead
-    delete process.env.VIBE_WORKFLOW_DOMAINS;
-    process.env.WORKFLOW_DOMAINS = 'code';
+  it('falls back to legacy VIBE_WORKFLOW_DOMAINS when WORKFLOW_DOMAINS is not set', () => {
+    delete process.env.WORKFLOW_DOMAINS;
+    process.env.VIBE_WORKFLOW_DOMAINS = 'code';
 
     const mockGetServerContext = async () =>
       ({
@@ -229,18 +220,20 @@ describe('start_development tool - Domain Filtering', () => {
 
     const description = tool.description;
 
-    // Should work the same as VIBE_WORKFLOW_DOMAINS
+    // Should work the same as WORKFLOW_DOMAINS=code
     expect(description).toBeDefined();
     expect(
       description.includes('Available:') || description.includes('workflow')
     ).toBe(true);
 
-    console.log('Tool description with WORKFLOW_DOMAINS=code:', description);
+    console.log(
+      'Tool description with legacy VIBE_WORKFLOW_DOMAINS=code:',
+      description
+    );
   });
 
-  it('prefers WORKFLOW_DOMAINS over VIBE_WORKFLOW_DOMAINS when both are set', () => {
-    // Set VIBE_WORKFLOW_DOMAINS to code and WORKFLOW_DOMAINS to architecture
-    // WORKFLOW_DOMAINS should take precedence
+  it('prefers WORKFLOW_DOMAINS over legacy VIBE_WORKFLOW_DOMAINS when both are set', () => {
+    // WORKFLOW_DOMAINS should take precedence over the legacy alias
     process.env.VIBE_WORKFLOW_DOMAINS = 'code';
     process.env.WORKFLOW_DOMAINS = 'architecture';
 
@@ -258,11 +251,9 @@ describe('start_development tool - Domain Filtering', () => {
 
     const description = tool.description;
 
-    // Should use WORKFLOW_DOMAINS (architecture domain) instead of VIBE_WORKFLOW_DOMAINS (code domain)
-    // Architecture domain workflows: adr, big-bang-conversion, boundary-testing, business-analysis, c4-analysis
+    // Should use WORKFLOW_DOMAINS (architecture) instead of VIBE_WORKFLOW_DOMAINS (code)
     expect(description).toBeDefined();
 
-    // The description should include architecture workflows, not code workflows
     const hasArchitecture =
       description.includes('adr') ||
       description.includes('big-bang-conversion') ||

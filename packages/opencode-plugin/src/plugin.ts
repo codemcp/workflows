@@ -12,7 +12,7 @@
  * Logs are sent via OpenCode SDK's client.app.log() API
  */
 
-import type { Plugin, PluginInput, Hooks } from './types.js';
+import type { Plugin, PluginInput, Hooks, ToolDefinition } from './types.js';
 import { createProceedToPhaseTool } from './tool-handlers/proceed-to-phase.js';
 import { createConductReviewTool } from './tool-handlers/conduct-review.js';
 import { createResetDevelopmentTool } from './tool-handlers/reset-development.js';
@@ -115,7 +115,7 @@ export const WorkflowsPlugin: Plugin = async (
   });
 
   // Initialize workflows enabled state from environment variable
-  const envWorkflows = process.env.WORKFLOWS?.toLowerCase();
+  const envWorkflows = process.env.WORKFLOW?.toLowerCase();
   let workflowsEnabled = envWorkflows === 'off' ? false : true; // default: enabled
   logger.info('Workflows state initialized', { workflowsEnabled });
 
@@ -492,52 +492,43 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
     },
 
     /**
-     * Custom tools - matching MCP server tool names for consistency
+     * Custom tools - always registered so /workflow on can re-enable them mid-session.
+     * Each tool's execute method checks workflowsEnabled at call time and throws a
+     * clear message when disabled, rather than silently failing.
      */
-    tool: {
-      /**
-       * Tool: start_development
-       * Starts a new development workflow in the current project
-       */
-      start_development: createStartDevelopmentTool(
-        input.directory,
-        getServerContext,
-        setBufferedInstructions
-      ),
+    tool: await (async (): Promise<{ [key: string]: ToolDefinition }> => {
+      const DISABLED_MSG =
+        'Workflows are disabled (WORKFLOW=off). Enable with /workflow on or /wf on';
+      const wrap = (def: ToolDefinition): ToolDefinition => ({
+        ...def,
+        execute: async (args, ctx) => {
+          if (!workflowsEnabled) {
+            throw new Error(DISABLED_MSG);
+          }
+          return def.execute(args, ctx);
+        },
+      });
 
-      /**
-       * Tool: proceed_to_phase
-       * Transitions to a new workflow phase
-       */
-      proceed_to_phase: createProceedToPhaseTool(
-        getServerContext,
-        setBufferedInstructions
-      ),
-
-      /**
-       * Tool: conduct_review
-       * Conducts a review before phase transition
-       */
-      conduct_review: createConductReviewTool(getServerContext),
-
-      /**
-       * Tool: reset_development
-       * Resets the current workflow and starts fresh
-       */
-      reset_development: createResetDevelopmentTool(
-        input.directory,
-        getServerContext
-      ),
-
-      /**
-       * Tool: setup_project_docs
-       * Creates project documentation artifacts
-       */
-      setup_project_docs: await createSetupProjectDocsTool(
-        input.directory,
-        getServerContext
-      ),
-    },
+      return {
+        start_development: wrap(
+          createStartDevelopmentTool(
+            input.directory,
+            getServerContext,
+            setBufferedInstructions
+          )
+        ),
+        proceed_to_phase: wrap(
+          createProceedToPhaseTool(getServerContext, setBufferedInstructions)
+        ),
+        conduct_review: wrap(createConductReviewTool(getServerContext)),
+        reset_development: wrap(
+          createResetDevelopmentTool(input.directory, getServerContext)
+        ),
+        setup_project_docs: wrap(
+          await createSetupProjectDocsTool(input.directory, getServerContext)
+        ),
+      };
+    })(),
   };
 };
 
