@@ -1,6 +1,6 @@
 {
   "name": "@codemcp/workflows-core",
-  "version": "6.6.4",
+  "version": "6.7.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
