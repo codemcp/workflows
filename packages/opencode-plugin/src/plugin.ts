@@ -131,7 +131,9 @@ export const WorkflowsPlugin: Plugin = async (
       : null; // null = no filter, all agents active
 
   // Per-session override: /workflow on|off toggles this for the given session only.
-  // Defaults to true (enabled) for any session not explicitly toggled.
+  // Sessions not explicitly toggled follow the default agent activation behavior:
+  // enabled for all agents when WORKFLOW_ACTIVE_AGENTS is unset, otherwise only
+  // for agents included in that filter.
   // Bounded to the last 50 sessions to prevent unbounded growth.
   const MAX_TRACKED_SESSIONS = 50;
   const sessionEnabled = new Map<string, boolean>();
