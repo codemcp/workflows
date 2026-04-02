@@ -1,5 +1,5 @@
 /** @jsxImportSource @opentui/solid */
-import { createSignal, onCleanup } from 'solid-js';
+import { Index, createSignal, onCleanup } from 'solid-js';
 import type { TuiPlugin, TuiPluginModule } from '@opencode-ai/plugin/tui';
 import type fs from 'node:fs';
 import type path from 'node:path';
@@ -29,6 +29,7 @@ const WORKFLOW_TOOLS = new Set([
 interface StateJson {
   currentPhase?: string;
   workflowName?: string;
+  workflowPhases?: string[];
   sessionMetadata?: {
     referenceId: string;
     createdAt: string;
@@ -48,7 +49,7 @@ interface MessagePartUpdatedEvent {
 function readStateBySessionId(
   sessionDir: string,
   sessionId: string
-): { phase: string; workflow: string } | null {
+): { phase: string; workflow: string; phases: string[] } | null {
   try {
     // require() is intentional: top-level ESM imports of Node built-ins are not
     // supported in the Bun plugin runtime.
@@ -73,6 +74,7 @@ function readStateBySessionId(
           return {
             phase: state.currentPhase ?? '—',
             workflow: state.workflowName ?? '—',
+            phases: state.workflowPhases ?? [],
           };
         }
       } catch {
@@ -88,6 +90,10 @@ function readStateBySessionId(
 
 // eslint-disable-next-line @typescript-eslint/require-await -- TuiPlugin signature requires Promise<void>; plugin body is synchronous
 const tui: TuiPlugin = async api => {
+  // Respect the same WORKFLOWS env var used by the opencode-plugin.
+  // Set WORKFLOWS=off to disable the TUI sidebar widget.
+  if (process.env.WORKFLOWS?.toLowerCase() === 'off') return;
+
   api.slots.register({
     order: 5,
     slots: {
@@ -96,6 +102,7 @@ const tui: TuiPlugin = async api => {
         const [state, setState] = createSignal<{
           phase: string;
           workflow: string;
+          phases: string[];
         } | null>(null);
 
         // Read state eagerly on mount so it's visible immediately on reload,
@@ -128,14 +135,33 @@ const tui: TuiPlugin = async api => {
         return (
           <box flexDirection="column">
             <text fg={theme().text}>
+              {/* eslint-disable-next-line solid/style-prop -- `fg` is an OpenTUI-specific style prop, not a standard CSS property */}
               <b>Workflow</b>
+              {state() ? (
+                <span style={{ fg: theme().textMuted }}>
+                  : {state()?.workflow}
+                </span>
+              ) : null}
             </text>
             {state() ? (
-              <text fg={theme().textMuted}>
-                {state()?.workflow}:{' '}
-                {/* eslint-disable-next-line solid/style-prop -- `fg` is an OpenTUI-specific style prop, not a standard CSS property */}
-                <span style={{ fg: theme().text }}>{state()?.phase}</span>
-              </text>
+              <box flexDirection="column">
+                {(state()?.phases ?? []).length > 0 ? (
+                  <Index each={state()?.phases ?? []}>
+                    {phase => (
+                      <text
+                        fg={
+                          phase() === state()?.phase
+                            ? theme().text
+                            : theme().textMuted
+                        }
+                      >
+                        {phase() === state()?.phase ? '▶ ' : '  '}
+                        {phase()}
+                      </text>
+                    )}
+                  </Index>
+                ) : null}
+              </box>
             ) : (
               <text fg={theme().textMuted}>No Active Workflow</text>
             )}
