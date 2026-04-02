@@ -26,6 +26,15 @@ epcc: code
 
 The plugin reads state from `.vibe/conversations/*/state.json` in your project directory and updates whenever any responsible-vibe tool is invoked.
 
+### Agent-based visibility
+
+The plugin respects the `WORKFLOW_AGENTS` environment variable:
+
+- **When `WORKFLOW_AGENTS` is set**: Widget only appears for agents in the whitelist
+- **When `WORKFLOW_AGENTS` is unset**: Widget appears for all agents (default behavior)
+
+Widget visibility updates automatically when you switch agents—no manual refresh needed.
+
 ## Supported tool modes
 
 The plugin works with both integration modes:
