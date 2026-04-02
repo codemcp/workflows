@@ -86,7 +86,11 @@ export class BeadsPlugin implements IPlugin {
         : undefined
     );
     this.planManager = new PlanManager();
-    this.planSyncer = new BeadsPlanSyncer();
+    this.planSyncer = new BeadsPlanSyncer(
+      options.loggerFactory
+        ? options.loggerFactory('BeadsPlanSyncer')
+        : undefined
+    );
 
     // Register exit handler once here, regardless of watcher start outcome
     process.once('exit', () => {

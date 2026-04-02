@@ -10,9 +10,9 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createLogger } from '@codemcp/workflows-core';
+import { type ILogger, createLogger } from '@codemcp/workflows-core';
 
-const logger = createLogger('BeadsPlanSyncer');
+const defaultLogger = createLogger('BeadsPlanSyncer');
 
 interface BeadsIssue {
   id: string;
@@ -33,6 +33,12 @@ interface BeadsIssue {
  * checkbox-formatted task lines linking to task IDs.
  */
 export class BeadsPlanSyncer {
+  private logger: ILogger;
+
+  constructor(logger?: ILogger) {
+    this.logger = logger ?? defaultLogger;
+  }
+
   /**
    * Sync the given plan file with the latest beads tasks.
    *
