@@ -21,6 +21,7 @@ import { createSetupProjectDocsTool } from './tool-handlers/setup-project-docs.j
 import {
   createOpenCodeLogger,
   createOpenCodeLoggerFactory,
+  type OpenCodeClient,
 } from './opencode-logger.js';
 import { PlanManager, InstructionGenerator } from '@codemcp/workflows-core';
 import {
@@ -161,6 +162,10 @@ export const WorkflowsPlugin: Plugin = async (
   // Consumed and cleared by the next chat.message hook call.
   let bufferedInstructions: BufferedInstructions | null = null;
 
+  // Last-known model from chat.message hook. Cached so proceed_to_phase can
+  // pass providerID + modelID to the summarize API (which requires them).
+  let lastKnownModel: { providerID: string; modelID: string } | null = null;
+
   /**
    * Set buffered instructions from a tool result.
    * The next chat.message hook will use these instead of calling WhatsNextHandler.
@@ -283,6 +288,11 @@ export const WorkflowsPlugin: Plugin = async (
             newSessionId: currentSessionId,
           });
         }
+      }
+
+      // Cache the model for use by tools (e.g. proceed_to_phase needs it for summarize API)
+      if (hookInput.model) {
+        lastKnownModel = hookInput.model;
       }
 
       // Skip if agent is not in the active agent filter
@@ -497,7 +507,12 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
           )
         ),
         proceed_to_phase: wrap(
-          createProceedToPhaseTool(getServerContext, setBufferedInstructions)
+          createProceedToPhaseTool(
+            getServerContext,
+            setBufferedInstructions,
+            input.client as OpenCodeClient,
+            () => lastKnownModel
+          )
         ),
         conduct_review: wrap(createConductReviewTool(getServerContext)),
         reset_development: wrap(

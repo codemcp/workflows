@@ -37,6 +37,9 @@ function createMockPluginInput(directory: string): PluginInput {
       app: {
         log: vi.fn().mockResolvedValue(undefined),
       },
+      session: {
+        summarize: vi.fn().mockResolvedValue(undefined),
+      },
     } as unknown,
     project: { id: 'test-project', path: directory },
     directory,
@@ -594,6 +597,61 @@ describe('OpenCode Workflows Plugin E2E', () => {
 
       // Transition output now shows the new phase clearly
       expect(result).toContain('plan');
+    });
+
+    it('triggers compaction after a successful phase transition', async () => {
+      await setupWorkflowState(testDir, {
+        workflowName: 'epcc',
+        currentPhase: 'explore',
+      });
+
+      hooks = await WorkflowsPlugin(mockInput);
+
+      // Simulate a prior chat.message so the plugin caches a model
+      await hooks['chat.message']!(
+        {
+          sessionID: 'test-session-123',
+          model: { providerID: 'github-copilot', modelID: 'claude-sonnet-4.6' },
+        },
+        {
+          message: { id: 'msg-1', sessionID: 'test-session-123', role: 'user' },
+          parts: [],
+        }
+      );
+
+      const sessionID = 'test-session-123';
+      await hooks.tool!.proceed_to_phase.execute(
+        { target_phase: 'plan', reason: 'exploration complete' },
+        { sessionID } as never
+      );
+
+      // session.summarize should have been called with the session ID and model
+      const summarizeMock = (
+        mockInput.client as {
+          session: { summarize: ReturnType<typeof vi.fn> };
+        }
+      ).session.summarize;
+      expect(summarizeMock).toHaveBeenCalledWith({
+        path: { id: sessionID },
+        body: { providerID: 'github-copilot', modelID: 'claude-sonnet-4.6' },
+      });
+    });
+
+    it('does not trigger compaction when transition fails (no active workflow)', async () => {
+      hooks = await WorkflowsPlugin(mockInput);
+
+      const sessionID = 'test-session-456';
+      await hooks.tool!.proceed_to_phase.execute({ target_phase: 'plan' }, {
+        sessionID,
+      } as never);
+
+      // session.summarize should NOT have been called — transition failed
+      const summarizeMock = (
+        mockInput.client as {
+          session: { summarize: ReturnType<typeof vi.fn> };
+        }
+      ).session.summarize;
+      expect(summarizeMock).not.toHaveBeenCalled();
     });
 
     it('fails when no workflow is active', async () => {

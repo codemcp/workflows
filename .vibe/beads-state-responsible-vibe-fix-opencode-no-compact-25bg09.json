@@ -1,0 +1,29 @@
+{
+  "conversationId": "responsible-vibe-fix-opencode-no-compact-25bg09",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe",
+  "epicId": "responsible-vibe-31",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "responsible-vibe-31.1"
+    },
+    {
+      "phaseId": "plan",
+      "phaseName": "Plan",
+      "taskId": "responsible-vibe-31.2"
+    },
+    {
+      "phaseId": "code",
+      "phaseName": "Code",
+      "taskId": "responsible-vibe-31.3"
+    },
+    {
+      "phaseId": "commit",
+      "phaseName": "Commit",
+      "taskId": "responsible-vibe-31.4"
+    }
+  ],
+  "createdAt": "2026-04-02T23:14:24.535Z",
+  "updatedAt": "2026-04-02T23:14:24.535Z"
+}
