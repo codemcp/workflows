@@ -12,6 +12,20 @@ import { tmpdir } from 'node:os';
 import { WorkflowsPlugin } from '../../src/plugin.js';
 import type { PluginInput, Hooks, Part, UserMessage } from '../../src/types.js';
 
+// Ensure WORKFLOW_AGENTS is unset for the baseline test suite.
+// Tests that need it set/restored manage it themselves in try/finally blocks.
+const _savedWorkflowAgents = process.env.WORKFLOW_AGENTS;
+beforeEach(() => {
+  delete process.env.WORKFLOW_AGENTS;
+});
+afterEach(() => {
+  if (_savedWorkflowAgents === undefined) {
+    delete process.env.WORKFLOW_AGENTS;
+  } else {
+    process.env.WORKFLOW_AGENTS = _savedWorkflowAgents;
+  }
+});
+
 // Test utilities
 function createTempDir(): string {
   const dir = path.join(
@@ -803,7 +817,7 @@ describe('File Pattern Restrictions', () => {
 });
 
 describe('WORKFLOW_AGENTS environment variable', () => {
-  it('skips chat.message hook for agents not in WORKFLOW_AGENTS filter', async () => {
+  it('skips workflow instructions but injects suppression for agents not in WORKFLOW_AGENTS filter', async () => {
     const dir = createTempDir();
     const originalEnv = process.env.WORKFLOW_AGENTS;
     try {
@@ -811,7 +825,6 @@ describe('WORKFLOW_AGENTS environment variable', () => {
 
       const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
 
-      // chat.message should not inject when agent is not in filter
       const output: { message: UserMessage; parts: Part[] } = {
         message: { id: 'msg1', sessionID: 'sess1', role: 'user' },
         parts: [],
@@ -826,8 +839,13 @@ describe('WORKFLOW_AGENTS environment variable', () => {
         output
       );
 
-      // No workflow prompt should be injected for non-whitelisted agent
-      expect(output.parts.length).toBe(0);
+      // Suppression part should be injected (not workflow instructions)
+      expect(output.parts.length).toBe(1);
+      const text =
+        'text' in output.parts[0]
+          ? (output.parts[0] as { text: string }).text
+          : '';
+      expect(text).toMatch(/NOT available/i);
     } finally {
       if (originalEnv === undefined) {
         delete process.env.WORKFLOW_AGENTS;
@@ -965,6 +983,157 @@ describe('WORKFLOW_AGENTS environment variable', () => {
           agent: 'other-agent', // Not in list
         } as unknown)
       ).rejects.toThrow(/not enabled for this agent/i);
+    } finally {
+      if (originalEnv === undefined) {
+        delete process.env.WORKFLOW_AGENTS;
+      } else {
+        process.env.WORKFLOW_AGENTS = originalEnv;
+      }
+      cleanupDir(dir);
+    }
+  });
+
+  it('injects suppression part into chat.message output for non-enabled agents', async () => {
+    const dir = createTempDir();
+    const originalEnv = process.env.WORKFLOW_AGENTS;
+    try {
+      process.env.WORKFLOW_AGENTS = 'general,architect';
+
+      const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
+
+      const output: { message: UserMessage; parts: Part[] } = {
+        message: { id: 'msg1', sessionID: 'sess1', role: 'user' },
+        parts: [],
+      };
+      await hooks['chat.message']!(
+        {
+          sessionID: 'sess1',
+          agent: 'explore', // Not in filter
+          messageID: 'msg1',
+        },
+        output
+      );
+
+      // Suppression synthetic part should be injected
+      expect(output.parts.length).toBeGreaterThan(0);
+      const combined = output.parts
+        .map(p => ('text' in p ? p.text : ''))
+        .join(' ');
+      expect(combined).toMatch(/start_development/);
+      expect(combined).toMatch(/NOT available/i);
+    } finally {
+      if (originalEnv === undefined) {
+        delete process.env.WORKFLOW_AGENTS;
+      } else {
+        process.env.WORKFLOW_AGENTS = originalEnv;
+      }
+      cleanupDir(dir);
+    }
+  });
+
+  it('does not inject tool suppression for enabled agents', async () => {
+    const dir = createTempDir();
+    const originalEnv = process.env.WORKFLOW_AGENTS;
+    try {
+      process.env.WORKFLOW_AGENTS = 'general,architect';
+
+      const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
+
+      const output: { message: UserMessage; parts: Part[] } = {
+        message: { id: 'msg1', sessionID: 'sess1', role: 'user' },
+        parts: [],
+      };
+      await hooks['chat.message']!(
+        {
+          sessionID: 'sess1',
+          agent: 'general', // In filter
+          messageID: 'msg1',
+        },
+        output
+      );
+
+      // No suppression part — may have workflow instructions or nothing, but no suppression text
+      const combined = output.parts
+        .map(p => ('text' in p ? p.text : ''))
+        .join(' ');
+      expect(combined).not.toMatch(/NOT available/i);
+    } finally {
+      if (originalEnv === undefined) {
+        delete process.env.WORKFLOW_AGENTS;
+      } else {
+        process.env.WORKFLOW_AGENTS = originalEnv;
+      }
+      cleanupDir(dir);
+    }
+  });
+
+  it('does not inject tool suppression when WORKFLOW_AGENTS is not set', async () => {
+    const dir = createTempDir();
+    const originalEnv = process.env.WORKFLOW_AGENTS;
+    try {
+      delete process.env.WORKFLOW_AGENTS;
+
+      const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
+
+      const output: { message: UserMessage; parts: Part[] } = {
+        message: { id: 'msg1', sessionID: 'sess1', role: 'user' },
+        parts: [],
+      };
+      await hooks['chat.message']!(
+        { sessionID: 'sess1', agent: 'any-agent', messageID: 'msg1' },
+        output
+      );
+
+      // No suppression — WORKFLOW_AGENTS not set means all agents active
+      const combined = output.parts
+        .map(p => ('text' in p ? p.text : ''))
+        .join(' ');
+      expect(combined).not.toMatch(/NOT available/i);
+    } finally {
+      if (originalEnv === undefined) {
+        delete process.env.WORKFLOW_AGENTS;
+      } else {
+        process.env.WORKFLOW_AGENTS = originalEnv;
+      }
+      cleanupDir(dir);
+    }
+  });
+
+  it('non-enabled agent gets suppression; enabled agent gets no suppression', async () => {
+    const dir = createTempDir();
+    const originalEnv = process.env.WORKFLOW_AGENTS;
+    try {
+      process.env.WORKFLOW_AGENTS = 'general';
+
+      const hooks = await WorkflowsPlugin(createMockPluginInput(dir));
+
+      // Step 1: non-enabled agent → suppression part injected
+      const suppressOutput: { message: UserMessage; parts: Part[] } = {
+        message: { id: 'msg1', sessionID: 'sess1', role: 'user' },
+        parts: [],
+      };
+      await hooks['chat.message']!(
+        { sessionID: 'sess1', agent: 'explore', messageID: 'msg1' },
+        suppressOutput
+      );
+      const suppressText = suppressOutput.parts
+        .map(p => ('text' in p ? p.text : ''))
+        .join(' ');
+      expect(suppressText).toMatch(/NOT available/i);
+
+      // Step 2: enabled agent → no suppression part
+      const cleanOutput: { message: UserMessage; parts: Part[] } = {
+        message: { id: 'msg2', sessionID: 'sess1', role: 'user' },
+        parts: [],
+      };
+      await hooks['chat.message']!(
+        { sessionID: 'sess1', agent: 'general', messageID: 'msg2' },
+        cleanOutput
+      );
+      const cleanText = cleanOutput.parts
+        .map(p => ('text' in p ? p.text : ''))
+        .join(' ');
+      expect(cleanText).not.toMatch(/NOT available/i);
     } finally {
       if (originalEnv === undefined) {
         delete process.env.WORKFLOW_AGENTS;

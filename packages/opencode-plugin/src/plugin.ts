@@ -295,11 +295,31 @@ export const WorkflowsPlugin: Plugin = async (
         lastKnownModel = hookInput.model;
       }
 
-      // Skip if agent is not in the active agent filter
+      // If WORKFLOW_AGENTS is set and this agent is not in the allowlist, inject a
+      // suppression instruction as a synthetic part so the LLM knows not to call the
+      // workflow tools (which would only throw errors for non-enabled agents).
+      // We use chat.message (not experimental.chat.system.transform) because:
+      //   1. chat.message already has hookInput.agent directly — no stale-state risk.
+      //   2. chat.message fires reliably for every user turn; transform may fire for
+      //      intermediate tool-loop LLM calls without a preceding chat.message.
       if (!isAgentEnabled(hookInput.agent)) {
-        logger.debug('chat.message: Agent does not support workflows', {
-          agent: hookInput.agent,
-        });
+        logger.debug(
+          'chat.message: Agent not enabled — injecting tool suppression',
+          {
+            agent: hookInput.agent,
+          }
+        );
+        output.parts.push({
+          id: `prt_workflows_suppress_${Date.now()}`,
+          sessionID: hookInput.sessionID,
+          messageID: hookInput.messageID || output.message.id,
+          type: 'text' as const,
+          synthetic: true,
+          text:
+            'IMPORTANT: The following workflow tools are NOT available in this session and must NOT be called under any circumstances: ' +
+            'start_development, proceed_to_phase, conduct_review, reset_development, setup_project_docs. ' +
+            'Calling them will result in an error. Ignore them entirely.',
+        } as (typeof output.parts)[0]);
         return;
       }
 
