@@ -21,7 +21,7 @@ export interface Logger {
 /**
  * OpenCode SDK client interface for logging
  */
-interface OpenCodeClient {
+export interface OpenCodeClient {
   app: {
     log: (params: {
       body: {
@@ -31,6 +31,12 @@ interface OpenCodeClient {
         extra?: Record<string, unknown>;
       };
     }) => Promise<void>;
+  };
+  session: {
+    summarize: (params: {
+      path: { id: string };
+      body?: { providerID: string; modelID: string };
+    }) => Promise<unknown>;
   };
 }
 

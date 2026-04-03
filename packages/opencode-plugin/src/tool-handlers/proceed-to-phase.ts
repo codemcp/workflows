@@ -9,10 +9,13 @@ import { tool } from './tool-helper.js';
 import { handleMcpError, unwrapResult } from '../server-context.js';
 import { createLogger } from '@codemcp/workflows-core';
 import { stripWhatsNextReferences, requirePrimaryAgent } from '../utils.js';
+import type { OpenCodeClient } from '../opencode-logger.js';
 
 export function createProceedToPhaseTool(
   getServerContext: () => Promise<ServerContext>,
-  setBufferedInstructions: (result: WhatsNextResult) => void
+  setBufferedInstructions: (result: WhatsNextResult) => void,
+  client: OpenCodeClient,
+  getModel: () => { providerID: string; modelID: string } | null
 ): ToolDefinition {
   return tool({
     description:
@@ -74,6 +77,24 @@ export function createProceedToPhaseTool(
           instructions: data.instructions,
           plan_file_path: data.plan_file_path,
           allowed_file_patterns: data.allowed_file_patterns,
+        });
+
+        // Trigger compaction to clear prior-phase context from the LLM window.
+        // Fire-and-forget: a failed compaction must never block the phase transition.
+        // The summarize API requires providerID + modelID; we use the last-known
+        // model from the chat.message hook (cached in the plugin closure).
+        const model = getModel();
+        client.session
+          .summarize({
+            path: { id: context.sessionID },
+            ...(model ? { body: model } : {}),
+          })
+          .catch(() => {});
+
+        logger.info('Triggered compaction after phase transition', {
+          phase: data.phase,
+          sessionID: context.sessionID,
+          hasModel: !!model,
         });
 
         // Build response with instructions (strip whats_next references)
