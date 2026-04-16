@@ -668,6 +668,52 @@ describe('OpenCode Workflows Plugin E2E', () => {
       expect(summarizeMock).not.toHaveBeenCalled();
     });
 
+    it('does not trigger compaction when WORKFLOW_AUTO_COMPACT=false', async () => {
+      process.env['WORKFLOW_AUTO_COMPACT'] = 'false';
+      try {
+        await setupWorkflowState(testDir, {
+          workflowName: 'epcc',
+          currentPhase: 'explore',
+        });
+
+        hooks = await WorkflowsPlugin(mockInput);
+
+        await hooks['chat.message']!(
+          {
+            sessionID: 'test-session-789',
+            model: {
+              providerID: 'github-copilot',
+              modelID: 'claude-sonnet-4.6',
+            },
+          },
+          {
+            message: {
+              id: 'msg-1',
+              sessionID: 'test-session-789',
+              role: 'user',
+            },
+            parts: [],
+          }
+        );
+
+        const sessionID = 'test-session-789';
+        await hooks.tool!.proceed_to_phase.execute(
+          { target_phase: 'plan', reason: 'exploration complete' },
+          { sessionID } as never
+        );
+
+        // session.summarize should NOT have been called
+        const summarizeMock = (
+          mockInput.client as {
+            session: { summarize: ReturnType<typeof vi.fn> };
+          }
+        ).session.summarize;
+        expect(summarizeMock).not.toHaveBeenCalled();
+      } finally {
+        delete process.env['WORKFLOW_AUTO_COMPACT'];
+      }
+    });
+
     it('fails when no workflow is active', async () => {
       hooks = await WorkflowsPlugin(mockInput);
 

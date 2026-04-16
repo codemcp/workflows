@@ -80,22 +80,29 @@ export function createProceedToPhaseTool(
         });
 
         // Trigger compaction to clear prior-phase context from the LLM window.
+        // Skipped when WORKFLOW_AUTO_COMPACT=false; default is enabled.
         // Fire-and-forget: a failed compaction must never block the phase transition.
         // The summarize API requires providerID + modelID; we use the last-known
         // model from the chat.message hook (cached in the plugin closure).
-        const model = getModel();
-        client.session
-          .summarize({
-            path: { id: context.sessionID },
-            ...(model ? { body: model } : {}),
-          })
-          .catch(() => {});
+        if (process.env['WORKFLOW_AUTO_COMPACT'] !== 'false') {
+          const model = getModel();
+          client.session
+            .summarize({
+              path: { id: context.sessionID },
+              ...(model ? { body: model } : {}),
+            })
+            .catch(() => {});
 
-        logger.info('Triggered compaction after phase transition', {
-          phase: data.phase,
-          sessionID: context.sessionID,
-          hasModel: !!model,
-        });
+          logger.info('Triggered compaction after phase transition', {
+            phase: data.phase,
+            sessionID: context.sessionID,
+            hasModel: !!model,
+          });
+        } else {
+          logger.debug('Skipped compaction: WORKFLOW_AUTO_COMPACT=false', {
+            phase: data.phase,
+          });
+        }
 
         // Build response with instructions (strip whats_next references)
         const lines: string[] = [];
