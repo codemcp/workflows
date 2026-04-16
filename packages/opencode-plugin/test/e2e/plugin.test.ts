@@ -12,17 +12,24 @@ import { tmpdir } from 'node:os';
 import { WorkflowsPlugin } from '../../src/plugin.js';
 import type { PluginInput, Hooks, Part, UserMessage } from '../../src/types.js';
 
-// Ensure WORKFLOW_AGENTS is unset for the baseline test suite.
-// Tests that need it set/restored manage it themselves in try/finally blocks.
+// Ensure WORKFLOW_AGENTS and WORKFLOW_AUTO_COMPACT are unset for the baseline
+// test suite. Tests that need them set manage it themselves in try/finally blocks.
 const _savedWorkflowAgents = process.env.WORKFLOW_AGENTS;
+const _savedWorkflowAutoCompact = process.env.WORKFLOW_AUTO_COMPACT;
 beforeEach(() => {
   delete process.env.WORKFLOW_AGENTS;
+  delete process.env.WORKFLOW_AUTO_COMPACT;
 });
 afterEach(() => {
   if (_savedWorkflowAgents === undefined) {
     delete process.env.WORKFLOW_AGENTS;
   } else {
     process.env.WORKFLOW_AGENTS = _savedWorkflowAgents;
+  }
+  if (_savedWorkflowAutoCompact === undefined) {
+    delete process.env.WORKFLOW_AUTO_COMPACT;
+  } else {
+    process.env.WORKFLOW_AUTO_COMPACT = _savedWorkflowAutoCompact;
   }
 });
 
@@ -698,10 +705,13 @@ describe('OpenCode Workflows Plugin E2E', () => {
         );
 
         const sessionID = 'test-session-789';
-        await hooks.tool!.proceed_to_phase.execute(
+        const proceedResult = await hooks.tool!.proceed_to_phase.execute(
           { target_phase: 'plan', reason: 'exploration complete' },
           { sessionID } as never
         );
+
+        // Verify the transition itself succeeded before checking compaction was skipped
+        expect(JSON.stringify(proceedResult)).toContain('plan');
 
         // session.summarize should NOT have been called
         const summarizeMock = (

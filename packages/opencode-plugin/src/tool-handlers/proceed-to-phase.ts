@@ -104,6 +104,7 @@ export function createProceedToPhaseTool(
         } else {
           logger.debug('Skipped compaction: WORKFLOW_AUTO_COMPACT=false', {
             phase: data.phase,
+            sessionID: context.sessionID,
           });
         }
 
