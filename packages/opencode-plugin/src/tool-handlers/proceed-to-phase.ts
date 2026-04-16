@@ -84,7 +84,9 @@ export function createProceedToPhaseTool(
         // Fire-and-forget: a failed compaction must never block the phase transition.
         // The summarize API requires providerID + modelID; we use the last-known
         // model from the chat.message hook (cached in the plugin closure).
-        if (process.env['WORKFLOW_AUTO_COMPACT'] !== 'false') {
+        const autoCompact =
+          process.env['WORKFLOW_AUTO_COMPACT']?.trim().toLowerCase();
+        if (autoCompact !== 'false') {
           const model = getModel();
           client.session
             .summarize({

@@ -669,6 +669,7 @@ describe('OpenCode Workflows Plugin E2E', () => {
     });
 
     it('does not trigger compaction when WORKFLOW_AUTO_COMPACT=false', async () => {
+      const originalValue = process.env['WORKFLOW_AUTO_COMPACT'];
       process.env['WORKFLOW_AUTO_COMPACT'] = 'false';
       try {
         await setupWorkflowState(testDir, {
@@ -710,7 +711,11 @@ describe('OpenCode Workflows Plugin E2E', () => {
         ).session.summarize;
         expect(summarizeMock).not.toHaveBeenCalled();
       } finally {
-        delete process.env['WORKFLOW_AUTO_COMPACT'];
+        if (originalValue === undefined) {
+          delete process.env['WORKFLOW_AUTO_COMPACT'];
+        } else {
+          process.env['WORKFLOW_AUTO_COMPACT'] = originalValue;
+        }
       }
     });
 
