@@ -90,6 +90,18 @@ When the env var is set, workflow hooks are skipped and tools throw a clear erro
 
 **When unset**, workflows are active for all agents (default behavior).
 
+### Auto-Compaction
+
+When transitioning to a new phase via `proceed_to_phase`, the plugin automatically triggers a session compaction (summarize) to clear prior-phase context from the LLM window. This is enabled by default.
+
+Set `WORKFLOW_AUTO_COMPACT=false` to disable this behavior:
+
+```bash
+WORKFLOW_AUTO_COMPACT=false npx opencode
+```
+
+**When unset or any value other than `false`**, compaction runs on every successful phase transition (default behavior).
+
 ### Per-Agent Behavior
 
 - **Agent in filter**: Workflow instructions are injected on every message, tools work normally
