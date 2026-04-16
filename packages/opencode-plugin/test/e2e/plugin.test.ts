@@ -13,7 +13,8 @@ import { WorkflowsPlugin } from '../../src/plugin.js';
 import type { PluginInput, Hooks, Part, UserMessage } from '../../src/types.js';
 
 // Ensure WORKFLOW_AGENTS and WORKFLOW_AUTO_COMPACT are unset for the baseline
-// test suite. Tests that need them set manage it themselves in try/finally blocks.
+// test suite. Per-test overrides can set them as needed, and shared cleanup below
+// restores the original process environment after each test.
 const _savedWorkflowAgents = process.env.WORKFLOW_AGENTS;
 const _savedWorkflowAutoCompact = process.env.WORKFLOW_AUTO_COMPACT;
 beforeEach(() => {
