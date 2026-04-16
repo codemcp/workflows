@@ -86,7 +86,7 @@ export function createProceedToPhaseTool(
         // model from the chat.message hook (cached in the plugin closure).
         const autoCompact = process.env['WORKFLOW_AUTO_COMPACT']
           ?.trim()
-          .toLowerCase();
+          ?.toLowerCase();
         if (autoCompact !== 'false') {
           const model = getModel();
           client.session
