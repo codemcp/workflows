@@ -676,57 +676,49 @@ describe('OpenCode Workflows Plugin E2E', () => {
     });
 
     it('does not trigger compaction when WORKFLOW_AUTO_COMPACT=false', async () => {
-      const originalValue = process.env['WORKFLOW_AUTO_COMPACT'];
       process.env['WORKFLOW_AUTO_COMPACT'] = 'false';
-      try {
-        await setupWorkflowState(testDir, {
-          workflowName: 'epcc',
-          currentPhase: 'explore',
-        });
 
-        hooks = await WorkflowsPlugin(mockInput);
+      await setupWorkflowState(testDir, {
+        workflowName: 'epcc',
+        currentPhase: 'explore',
+      });
 
-        await hooks['chat.message']!(
-          {
-            sessionID: 'test-session-789',
-            model: {
-              providerID: 'github-copilot',
-              modelID: 'claude-sonnet-4.6',
-            },
+      hooks = await WorkflowsPlugin(mockInput);
+
+      await hooks['chat.message']!(
+        {
+          sessionID: 'test-session-789',
+          model: {
+            providerID: 'github-copilot',
+            modelID: 'claude-sonnet-4.6',
           },
-          {
-            message: {
-              id: 'msg-1',
-              sessionID: 'test-session-789',
-              role: 'user',
-            },
-            parts: [],
-          }
-        );
-
-        const sessionID = 'test-session-789';
-        const proceedResult = await hooks.tool!.proceed_to_phase.execute(
-          { target_phase: 'plan', reason: 'exploration complete' },
-          { sessionID } as never
-        );
-
-        // Verify the transition itself succeeded before checking compaction was skipped
-        expect(JSON.stringify(proceedResult)).toContain('plan');
-
-        // session.summarize should NOT have been called
-        const summarizeMock = (
-          mockInput.client as {
-            session: { summarize: ReturnType<typeof vi.fn> };
-          }
-        ).session.summarize;
-        expect(summarizeMock).not.toHaveBeenCalled();
-      } finally {
-        if (originalValue === undefined) {
-          delete process.env['WORKFLOW_AUTO_COMPACT'];
-        } else {
-          process.env['WORKFLOW_AUTO_COMPACT'] = originalValue;
+        },
+        {
+          message: {
+            id: 'msg-1',
+            sessionID: 'test-session-789',
+            role: 'user',
+          },
+          parts: [],
         }
-      }
+      );
+
+      const sessionID = 'test-session-789';
+      const proceedResult = await hooks.tool!.proceed_to_phase.execute(
+        { target_phase: 'plan', reason: 'exploration complete' },
+        { sessionID } as never
+      );
+
+      // Verify the transition itself succeeded before checking compaction was skipped
+      expect(JSON.stringify(proceedResult)).toContain('plan');
+
+      // session.summarize should NOT have been called
+      const summarizeMock = (
+        mockInput.client as {
+          session: { summarize: ReturnType<typeof vi.fn> };
+        }
+      ).session.summarize;
+      expect(summarizeMock).not.toHaveBeenCalled();
     });
 
     it('fails when no workflow is active', async () => {
