@@ -107,10 +107,15 @@ export class InstructionGenerator implements IInstructionGenerator {
 
     const phaseName = capitalizePhase(phase);
 
+    // IMPORTANT: Directive markers to make instructions stand out from context
     let workflowSection = `---
-**Read \`${conversationContext.planFilePath}\`** for context.
-- Focus on "${phaseName}" tasks, log decisions in "Key Decisions"
-- Do NOT use other task/todo tools - use only the plan file for task tracking`;
+### YOU MUST FOLLOW THESE INSTRUCTIONS:
+
+**IMPORTANT: Read \`${conversationContext.planFilePath}\`** for context.
+
+**ACTION REQUIRED: Focus on "${phaseName}" tasks** and log decisions in "Key Decisions"
+
+**CRITICAL: Do NOT use other task/todo tools** - use only the plan file for task tracking`;
 
     // Add file restriction guidance if patterns are restricted
     if (
