@@ -162,6 +162,10 @@ export const WorkflowsPlugin: Plugin = async (
   // Consumed and cleared by the next chat.message hook call.
   let bufferedInstructions: BufferedInstructions | null = null;
 
+  // Tracks sessions that just completed compaction and need a phase-aware
+  // continue message once the session becomes idle.
+  let postCompactionSession: string | null = null;
+
   // Last-known model from chat.message hook. Cached so proceed_to_phase can
   // pass providerID + modelID to the summarize API (which requires them).
   let lastKnownModel: { providerID: string; modelID: string } | null = null;
@@ -473,8 +477,10 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
 
     /**
      * Hook 3: experimental.session.compacting
-     * Fires when session is being compacted. We provide minimal guidance on what
-     * to preserve and instruct the summary to end with phase continuation.
+     * Fires when session is being compacted. We provide full phase instructions
+     * so the compaction summary is self-sufficient — the AI knows exactly what
+     * to continue even if the chat.message hook doesn't fire for the synthetic
+     * auto-compaction "continue" message.
      */
     'experimental.session.compacting': async (hookInput, output) => {
       logger.debug('experimental.session.compacting hook fired', {
@@ -487,14 +493,105 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
         return;
       }
 
+      // Get full phase instructions to embed in compaction context
+      let phaseInstructions: string | null = null;
+      try {
+        const serverContext = await getServerContext();
+        const handler = new WhatsNextHandler();
+        const handlerResult = await handler.handle({}, serverContext);
+        if (handlerResult.success && handlerResult.data) {
+          phaseInstructions = stripWhatsNextReferences(
+            handlerResult.data.instructions
+          );
+        }
+      } catch (_err) {
+        // Fall back to minimal guidance if instructions can't be fetched
+      }
+
       output.context.push(
         'Preserve: user intents, key decisions, significant changes and the reasoning why they were made. Remove tool calls, intermediate thoughts, and minor details.'
       );
-      output.context.push(
-        `End summary with: "Continue ${state.phase} phase. ${state.phaseDescription || ''}"`
-      );
 
-      logger.info('Injected compaction guidance', { phase: state.phase });
+      if (phaseInstructions) {
+        output.context.push(
+          `Current workflow phase: ${state.phase}. After compaction, resume with full phase context:\n\n${phaseInstructions}`
+        );
+      } else {
+        output.context.push(
+          `End summary with: "Continue ${state.phase} phase. ${state.phaseDescription || ''}"`
+        );
+      }
+
+      logger.info('Injected compaction guidance', {
+        phase: state.phase,
+        fullInstructions: phaseInstructions !== null,
+      });
+    },
+
+    /**
+     * Hook 4: event
+     * Listens for bus events. When a session compaction completes we record it,
+     * then when the session becomes idle we send a real user message so the
+     * normal chat.message hook fires and injects phase instructions — giving the
+     * AI full workflow context to continue after the compaction.
+     *
+     * We intentionally do NOT suppress the default synthetic "continue" message
+     * (experimental.compaction.autocontinue). It may produce a first generic AI
+     * response, but the idle trigger below ensures a proper phase-aware follow-up.
+     */
+    event: async ({ event }) => {
+      logger.debug('event hook fired', { type: event.type });
+
+      if (event.type === 'session.compacted') {
+        postCompactionSession = event.properties.sessionID as string;
+        logger.info('session.compacted: pending phase-aware continue', {
+          sessionID: postCompactionSession,
+        });
+        return;
+      }
+
+      if (
+        event.type === 'session.idle' &&
+        postCompactionSession === (event.properties.sessionID as string)
+      ) {
+        const sessionID = postCompactionSession;
+        postCompactionSession = null;
+        logger.info(
+          'session.idle after compaction: sending phase-aware continue',
+          { sessionID }
+        );
+
+        // Wait a short time to allow the OpenCode runner state machine to
+        // fully settle after compaction before we fire the follow-up prompt.
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        try {
+          const client = input.client as {
+            session: {
+              promptAsync(params: {
+                path: { id: string };
+                body: { parts: Array<{ type: string; text: string }> };
+              }): Promise<unknown>;
+            };
+          };
+          await client.session.promptAsync({
+            path: { id: sessionID },
+            body: {
+              parts: [
+                { type: 'text', text: 'Continue with the current phase.' },
+              ],
+            },
+          });
+          logger.info('session.idle: phase-aware continue sent (async)', {
+            sessionID,
+          });
+        } catch (err) {
+          logger.error('session.idle: failed to send phase-aware continue', {
+            sessionID,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
     },
 
     /**

@@ -74,9 +74,24 @@ export type ToolDefinition = {
   execute(args: unknown, context: ToolContext): Promise<string>;
 };
 
+// Minimal Event types from @opencode-ai/sdk needed for the event hook
+export type SessionCompactedEvent = {
+  type: 'session.compacted';
+  properties: { sessionID: string };
+};
+export type SessionIdleEvent = {
+  type: 'session.idle';
+  properties: { sessionID: string };
+};
+export type OtherEvent = {
+  type: string;
+  properties: Record<string, unknown>;
+};
+export type BusEvent = SessionCompactedEvent | SessionIdleEvent | OtherEvent;
+
 // All available hooks
 export interface Hooks {
-  event?: (input: { event: unknown }) => Promise<void>;
+  event?: (input: { event: BusEvent }) => Promise<void>;
   config?: (input: unknown) => Promise<void>;
   tool?: {
     [key: string]: ToolDefinition;
