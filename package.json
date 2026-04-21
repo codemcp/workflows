@@ -54,7 +54,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.25.3"
+    "@modelcontextprotocol/sdk": "1.29.0"
   },
   "devDependencies": {
     "@codemcp/workflows-core": "workspace:*",
