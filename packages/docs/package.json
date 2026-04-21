@@ -25,7 +25,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.19.23",
     "@types/pako": "2.0.4",
-    "concurrently": "^8.2.2",
+    "concurrently": "^9.0.0",
     "typescript": "^5.9.3",
     "vitepress": "^1.6.4"
   }
