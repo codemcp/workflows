@@ -166,6 +166,11 @@ export const WorkflowsPlugin: Plugin = async (
   // continue message once the session becomes idle.
   let postCompactionSession: string | null = null;
 
+  // When Hook 4 sends phase instructions via promptAsync after compaction,
+  // this flag is set to true so Hook 1 (chat.message) can skip injecting a
+  // duplicate synthetic part for that specific message.
+  let postCompactionMessagePending = false;
+
   // Last-known model from chat.message hook. Cached so proceed_to_phase can
   // pass providerID + modelID to the summarize API (which requires them).
   let lastKnownModel: { providerID: string; modelID: string } | null = null;
@@ -297,6 +302,16 @@ export const WorkflowsPlugin: Plugin = async (
       // Cache the model for use by tools (e.g. proceed_to_phase needs it for summarize API)
       if (hookInput.model) {
         lastKnownModel = hookInput.model;
+      }
+
+      // If this message was the post-compaction instructions prompt sent by Hook 4,
+      // skip synthetic part injection — the message body IS the instructions.
+      if (postCompactionMessagePending) {
+        postCompactionMessagePending = false;
+        logger.debug(
+          'chat.message: skipping synthetic part for post-compaction instructions message'
+        );
+        return;
       }
 
       // If WORKFLOW_AGENTS is set and this agent is not in the allowlist, inject a
@@ -565,6 +580,34 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
         // fully settle after compaction before we fire the follow-up prompt.
         await new Promise(resolve => setTimeout(resolve, 500));
 
+        // Fetch the current phase instructions to use as the prompt text.
+        // This way the AI receives its phase context directly as the user message,
+        // and the chat.message hook skips injecting a duplicate synthetic part.
+        let promptText = 'Continue with the current phase.';
+        let usedPhaseInstructions = false;
+        try {
+          const serverContext = await getServerContext();
+          const handler = new WhatsNextHandler();
+          const handlerResult = await handler.handle({}, serverContext);
+          if (handlerResult.success && handlerResult.data) {
+            const instructions = stripWhatsNextReferences(
+              handlerResult.data.instructions
+            );
+            if (instructions.trim()) {
+              promptText = instructions;
+              usedPhaseInstructions = true;
+            }
+          }
+        } catch (_err) {
+          // Fall back to hardcoded string
+        }
+
+        // Set flag so chat.message skips synthetic part for this message
+        // only when we're sending actual instructions (not the fallback).
+        if (usedPhaseInstructions) {
+          postCompactionMessagePending = true;
+        }
+
         try {
           const client = input.client as {
             session: {
@@ -577,9 +620,7 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
           await client.session.promptAsync({
             path: { id: sessionID },
             body: {
-              parts: [
-                { type: 'text', text: 'Continue with the current phase.' },
-              ],
+              parts: [{ type: 'text', text: promptText }],
             },
           });
           logger.info('session.idle: phase-aware continue sent (async)', {

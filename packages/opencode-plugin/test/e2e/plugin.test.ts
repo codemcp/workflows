@@ -61,6 +61,7 @@ function createMockPluginInput(directory: string): PluginInput {
       },
       session: {
         summarize: vi.fn().mockResolvedValue(undefined),
+        promptAsync: vi.fn().mockResolvedValue(undefined),
       },
     } as unknown,
     project: { id: 'test-project', path: directory },
@@ -1196,5 +1197,190 @@ describe('WORKFLOW_AGENTS environment variable', () => {
       }
       cleanupDir(dir);
     }
+  });
+});
+
+describe('event hook - post-compaction behaviour', () => {
+  let testDir: string;
+  let mockInput: PluginInput;
+
+  beforeEach(async () => {
+    testDir = createTempDir();
+    mockInput = createMockPluginInput(testDir);
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    cleanupDir(testDir);
+    vi.useRealTimers();
+  });
+
+  it('sends phase instructions as promptAsync text after compaction (not hardcoded string)', async () => {
+    await setupWorkflowState(testDir, {
+      workflowName: 'epcc',
+      currentPhase: 'explore',
+    });
+
+    const hooks = await WorkflowsPlugin(mockInput);
+
+    // Fire session.compacted
+    await hooks.event!({
+      event: {
+        type: 'session.compacted',
+        properties: { sessionID: 'sess-compact' },
+      },
+    });
+
+    // Fire session.idle (triggers the promptAsync after 500ms delay)
+    const idlePromise = hooks.event!({
+      event: {
+        type: 'session.idle',
+        properties: { sessionID: 'sess-compact' },
+      },
+    });
+    await vi.runAllTimersAsync();
+    await idlePromise;
+
+    const promptAsyncMock = (
+      mockInput.client as { session: { promptAsync: ReturnType<typeof vi.fn> } }
+    ).session.promptAsync;
+    expect(promptAsyncMock).toHaveBeenCalledOnce();
+
+    const callArgs = promptAsyncMock.mock.calls[0][0] as {
+      path: { id: string };
+      body: { parts: Array<{ type: string; text: string }> };
+    };
+    const sentText = callArgs.body.parts[0].text;
+
+    // Should NOT be the hardcoded fallback string
+    expect(sentText).not.toBe('Continue with the current phase.');
+    // Should contain actual phase instructions content
+    expect(sentText.length).toBeGreaterThan(50);
+    // Should contain something relevant to the explore phase
+    expect(sentText.toLowerCase()).toMatch(/explore|phase|workflow/i);
+  });
+
+  it('falls back to hardcoded string when workflow state is missing', async () => {
+    // No workflow state set up
+    const hooks = await WorkflowsPlugin(mockInput);
+
+    await hooks.event!({
+      event: {
+        type: 'session.compacted',
+        properties: { sessionID: 'sess-fallback' },
+      },
+    });
+
+    const idlePromise = hooks.event!({
+      event: {
+        type: 'session.idle',
+        properties: { sessionID: 'sess-fallback' },
+      },
+    });
+    await vi.runAllTimersAsync();
+    await idlePromise;
+
+    const promptAsyncMock = (
+      mockInput.client as { session: { promptAsync: ReturnType<typeof vi.fn> } }
+    ).session.promptAsync;
+    expect(promptAsyncMock).toHaveBeenCalledOnce();
+
+    const callArgs = promptAsyncMock.mock.calls[0][0] as {
+      path: { id: string };
+      body: { parts: Array<{ type: string; text: string }> };
+    };
+    const sentText = callArgs.body.parts[0].text;
+
+    // Should be the hardcoded fallback
+    expect(sentText).toBe('Continue with the current phase.');
+  });
+
+  it('chat.message does NOT inject synthetic part for the post-compaction message', async () => {
+    await setupWorkflowState(testDir, {
+      workflowName: 'epcc',
+      currentPhase: 'explore',
+    });
+
+    const hooks = await WorkflowsPlugin(mockInput);
+
+    // Fire compaction sequence to set the post-compaction flag
+    await hooks.event!({
+      event: {
+        type: 'session.compacted',
+        properties: { sessionID: 'sess-chattest' },
+      },
+    });
+
+    const idlePromise = hooks.event!({
+      event: {
+        type: 'session.idle',
+        properties: { sessionID: 'sess-chattest' },
+      },
+    });
+    await vi.runAllTimersAsync();
+    await idlePromise;
+
+    // Simulate chat.message firing for the post-compaction message
+    // (OpenCode fires this right after promptAsync sends the message)
+    const output = {
+      message: {
+        id: 'msg-postcompact',
+        sessionID: 'sess-chattest',
+        role: 'user' as const,
+      },
+      parts: [] as Part[],
+    };
+
+    await hooks['chat.message']!(
+      { sessionID: 'sess-chattest', messageID: 'msg-postcompact' },
+      output
+    );
+
+    // No synthetic part should be injected — the message body IS the instructions
+    expect(output.parts.length).toBe(0);
+  });
+
+  it('chat.message injects synthetic part normally after flag is consumed', async () => {
+    await setupWorkflowState(testDir, {
+      workflowName: 'epcc',
+      currentPhase: 'explore',
+    });
+
+    const hooks = await WorkflowsPlugin(mockInput);
+
+    // Fire compaction sequence
+    await hooks.event!({
+      event: {
+        type: 'session.compacted',
+        properties: { sessionID: 'sess-after' },
+      },
+    });
+    const idlePromise = hooks.event!({
+      event: { type: 'session.idle', properties: { sessionID: 'sess-after' } },
+    });
+    await vi.runAllTimersAsync();
+    await idlePromise;
+
+    // First chat.message: consumes the flag (no synthetic part)
+    const output1 = {
+      message: { id: 'msg-1', sessionID: 'sess-after', role: 'user' as const },
+      parts: [] as Part[],
+    };
+    await hooks['chat.message']!(
+      { sessionID: 'sess-after', messageID: 'msg-1' },
+      output1
+    );
+    expect(output1.parts.length).toBe(0);
+
+    // Second chat.message: flag is gone, normal injection happens
+    const output2 = {
+      message: { id: 'msg-2', sessionID: 'sess-after', role: 'user' as const },
+      parts: [] as Part[],
+    };
+    await hooks['chat.message']!(
+      { sessionID: 'sess-after', messageID: 'msg-2' },
+      output2
+    );
+    expect(output2.parts.length).toBeGreaterThan(0);
   });
 });
