@@ -1,6 +1,6 @@
 {
   "name": "@codemcp/workflows",
-  "version": "6.12.1",
+  "version": "6.13.0",
   "description": "A Model Context Protocol server that acts as an intelligent conversation state manager and development guide for LLMs, featuring comprehensive long-term memory with persistent project artifacts",
   "type": "module",
   "main": "packages/cli/dist/index.js",
