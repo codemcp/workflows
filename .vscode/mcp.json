@@ -1,6 +1,6 @@
 {
   "servers": {
-    "responsible-vibe-mcp": {
+    "@codemcp/workflows-server": {
       "command": "npx",
       "args": [
         "@codemcp/workflows@latest"

@@ -18,6 +18,6 @@ keywords:
 license: MIT
 metadata:
   version: '${VERSION}'
-  repository: https://github.com/mrsimpson/responsible-vibe-mcp
+  repository: https://github.com/codemcp/workflows
   author: mrsimpson
 ---

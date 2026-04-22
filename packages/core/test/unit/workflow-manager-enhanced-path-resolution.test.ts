@@ -72,10 +72,7 @@ states:
     writeFileSync(join(dir, name), content);
   }
 
-  function createPackageJson(
-    dir: string,
-    name: string = 'responsible-vibe-mcp'
-  ) {
+  function createPackageJson(dir: string, name: string = '@codemcp/workflows') {
     const packageJson = {
       name,
       version: '1.0.0',
@@ -167,7 +164,7 @@ states:
     it('should handle NODE_PATH environment variable', () => {
       // Set up NODE_PATH scenario
       const nodePath = join(tempDir, 'global-modules');
-      const packageDir = join(nodePath, 'responsible-vibe-mcp');
+      const packageDir = join(nodePath, '@codemcp', 'workflows');
       const workflowsDir = join(packageDir, 'resources', 'workflows');
 
       mkdirSync(workflowsDir, { recursive: true });
@@ -195,7 +192,8 @@ states:
       const packageDir = join(
         cacheEntry,
         'node_modules',
-        'responsible-vibe-mcp'
+        '@codemcp',
+        'workflows'
       );
       const workflowsDir = join(packageDir, 'resources', 'workflows');
 
@@ -219,7 +217,7 @@ states:
       const userProfile = join(tempDir, 'Users', 'testuser');
       const npxCacheDir = join(userProfile, 'AppData/Local/npm-cache/_npx');
       const cacheEntry = join(npxCacheDir, 'def456');
-      const packageDir = join(cacheEntry, 'responsible-vibe-mcp');
+      const packageDir = join(cacheEntry, '@codemcp', 'workflows');
       const workflowsDir = join(packageDir, 'resources', 'workflows');
 
       mkdirSync(workflowsDir, { recursive: true });
@@ -246,7 +244,8 @@ states:
       const packageDir = join(
         cacheEntry,
         'node_modules',
-        'responsible-vibe-mcp'
+        '@codemcp',
+        'workflows'
       );
       const workflowsDir = join(packageDir, 'resources', 'workflows');
 

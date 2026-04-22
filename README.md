@@ -1,4 +1,4 @@
-# Agentic Workflows 
+# Agentic Workflows
 
 fka. "Responsible Vibe MCP"
 
@@ -23,7 +23,7 @@ Head over to a new empty dir and ask your agent: _"Build a UNO-like card game"_ 
 ## 🎬 See It In Action
 
 <div style="position: relative; display: inline-block; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-  <a href="https://agentic-rpl.netlify.app/conversation?url=https://github.com/mrsimpson/responsible-vibe-mcp/tree/demo-todo-greenfield/examples/greenfield-todo" target="_blank">
+  <a href="https://agentic-rpl.netlify.app/conversation?url=https://github.com/codemcp/workflows/tree/demo-todo-greenfield/examples/greenfield-todo" target="_blank">
     <img src="packages/docs/images/placeholder-demo-greenfield.png" alt="Interactive demo showing Responsible Vibe MCP in action" style="width: 100%; max-width: 600px; height: auto; display: block;">
     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center;">
       <div style="width: 0; height: 0; border-left: 25px solid white; border-top: 15px solid transparent; border-bottom: 15px solid transparent; margin-left: 5px;"></div>
@@ -61,7 +61,7 @@ And since may developers tend to through structured processing off the cliff onc
 
 ## How It Works
 
-Check the 📖 **[Complete Documentation →](https://mrsimpson.github.io/responsible-vibe-mcp/user/how-it-works.html)**
+Check the 📖 **[Complete Documentation →](https://codemcp.github.io/workflows/user/how-it-works.html)**
 
 There is also a recorded session on ["how to tame your stubborn software agent"](https://www.youtube.com/watch?v=qKTdqmlnXMg) as part of the video podcast [Software-Architektur.tv](https://software-architektur.tv/) (German, auto-translated subtitles are okay-ish) which gives a more detailed insight into the basic ideas and how it's supposed to work.
 

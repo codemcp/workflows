@@ -338,7 +338,7 @@ export class PlanManager implements IPlanManager {
     }
 
     // Generate URL for predefined workflows
-    return `https://mrsimpson.github.io/responsible-vibe-mcp/workflows/${workflowName}`;
+    return `https://codemcp.github.io/workflows/workflows/${workflowName}`;
   }
 
   /**
