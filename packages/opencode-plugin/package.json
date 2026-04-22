@@ -29,15 +29,20 @@
   "devDependencies": {
     "@codemcp/workflows-core": "workspace:*",
     "@codemcp/workflows-server": "workspace:*",
+    "effect": "3.21.1",
     "rimraf": "^6.0.1",
     "tsup": "^8.0.0",
     "vitest": "4.0.18"
   },
   "peerDependencies": {
-    "@anthropic-ai/sdk": "*"
+    "@anthropic-ai/sdk": "*",
+    "effect": ">=3.0.0"
   },
   "peerDependenciesMeta": {
     "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "effect": {
       "optional": true
     }
   },

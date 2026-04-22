@@ -13,6 +13,7 @@
  */
 
 import type { Plugin, PluginInput, Hooks, ToolDefinition } from './types.js';
+import { Effect } from 'effect';
 import { createProceedToPhaseTool } from './tool-handlers/proceed-to-phase.js';
 import { createConductReviewTool } from './tool-handlers/conduct-review.js';
 import { createResetDevelopmentTool } from './tool-handlers/reset-development.js';
@@ -652,12 +653,14 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
             );
           }
 
-          await ctx.ask({
-            permission: toolName,
-            patterns: ['*'],
-            always: ['*'],
-            metadata: {},
-          });
+          await Effect.runPromise(
+            ctx.ask({
+              permission: toolName,
+              patterns: ['*'],
+              always: ['*'],
+              metadata: {},
+            })
+          );
 
           return def.execute(args, ctx);
         },
