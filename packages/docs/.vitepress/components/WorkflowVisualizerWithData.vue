@@ -35,7 +35,7 @@ const workflows = ref<WorkflowDefinition[]>(
     displayName:
       workflowName.charAt(0).toUpperCase() +
       workflowName.slice(1).replace(/-/g, ' '),
-    path: `/responsible-vibe-mcp/workflows/${workflowName}.yaml`,
+    path: `/workflows/workflows/${workflowName}.yaml`,
   }))
 );
 

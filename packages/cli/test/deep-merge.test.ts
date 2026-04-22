@@ -236,9 +236,9 @@ describe('deepMerge', () => {
       };
       const source = {
         mcpServers: {
-          'responsible-vibe-mcp': {
+          workflows: {
             command: 'npx',
-            args: ['responsible-vibe-mcp'],
+            args: ['@codemcp/workflows'],
           },
         },
       };
@@ -250,9 +250,9 @@ describe('deepMerge', () => {
             command: 'node',
             args: ['server.js'],
           },
-          'responsible-vibe-mcp': {
+          workflows: {
             command: 'npx',
-            args: ['responsible-vibe-mcp'],
+            args: ['@codemcp/workflows'],
           },
         },
       });

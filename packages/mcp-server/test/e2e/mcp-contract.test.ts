@@ -15,7 +15,7 @@ vi.unmock('fs/promises');
  * MCP Contract Validation Tests
  *
  * Tests the Model Context Protocol contract by using a real MCP TypeScript client
- * from the official SDK to connect to our responsible-vibe-mcp-server and validate:
+ * from the official SDK to connect to our @codemcp/workflows and validate:
  * - Server initialization and capability negotiation
  * - All exposed resources (plan://current, state://current)
  * - All exposed tools (whats_next, proceed_to_phase)

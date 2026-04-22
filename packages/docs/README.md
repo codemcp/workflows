@@ -37,7 +37,7 @@ const showModal = ref(false)
 const iframeSrc = ref('')
 
 const openDemo = () => {
-  iframeSrc.value = 'https://agentic-rpl.netlify.app/conversation?url=https://github.com/mrsimpson/responsible-vibe-mcp/tree/demo-todo-greenfield/examples/greenfield-todo'
+  iframeSrc.value = 'https://agentic-rpl.netlify.app/conversation?url=https://github.com/codemcp/workflows/tree/demo-todo-greenfield/examples/greenfield-todo'
   showModal.value = true
   document.body.style.overflow = 'hidden'
 }
