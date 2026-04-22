@@ -1,0 +1,24 @@
+{
+  "conversationId": "responsible-vibe-fix-instruct-opencode-tools-93he9u",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe",
+  "epicId": "responsible-vibe-32",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "responsible-vibe-32.1"
+    },
+    {
+      "phaseId": "implement",
+      "phaseName": "Implement",
+      "taskId": "responsible-vibe-32.2"
+    },
+    {
+      "phaseId": "finalize",
+      "phaseName": "Finalize",
+      "taskId": "responsible-vibe-32.3"
+    }
+  ],
+  "createdAt": "2026-04-03T08:18:17.862Z",
+  "updatedAt": "2026-04-03T08:18:17.862Z"
+}

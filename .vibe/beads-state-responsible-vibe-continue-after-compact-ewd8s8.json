@@ -1,0 +1,29 @@
+{
+  "conversationId": "responsible-vibe-continue-after-compact-ewd8s8",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe",
+  "epicId": "responsible-vibe-31",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "responsible-vibe-31.1"
+    },
+    {
+      "phaseId": "plan",
+      "phaseName": "Plan",
+      "taskId": "responsible-vibe-31.2"
+    },
+    {
+      "phaseId": "code",
+      "phaseName": "Code",
+      "taskId": "responsible-vibe-31.3"
+    },
+    {
+      "phaseId": "commit",
+      "phaseName": "Commit",
+      "taskId": "responsible-vibe-31.4"
+    }
+  ],
+  "createdAt": "2026-04-19T10:03:34.180Z",
+  "updatedAt": "2026-04-19T10:03:34.180Z"
+}
