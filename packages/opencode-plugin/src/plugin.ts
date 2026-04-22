@@ -641,7 +641,7 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
      * an error if the agent is not allowed to use workflows.
      */
     tool: await (async (): Promise<{ [key: string]: ToolDefinition }> => {
-      const wrap = (def: ToolDefinition): ToolDefinition => ({
+      const wrap = (toolName: string, def: ToolDefinition): ToolDefinition => ({
         ...def,
         execute: async (args, ctx) => {
           const agent = ctx.agent;
@@ -652,12 +652,20 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
             );
           }
 
+          await ctx.ask({
+            permission: toolName,
+            patterns: ['*'],
+            always: ['*'],
+            metadata: {},
+          });
+
           return def.execute(args, ctx);
         },
       });
 
       return {
         start_development: wrap(
+          'start_development',
           createStartDevelopmentTool(
             input.directory,
             getServerContext,
@@ -665,6 +673,7 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
           )
         ),
         proceed_to_phase: wrap(
+          'proceed_to_phase',
           createProceedToPhaseTool(
             getServerContext,
             setBufferedInstructions,
@@ -672,11 +681,16 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
             () => lastKnownModel
           )
         ),
-        conduct_review: wrap(createConductReviewTool(getServerContext)),
+        conduct_review: wrap(
+          'conduct_review',
+          createConductReviewTool(getServerContext)
+        ),
         reset_development: wrap(
+          'reset_development',
           createResetDevelopmentTool(input.directory, getServerContext)
         ),
         setup_project_docs: wrap(
+          'setup_project_docs',
           await createSetupProjectDocsTool(input.directory, getServerContext)
         ),
       };
