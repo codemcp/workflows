@@ -1,6 +1,6 @@
 {
   "servers": {
-    "@codemcp/workflows-server": {
+    "workflows": {
       "command": "npx",
       "args": [
         "@codemcp/workflows@latest"
