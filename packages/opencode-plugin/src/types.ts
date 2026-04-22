@@ -51,6 +51,8 @@ export type PluginInput = {
 };
 
 // Tool context for custom tools
+import type { Effect } from 'effect';
+
 export type ToolContext = {
   sessionID: string;
   messageID: string;
@@ -64,7 +66,7 @@ export type ToolContext = {
     patterns: string[];
     always: string[];
     metadata: Record<string, unknown>;
-  }): Promise<void>;
+  }): Effect.Effect<void>;
 };
 
 // Tool definition

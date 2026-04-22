@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Effect } from 'effect';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { tmpdir } from 'node:os';
@@ -63,7 +64,7 @@ function createMockToolContext(overrides: Record<string, unknown> = {}) {
     worktree: '',
     abort: new AbortController().signal,
     metadata: vi.fn(),
-    ask: vi.fn().mockResolvedValue(undefined),
+    ask: vi.fn().mockReturnValue(Effect.void),
     ...overrides,
   };
 }
