@@ -1,0 +1,24 @@
+{
+  "conversationId": "responsible-vibe-rename-completely-95pvbb",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe",
+  "epicId": "responsible-vibe-33",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "responsible-vibe-33.1"
+    },
+    {
+      "phaseId": "implement",
+      "phaseName": "Implement",
+      "taskId": "responsible-vibe-33.2"
+    },
+    {
+      "phaseId": "finalize",
+      "phaseName": "Finalize",
+      "taskId": "responsible-vibe-33.3"
+    }
+  ],
+  "createdAt": "2026-04-22T04:18:43.712Z",
+  "updatedAt": "2026-04-22T04:18:43.712Z"
+}

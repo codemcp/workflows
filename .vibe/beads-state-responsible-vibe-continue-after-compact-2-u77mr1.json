@@ -1,0 +1,24 @@
+{
+  "conversationId": "responsible-vibe-continue-after-compact-2-u77mr1",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/responsible-vibe",
+  "epicId": "responsible-vibe-32",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "responsible-vibe-32.1"
+    },
+    {
+      "phaseId": "implement",
+      "phaseName": "Implement",
+      "taskId": "responsible-vibe-32.2"
+    },
+    {
+      "phaseId": "finalize",
+      "phaseName": "Finalize",
+      "taskId": "responsible-vibe-32.3"
+    }
+  ],
+  "createdAt": "2026-04-21T09:12:21.094Z",
+  "updatedAt": "2026-04-21T09:12:21.094Z"
+}
