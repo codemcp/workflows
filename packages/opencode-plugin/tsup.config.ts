@@ -14,8 +14,12 @@ export default defineConfig({
   bundle: true,
   // Zod is external (it's a true peer dependency)
   external: ['zod'],
-  // Bundle core and server packages (they're private, not published)
-  noExternal: ['@codemcp/workflows-core', '@codemcp/workflows-server'],
+  // Bundle core, server, and effect — not guaranteed to be available in standalone plugin installs
+  noExternal: [
+    '@codemcp/workflows-core',
+    '@codemcp/workflows-server',
+    'effect',
+  ],
   target: 'node20',
   sourcemap: false,
 });
