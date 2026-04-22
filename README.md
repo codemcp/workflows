@@ -2,8 +2,10 @@
 
 fka. "Responsible Vibe MCP"
 
-[![Tests](https://github.com/mrsimpson/vibe-feature-mcp/actions/workflows/pr.yml/badge.svg)](https://github.com/mrsimpson/vibe-feature-mcp/actions/workflows/pr.yml)
-[![Release](https://github.com/mrsimpson/vibe-feature-mcp/actions/workflows/release.yml/badge.svg)](https://github.com/mrsimpson/vibe-feature-mcp/actions/workflows/release.yml)
+Vibe coding is dead. Agentic Engineering is on the rise. Workflows have been here forever.
+
+[![Tests](https://github.com/codemcp/workflows/actions/workflows/pr.yml/badge.svg)](https://github.com/codemcp/workflows/actions/workflows/pr.yml)
+[![Release](https://github.com/codemcp/workflows/actions/workflows/release.yml/badge.svg)](https://github.com/codemcp/workflows/actions/workflows/release.yml)
 [![npm version](https://badge.fury.io/js/@codemcp%2Fworkflows.svg)](https://badge.fury.io/js/@codemcp%2Fworkflows)
 
 Transform any AI coding agent into a structured development partner with battle-tested engineering workflows.
@@ -88,4 +90,4 @@ See **[Crowd MCP Integration Guide →](packages/docs/user/crowd-mcp-integration
 
 ---
 
-**[Open Source](LICENSE.md)** | **[Issues](https://github.com/mrsimpson/vibe-feature-mcp/issues)**
+**[Open Source](LICENSE.md)** | **[Issues](https://github.com/codemcp/workflows/issues)**
