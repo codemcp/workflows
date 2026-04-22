@@ -1,6 +1,6 @@
 {
   "name": "@codemcp/workflows-opencode",
-  "version": "6.13.0",
+  "version": "6.13.2",
   "description": "OpenCode plugin for structured development workflows",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
