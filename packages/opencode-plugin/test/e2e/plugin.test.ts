@@ -51,6 +51,24 @@ function cleanupDir(dir: string): void {
 }
 
 /**
+ * Create a mock ToolContext for testing.
+ * Includes a no-op `ask` spy so permission checks in the plugin's `wrap()` work.
+ */
+function createMockToolContext(overrides: Record<string, unknown> = {}) {
+  return {
+    sessionID: 'test-session',
+    messageID: 'test-message',
+    agent: 'workflow',
+    directory: '',
+    worktree: '',
+    abort: new AbortController().signal,
+    metadata: vi.fn(),
+    ask: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
+/**
  * Create a mock PluginInput for testing
  */
 function createMockPluginInput(directory: string): PluginInput {
@@ -571,7 +589,7 @@ describe('OpenCode Workflows Plugin E2E', () => {
 
       const result = await hooks.tool!.start_development.execute(
         { workflow: 'epcc' },
-        {} as never
+        createMockToolContext()
       );
 
       // start_development returns instructions from handler
@@ -592,7 +610,7 @@ describe('OpenCode Workflows Plugin E2E', () => {
 
       const result = await hooks.tool!.start_development.execute(
         { workflow: 'waterfall' },
-        {} as never
+        createMockToolContext()
       );
 
       // When trying to start a different workflow, we get an error about existing workflow
@@ -615,7 +633,7 @@ describe('OpenCode Workflows Plugin E2E', () => {
 
       const result = await hooks.tool!.proceed_to_phase.execute(
         { target_phase: 'plan', reason: 'exploration complete' },
-        {} as never
+        createMockToolContext()
       );
 
       // Transition output now shows the new phase clearly
@@ -645,7 +663,7 @@ describe('OpenCode Workflows Plugin E2E', () => {
       const sessionID = 'test-session-123';
       await hooks.tool!.proceed_to_phase.execute(
         { target_phase: 'plan', reason: 'exploration complete' },
-        { sessionID } as never
+        createMockToolContext({ sessionID })
       );
 
       // session.summarize should have been called with the session ID and model
@@ -664,9 +682,10 @@ describe('OpenCode Workflows Plugin E2E', () => {
       hooks = await WorkflowsPlugin(mockInput);
 
       const sessionID = 'test-session-456';
-      await hooks.tool!.proceed_to_phase.execute({ target_phase: 'plan' }, {
-        sessionID,
-      } as never);
+      await hooks.tool!.proceed_to_phase.execute(
+        { target_phase: 'plan' },
+        createMockToolContext({ sessionID })
+      );
 
       // session.summarize should NOT have been called — transition failed
       const summarizeMock = (
@@ -708,7 +727,7 @@ describe('OpenCode Workflows Plugin E2E', () => {
       const sessionID = 'test-session-789';
       const proceedResult = await hooks.tool!.proceed_to_phase.execute(
         { target_phase: 'plan', reason: 'exploration complete' },
-        { sessionID } as never
+        createMockToolContext({ sessionID })
       );
 
       // Verify the transition itself succeeded before checking compaction was skipped
@@ -728,7 +747,7 @@ describe('OpenCode Workflows Plugin E2E', () => {
 
       const result = await hooks.tool!.proceed_to_phase.execute(
         { target_phase: 'plan' },
-        {} as never
+        createMockToolContext()
       );
 
       // Error message from handler mentions "No development conversation" or similar
@@ -750,7 +769,7 @@ describe('OpenCode Workflows Plugin E2E', () => {
 
       const result = await hooks.tool!.reset_development.execute(
         { confirm: false },
-        {} as never
+        createMockToolContext()
       );
 
       expect(result).toContain('confirm');
@@ -766,7 +785,7 @@ describe('OpenCode Workflows Plugin E2E', () => {
 
       const result = await hooks.tool!.reset_development.execute(
         { confirm: true, reason: 'testing reset' },
-        {} as never
+        createMockToolContext()
       );
 
       // Reset message confirms deletion (may not include workflow name)
@@ -778,7 +797,7 @@ describe('OpenCode Workflows Plugin E2E', () => {
 
       const result = await hooks.tool!.reset_development.execute(
         { confirm: true },
-        {} as never
+        createMockToolContext()
       );
 
       expect(result).toContain('No active workflow');
@@ -921,10 +940,10 @@ describe('WORKFLOW_AGENTS environment variable', () => {
 
       // Tool should throw when agent is not in filter
       await expect(
-        hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
-          sessionID: 'test-session',
-          agent: 'explore', // Not in filter
-        } as unknown)
+        hooks.tool!['start_development'].execute(
+          { workflow: 'minor' },
+          createMockToolContext({ agent: 'explore' }) // Not in filter
+        )
       ).rejects.toThrow(/not enabled for this agent/i);
     } finally {
       if (originalEnv === undefined) {
@@ -948,10 +967,10 @@ describe('WORKFLOW_AGENTS environment variable', () => {
       // (it may fail for other reasons like no plan file, but not the filter guard)
       let thrownMessage: string | undefined;
       try {
-        await hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
-          sessionID: 'test-session',
-          agent: 'general', // In filter
-        } as unknown);
+        await hooks.tool!['start_development'].execute(
+          { workflow: 'minor' },
+          createMockToolContext({ agent: 'general' }) // In filter
+        );
       } catch (err) {
         thrownMessage = (err as Error).message;
       }
@@ -989,10 +1008,10 @@ describe('WORKFLOW_AGENTS environment variable', () => {
       // Tool should not throw agent filter error for any agent
       let thrownMessage: string | undefined;
       try {
-        await hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
-          sessionID: 'test-session',
-          agent: 'any-agent', // Should work when no filter is set
-        } as unknown);
+        await hooks.tool!['start_development'].execute(
+          { workflow: 'minor' },
+          createMockToolContext({ agent: 'any-agent' }) // Should work when no filter is set
+        );
       } catch (err) {
         thrownMessage = (err as Error).message;
       }
@@ -1020,10 +1039,10 @@ describe('WORKFLOW_AGENTS environment variable', () => {
       // Should parse correctly and allow the whitelisted agents
       let thrownMessage: string | undefined;
       try {
-        await hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
-          sessionID: 'test-session',
-          agent: 'architect', // Should work after trimming
-        } as unknown);
+        await hooks.tool!['start_development'].execute(
+          { workflow: 'minor' },
+          createMockToolContext({ agent: 'architect' }) // Should work after trimming
+        );
       } catch (err) {
         thrownMessage = (err as Error).message;
       }
@@ -1033,10 +1052,10 @@ describe('WORKFLOW_AGENTS environment variable', () => {
 
       // And reject agents not in the list
       await expect(
-        hooks.tool!['start_development'].execute({ workflow: 'minor' }, {
-          sessionID: 'test-session',
-          agent: 'other-agent', // Not in list
-        } as unknown)
+        hooks.tool!['start_development'].execute(
+          { workflow: 'minor' },
+          createMockToolContext({ agent: 'other-agent' }) // Not in list
+        )
       ).rejects.toThrow(/not enabled for this agent/i);
     } finally {
       if (originalEnv === undefined) {
