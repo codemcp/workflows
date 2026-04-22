@@ -180,6 +180,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: '*'
         version: 0.80.0(zod@4.3.6)
+      effect:
+        specifier: '>=3.0.0'
+        version: 3.21.1
       zod:
         specifier: ^4.1.8
         version: 4.3.6
@@ -190,9 +193,6 @@ importers:
       '@codemcp/workflows-server':
         specifier: workspace:*
         version: link:../mcp-server
-      effect:
-        specifier: 3.21.1
-        version: 3.21.1
       rimraf:
         specifier: ^6.0.1
         version: 6.1.2
