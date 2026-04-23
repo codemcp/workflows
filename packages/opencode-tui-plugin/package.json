@@ -29,9 +29,9 @@
     "@codemcp/workflows-core": "workspace:*",
     "@opencode-ai/plugin": "*",
     "@opentui/solid": "*",
-    "@types/node": "^22.0.0",
+    "@types/node": "^24.0.0",
     "solid-js": "*",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.0"
   },
   "keywords": [
     "opencode",
