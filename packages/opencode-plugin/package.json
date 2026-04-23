@@ -24,7 +24,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "effect": ">=3.0.0",
+    "effect": "4.0.0-beta.48",
     "zod": "^4.1.8"
   },
   "devDependencies": {
