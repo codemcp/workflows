@@ -31,6 +31,7 @@ states:
       - '**/*.txt'
       - '**/*.adoc'
     default_instructions: |
+      Figure out the INTENT of the users instructions.
       Research the codebase to understand existing patterns and gather context about the problem space.
 
       - If uncertain about conventions or rules, ask the user about them
