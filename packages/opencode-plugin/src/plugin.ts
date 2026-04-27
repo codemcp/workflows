@@ -480,7 +480,7 @@ export const WorkflowsPlugin: Plugin = async (
 Current phase "${state.phase}" only allows editing:
 ${allowedList}
 
-ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editing this file type, OR focus on files matching the allowed patterns above.`;
+ACTION REQUIRED: Use proceed_to_phase tool to move to a phase that allows editing this file type, OR focus on files matching the allowed patterns above.`;
 
         logger.error('BLOCKING edit', {
           filePath,

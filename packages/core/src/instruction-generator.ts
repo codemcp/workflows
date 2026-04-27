@@ -115,6 +115,8 @@ export class InstructionGenerator implements IInstructionGenerator {
 
 **ACTION REQUIRED: Focus on "${phaseName}" tasks** and log decisions in "Key Decisions"
 
+**When all tasks are completed**: Make sure that all insights and decisions are captured in \`${conversationContext.planFilePath}\`. Then call proceed_to_phase to move to the next phase.
+
 **CRITICAL: Do NOT use other task/todo tools** - use only the plan file for task tracking`;
 
     // Add file restriction guidance if patterns are restricted
