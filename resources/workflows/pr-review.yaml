@@ -1,0 +1,177 @@
+# yaml-language-server: $schema=../state-machine-schema.json
+---
+name: 'pr-review'
+description: 'A tech-agnostic PR or code diff review workflow: determine intent, review architecture, correctness, and quality — hierarchically gated, with findings posted inline.'
+initial_state: 'determine_intent'
+
+metadata:
+  domain: 'code'
+  complexity: 'medium'
+  bestFor:
+    - 'Pull request reviews'
+    - 'Merge request reviews'
+    - 'Code review'
+  useCases:
+    - 'Reviewing a feature branch before merge'
+    - 'Reviewing a bug fix'
+    - 'Reviewing a refactoring'
+  examples:
+    - 'Review PR #42'
+    - 'Review the feature/login-refactor branch'
+
+states:
+  determine_intent:
+    description: 'Derive the intent of the PR from the diff and present it to the user for confirmation'
+    default_instructions: |
+      Fetch the diff (stat and full diff) for the PR or branch under review.
+      Retrieve the PR description and any linked issue descriptions. Use gh or glab CLI tools as needed. Fallback: Read using http.
+
+      From the diff and any available PR description, derive in your own words:
+      - What problem does this change solve? What does the user intend to achieve?
+      - What is the mechanism used to solve it?
+
+      Present your derived intent to the user and wait for explicit confirmation before proceeding.
+      If your derived intent contradicts the PR description or what the user responds to you, flag that explicitly — it is itself a finding.
+
+      Respond in the user's language.
+
+    transitions:
+      - trigger: 'intent_confirmed'
+        to: 'orient'
+        transition_reason: 'Intent confirmed by user, ready to map the change'
+
+  orient:
+    description: 'Build a structural map of the change before any judgment'
+    default_instructions: |
+      Map the change without evaluating it yet:
+      - Which files changed, and what kind of change is each (new logic, refactor, configuration, tests, fixtures)?
+      - What are the entry points of the data or control flow affected by this change?
+      - Which existing boundaries or components does the change touch?
+
+      Document this map. It will be the reference for all subsequent review phases.
+
+    transitions:
+      - trigger: 'oriented'
+        to: 'review_architecture'
+        transition_reason: 'Structural map complete, ready to review architecture'
+
+  review_architecture:
+    description: 'Review whether the change is in the right place and respects existing structure'
+    default_instructions: |
+      Evaluate the structural decisions in the change against the confirmed intent:
+
+      - Is the change located in the right place, or does it belong elsewhere?
+      - Does it respect the existing boundaries and separation of responsibilities?
+      - Does it introduce the right abstraction, or does it over- or under-abstract?
+      - Does it follow the patterns already established in the codebase?
+      - If an architecture document exists ($ARCHITECTURE_DOC), verify the change is consistent with it.
+
+      For each finding, classify it immediately:
+      - **Bug**: incorrect behavior or data loss
+      - **Design issue**: correct but wrong structure, will cause pain later
+      - **Performance**: correct but unnecessarily costly at the expected scale
+      - **Minor**: small violations, naming, unnecessary indirection
+      - **Nit**: style, redundant comments, cosmetics
+
+      Bugs and design issues are major flaws. If major flaws are found, proceed to publish_review immediately.
+
+    transitions:
+      - trigger: 'no_major_flaws'
+        to: 'review_correctness'
+        transition_reason: 'No major architectural flaws, proceeding to correctness review'
+
+      - trigger: 'major_flaws_found'
+        to: 'publish_review'
+        additional_instructions: |
+          Major architectural flaws were found. Do not proceed to correctness or quality review —
+          reviewing correctness on a structurally wrong solution is wasted effort.
+
+          Communicate clearly to the user:
+          - Which findings are blockers and why
+          - What rework is expected before the review can continue
+        transition_reason: 'Major architectural flaws found, stopping for rework before continuing'
+
+  review_correctness:
+    description: 'Review whether the logic correctly achieves the confirmed intent'
+    default_instructions: |
+      Evaluate the logic of the change against the confirmed intent:
+
+      - Does the code do what the intent requires, for all inputs and states?
+      - Are edge cases handled — boundary conditions, empty inputs, missing data?
+      - Are things that must stay consistent changed together? Can partial updates occur?
+      - Are error paths handled, or silently swallowed?
+      - Do resources that grow over time have a defined cleanup strategy?
+      - If a design document or specification exists ($DESIGN_DOC), verify the change is consistent with it.
+
+      For each finding, classify it immediately (same scale as review_architecture).
+
+      Bugs and design issues are major flaws. If major flaws are found, proceed to publish_review immediately.
+
+    transitions:
+      - trigger: 'no_major_flaws'
+        to: 'review_quality'
+        transition_reason: 'No major correctness flaws, proceeding to quality review'
+
+      - trigger: 'major_flaws_found'
+        to: 'publish_review'
+        additional_instructions: |
+          Major correctness flaws were found. Do not proceed to quality review —
+          polishing incorrect code is wasted effort.
+
+          Communicate clearly to the user:
+          - Which findings are blockers and why
+          - What rework is expected before the review can continue
+          Proceed to publish_review to deliver these findings.
+        transition_reason: 'Major correctness flaws found, stopping for rework before continuing'
+
+  review_quality:
+    description: 'Review code quality, completeness, and good practices'
+    default_instructions: |
+      Evaluate the quality of the change:
+
+      - Is the code DRY, or is logic duplicated that should be shared?
+      - Does the code do unnecessary work — reimplementing what the platform already provides,
+        or repeating expensive operations that could be done once?
+      - Is naming self-explanatory at the right level of abstraction?
+      - Do comments explain *why*, not *what*? Are there comments that merely restate the code?
+      - Is what's absent a problem: missing tests, missing error handling, missing observability?
+      - Are there conventions in the codebase that this change violates?
+
+      For each finding, classify it immediately (same scale as previous phases).
+
+    transitions:
+      - trigger: 'quality_reviewed'
+        to: 'summarize'
+        transition_reason: 'Quality review complete, ready to summarize'
+
+  summarize:
+    description: 'Compose a concise overall summary of the review'
+    default_instructions: |
+      Write a top-level review summary:
+      - Restate the confirmed intent in one sentence
+      - List blocking findings (bugs, design issues) if any remain
+      - List non-blocking suggestions briefly — the inline comments carry the detail
+      - State your overall recommendation: approve / request changes / comment
+
+      Keep it short. The inline comments are the substance; this is the orientation.
+
+    transitions:
+      - trigger: 'summary_ready'
+        to: 'publish_review'
+        transition_reason: 'Summary ready, proceed to publish'
+
+  publish_review:
+    description: 'Ask the user how to deliver the review findings'
+    default_instructions: |
+      Ask the user how they want the review delivered:
+      - Post inline comments directly to the PR/MR via VCS tooling (e.g. glab, gh)?
+      - Present findings as a structured summary in the chat?
+      - Both?
+
+      Once confirmed, deliver accordingly. For inline comments, attach each finding to the
+      specific file and line it refers to. For cross-cutting findings, use a top-level comment.
+
+    transitions:
+      - trigger: 'review_published'
+        to: 'determine_intent'
+        transition_reason: 'Review delivered, ready for next PR'
