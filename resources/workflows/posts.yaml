@@ -53,6 +53,7 @@ states:
       - Create detailed story outline with clear beginning, middle, end
       - Identify key messages and memorable metaphors/examples
       - Define content scope boundaries to maintain focus and avoid adjacent topics
+      - Decide primary platform — it influences narrative depth and scope
       - Plan how content will adapt across different platforms
       - Ensure narrative arc matches chosen format (concise for short posts, comprehensive for long-form)
       - Structure content to maintain user's personal voice and conversational style
@@ -89,6 +90,8 @@ states:
 
       - Write content following the established story outline
       - Maintain consistent narrative flow and personal voice
+      - Create emotional resonance: include moments where the author is uncertain, surprised or affected — readers connect through emotions, not just arguments
+      - Adapt formatting to primary platform (paragraph length, structure, takeaways)
       - Create engaging, conversational content in user's style
       - Ensure content length matches chosen format (3-10 lines for short, 2000-5000+ words for long)
       - Stay within defined content scope to avoid adjacent topics
@@ -166,6 +169,7 @@ states:
       - Create compelling, SEO-optimized titles and descriptions
       - Add appropriate tags and metadata for discoverability
       - Adapt content formatting for different platforms (LinkedIn, Medium, HN)
+      - For LinkedIn: open with scroll-stopping hook, close with concrete takeaways, 3-5 targeted hashtags, cross-link co-authors
       - Maintain core message while adjusting for platform-specific requirements
       - Conduct final quality review and polish
       - Prepare publishing materials and schedule
