@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=../state-machine-schema.json
 ---
 name: 'epcc'
-description: "A comprehensive development workflow based on Anthropic's best practices: Explore, Plan, Code, Commit - ideal for smaller features and iterative development"
+description: 'Explore, Plan, Code, Commit - ideal for features and iterative development'
 initial_state: 'explore'
 
 # Enhanced metadata for better discoverability
