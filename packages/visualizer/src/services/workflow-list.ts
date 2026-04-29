@@ -11,6 +11,7 @@ export const workflowList = [
   'greenfield',
   'minor',
   'posts',
+  'pr-review',
   'sdd-bugfix',
   'sdd-bugfix-crowd',
   'sdd-feature',
