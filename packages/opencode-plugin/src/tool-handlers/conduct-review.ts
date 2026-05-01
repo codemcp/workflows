@@ -29,16 +29,6 @@ export function createConductReviewTool(
 
       logger.debug('conduct_review called', { targetPhase: target_phase });
 
-      // Request permission before conducting review
-      if (context && typeof context.ask === 'function') {
-        await context.ask({
-          permission: 'conduct_review',
-          patterns: ['*'],
-          always: ['*'],
-          metadata: { target_phase },
-        });
-      }
-
       try {
         // Delegate to ConductReviewHandler
         const handler = new ConductReviewHandler();

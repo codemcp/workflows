@@ -50,16 +50,6 @@ export function createStartDevelopmentTool(
 
       logger.debug('start_development called', { workflow: args.workflow });
 
-      // Request permission before starting new development workflow
-      if (context && typeof context.ask === 'function') {
-        await context.ask({
-          permission: 'start_development',
-          patterns: ['*'],
-          always: ['*'],
-          metadata: { workflow: args.workflow },
-        });
-      }
-
       try {
         // Delegate to StartDevelopmentHandler
         const handler = new StartDevelopmentHandler();

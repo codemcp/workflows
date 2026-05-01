@@ -1,0 +1,29 @@
+{
+  "conversationId": "workflows-fix-opencode-plugin-permissions-x4bahi",
+  "projectPath": "/Users/oliverjaegle/projects/privat/codemcp/workflows",
+  "epicId": "responsible-vibe-34",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "responsible-vibe-34.1"
+    },
+    {
+      "phaseId": "plan",
+      "phaseName": "Plan",
+      "taskId": "responsible-vibe-34.2"
+    },
+    {
+      "phaseId": "code",
+      "phaseName": "Code",
+      "taskId": "responsible-vibe-34.3"
+    },
+    {
+      "phaseId": "commit",
+      "phaseName": "Commit",
+      "taskId": "responsible-vibe-34.4"
+    }
+  ],
+  "createdAt": "2026-05-01T14:05:52.022Z",
+  "updatedAt": "2026-05-01T14:05:52.022Z"
+}
