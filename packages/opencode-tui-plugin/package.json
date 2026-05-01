@@ -1,6 +1,6 @@
 {
   "name": "@codemcp/workflows-opencode-tui",
-  "version": "6.16.1",
+  "version": "6.17.0",
   "description": "OpenCode TUI sidebar plugin that displays the current responsible-vibe workflow phase and name",
   "main": "workflows-phase.tsx",
   "exports": {

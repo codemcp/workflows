@@ -1,6 +1,6 @@
 {
   "name": "@codemcp/workflows-docs",
-  "version": "6.16.1",
+  "version": "6.17.0",
   "description": "Documentation site for Responsible Vibe MCP",
   "type": "module",
   "scripts": {
