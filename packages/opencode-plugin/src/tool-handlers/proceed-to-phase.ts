@@ -40,16 +40,6 @@ export function createProceedToPhaseTool(
 
       logger.debug('proceed_to_phase called', { to: target_phase, reason });
 
-      // Request permission before proceeding to new phase
-      if (context && typeof context.ask === 'function') {
-        await context.ask({
-          permission: 'proceed_to_phase',
-          patterns: ['*'],
-          always: ['*'],
-          metadata: { target_phase, reason },
-        });
-      }
-
       try {
         // Delegate to ProceedToPhaseHandler
         const handler = new ProceedToPhaseHandler();

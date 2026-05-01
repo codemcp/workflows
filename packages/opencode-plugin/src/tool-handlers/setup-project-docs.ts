@@ -36,23 +36,13 @@ export async function createSetupProjectDocsTool(
         .default('freestyle')
         .describe('Template name, "none", or file path'),
     },
-    execute: async (args, context) => {
+    execute: async (args, _context) => {
       const serverContext = await getServerContext();
       const logger = serverContext.loggerFactory
         ? serverContext.loggerFactory('setup_project_docs')
         : createLogger('setup_project_docs');
 
       logger.debug('setup_project_docs called', args);
-
-      // Request permission before setting up project docs
-      if (context && typeof context.ask === 'function') {
-        await context.ask({
-          permission: 'setup_project_docs',
-          patterns: ['*'],
-          always: ['*'],
-          metadata: args,
-        });
-      }
 
       try {
         // Delegate to SetupProjectDocsHandler
