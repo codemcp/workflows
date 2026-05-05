@@ -95,8 +95,7 @@ export { main as startMcpServer };
 // More robust check that works with npx and direct execution
 const isMainModule =
   import.meta.url === `file://${process.argv[1]}` ||
-  process.argv[1]?.endsWith('ade-workflows-server') ||
-  process.argv[1]?.endsWith('index.js');
+  process.argv[1]?.endsWith('ade-workflows-server');
 
 if (isMainModule) {
   await main().catch(error => {
