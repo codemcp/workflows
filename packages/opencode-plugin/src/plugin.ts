@@ -378,7 +378,7 @@ export const WorkflowsPlugin: Plugin = async (
               messageID: hookInput.messageID || output.message.id,
               type: 'text' as const,
               synthetic: true,
-              text: `No Active Workflow Detected. You MUST initiate a new development workflow before proceeding. Call the \`start_development\` tool to begin. Do NOT attempt any file edits or tool executions until a workflow is active.`,
+              text: `No Active Workflow Detected. You MUST initiate a new development workflow before proceeding. First, create a new branch with a meaningful name using a conventional commit prefix (e.g., \`feat/add-new-feature\`, \`fix/bug-description\`, \`refactor/improve-logic\`). Then call the \`start_development\` tool to begin. Do NOT attempt any file edits or tool executions until a workflow is active.`,
             } as (typeof output.parts)[0]);
             return;
           }
@@ -397,7 +397,7 @@ export const WorkflowsPlugin: Plugin = async (
               messageID: hookInput.messageID || output.message.id,
               type: 'text' as const,
               synthetic: true,
-              text: `No Active Workflow Detected. You MUST initiate a new development workflow before proceeding. Call the \`start_development\` tool to begin. Do NOT attempt any file edits or tool executions until a workflow is active.`,
+              text: `No Active Workflow Detected. You MUST initiate a new development workflow before proceeding. First, create a new branch with a meaningful name using a conventional commit prefix (e.g., \`feat/add-new-feature\`, \`fix/bug-description\`, \`refactor/improve-logic\`). Then call the \`start_development\` tool to begin. Do NOT attempt any file edits or tool executions until a workflow is active.`,
             } as (typeof output.parts)[0]);
             return;
           }
