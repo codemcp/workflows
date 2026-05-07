@@ -24,8 +24,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "effect": "4.0.0-beta.48",
-    "zod": "^4.1.8"
+    "effect": "4.0.0-beta.48"
   },
   "devDependencies": {
     "@codemcp/workflows-core": "workspace:*",
@@ -35,11 +34,15 @@
     "vitest": "4.0.18"
   },
   "peerDependencies": {
-    "@anthropic-ai/sdk": "*"
+    "@anthropic-ai/sdk": "*",
+    "zod": ">=4.1.8"
   },
   "peerDependenciesMeta": {
     "@anthropic-ai/sdk": {
       "optional": true
+    },
+    "zod": {
+      "optional": false
     }
   },
   "keywords": [
