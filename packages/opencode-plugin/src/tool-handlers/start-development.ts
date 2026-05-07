@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import {
   StartDevelopmentHandler,
+  generateWorkflowDescription,
+  buildWorkflowEnum,
   type WhatsNextResult,
   type ServerContext,
 } from '@codemcp/workflows-server';
@@ -33,7 +35,9 @@ export function createStartDevelopmentTool(
   return tool({
     description: toolDescription,
     args: {
-      workflow: z.string().describe('Workflow name'),
+      workflow: z
+        .enum(buildWorkflowEnum(workflowNames))
+        .describe(generateWorkflowDescription(availableWorkflows)),
       require_reviews: z
         .boolean()
         .optional()

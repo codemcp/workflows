@@ -19,6 +19,12 @@ export {
 // Re-export tool handlers for external use (e.g., OpenCode plugin)
 export * from './tool-handlers/index.js';
 
+// Re-export helper functions for workflow description generation (used by OpenCode plugin)
+export {
+  generateWorkflowDescription,
+  buildWorkflowEnum,
+} from './server-helpers.js';
+
 // Re-export types needed by external consumers
 export type { ServerContext, HandlerResult, SessionMetadata } from './types.js';
 
