@@ -55,6 +55,34 @@ Rationale:
 - No code changes needed in tool handlers — `.describe()` calls stay identical
 - Verified: Option A produces correct JSON Schema with all descriptions
 
+**Why Option A alone is insufficient (post-implementation learning):**
+- OpenCode is distributed as a **compiled Bun binary** — zod is bundled inside the binary
+- `peerDependencies` hoisting is irrelevant when host's zod is in a compiled bundle
+- Even with peerDeps, in monorepo dev setup another package pulls zod 4.3.6 into plugin/node_modules
+- Confirmed: `import('zod')` from plugin context resolves to plugin's 4.3.6, not OC's 4.1.8
+
+**Final implementation: Option A + Option C (tool.definition hook with dynamic import)**
+
+The `tool.definition` hook bridges registries:
+1. Receives `output.parameters` (ZodObject created by host's zod.object(def.args))
+2. Reads field descriptions via `.description` getter (works cross-instance from plugin's registry)
+3. Dynamically imports `'zod'` — in production (no local node_modules/zod), this resolves to host's zod
+4. Registers each field schema's description into host's `globalRegistry`
+5. When host calls `z.toJSONSchema(output.parameters)`, it now finds all descriptions
+
+**Why dynamic import works in production:**
+- When installed as a package (peerDep), plugin has no local `node_modules/zod`
+- ESM dynamic `import('zod')` resolves up the file tree to host's (OpenCode's) zod
+- Module cache returns the same singleton — same `globalRegistry` — descriptions found ✅
+
+**Registry bridge research (exhaustive):**
+- `bag` property on schema: NOT where descriptions are stored
+- `_zod.parent` trick: loses type info (toJSONSchema treats schema as ref to parent type)
+- `ZodRegistry.prototype.add` patch: works but requires having a ZodRegistry instance
+- Cross-instance `$ZodRegistry.prototype`: different class instances per module, patching one doesn't affect the other
+- `toJSONSchema({ metadata: pluginRegistry })`: works but can't change OC's hardcoded call
+- Dynamic import approach: cleanest workable solution for production
+
 ## Implementation Plan (Code Phase Tasks)
 
 1. **`opencode-plugin/package.json`**: Move `zod` from `dependencies` to `peerDependencies` with version `">=4.1.8"`
