@@ -161,12 +161,21 @@ The core challenge: from within the plugin, we needed a reference to OpenCode's 
 
 ### Final Working Solution
 
-Dynamic `import('zod')` in the `tool.definition` hook + `globalRegistry.add()` for each field schema:
-- Works because in production (peerDep, no local copy) the import resolves to host's zod module cache
-- `output.parameters._zod.def.shape` gives access to the original plugin field schemas
-- `fieldSchema.description` reads from plugin's registry cross-instance (it's just a getter calling `core.globalRegistry.get(inst)`)
-- `hostRegistry.add(fieldSchema, { description })` makes the SAME schema object findable in host's registry
-- All 64 tests pass
+**Embed workflow descriptions in the tool `description` string** (not in `.describe()` on the arg schema).
+
+All previous approaches (`globalRegistry` bridging, `tool.definition` hook, dynamic zod import) were abandoned after confirming via LLM inspection that OpenCode **never propagates Zod parameter `.describe()` text to the LLM at all** — confirmed by embedding a canary string `DESCRIPTION_TEST_CANARY_12345` via `.describe()` which was invisible to the LLM even after a fresh session.
+
+The tool `description` field IS propagated. Fix: embed the workflow enum descriptions directly there:
+```
+Start a development workflow.
+
+workflow parameter — available values:
+  - epcc: EPCC — <description>
+  - bugfix: Bugfix — <description>
+  - custom: Use a custom workflow name
+```
+
+All 286 tests pass. `generateWorkflowDescription()` import removed from `start-development.ts` (no longer needed). `tool.definition` hook removed from `plugin.ts`. `.describe()` calls on args left in place (harmless).
 
 ## Implementation Plan (Code Phase Tasks)
 

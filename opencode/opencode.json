@@ -1,0 +1,130 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "@ex-machina/opencode-anthropic-auth@1.8.0",
+    "/Users/oliverjaegle/projects/privat/codemcp/workflows/packages/opencode-plugin/dist/index.js"
+  ],
+  "provider": {
+    "@ai-sdk/openai-compatible": {
+      "name": "llama.cpp",
+      "options": {
+        "baseURL": "http://flinker:8080/v1"
+      },
+      "models": {
+        "Qwen3-Coder-30B-A3B-Instruct-UD-Q8_K_XL.gguf": {
+          "name": "Qwen3-Coder"
+        },
+        "gpt-oss-120b-F16.gguf": {
+          "name": "gpt-oss-120b"
+        },
+        "devstral2-small": {
+          "name": "Devstral-Small-2-24B-Instruct-2512-UD-Q8_K_XL.gguf"
+        }
+      }
+    }
+  },
+  "mcp": {
+    "workflows": {
+      "command": ["npx", "@codemcp/workflows@latest"],
+      "type": "local",
+      "environment": {
+        "COMMIT_BEHAVIOR": "end"
+      },
+      "enabled": false
+    },
+    "knowledge": {
+      "command": ["npx", "@codemcp/knowledge@latest"],
+      "type": "local"
+    },
+    "quiet_shell": {
+      "command": ["npx", "@codemcp/quiet-shell@latest"],
+      "type": "local",
+      "enabled": true
+    },
+    "prompts": {
+      "command": ["npx", "@codemcp/prompts@latest"],
+      "type": "local"
+    },
+    "crowd-mcp-local": {
+      "command": [
+        "node",
+        "/Users/oliverjaegle/projects/privat/mcp-server/crowd/packages/server/dist/index.js"
+      ],
+      "environment": {
+        "CROWD_DEMO_MODE": "true",
+        "OPERATOR_NAME": "Oliver",
+        "CROWD_LOG_LEVEL": "WARN"
+      },
+      "type": "local",
+      "enabled": false
+    },
+    "kinderspiel": {
+      "command": ["npx", "@codemcp/workflows@latest"],
+      "type": "local",
+      "enabled": false,
+      "environment": {
+        "VIBE_WORKFLOW_DOMAINS": "children"
+      }
+    }
+  },
+  "permission": {
+    "proceed_to_phase": "ask"
+  },
+  "agent": {
+    "vibe": {
+      "description": "Responsible vibe development agent with structured workflows",
+      "mode": "primary",
+      "prompt": "IMPORTANT: ALWAYS use whats_next after every user message to determine the next steps.\n Follow the instructions you get from whats_next exactly!\nIMPORTANT: You may also receive errors. Those errors also contain instructions how to proceed. NEVER ignore errors from the mcp tools, but ALWAYS follow the instructions in the errors.\n",
+      "tools": { "workflows": true },
+      "permission": {
+        "workflows_reset_development": "ask",
+        "workflows_start_development": "ask",
+        "workflows_proceed_to_phase": "ask"
+      }
+    },
+    "crowd": {
+      "description": "Manages subagents",
+      "mode": "primary",
+      "prompt": "You are a development project lead for software development projects. Use spawn_agent tool to employ agents for a specific capability. Assign atomic, well-described tasks.",
+      "tools": {
+        "workflows*": false,
+        "crowd-mcp-local*": true
+      }
+    },
+    "research": {
+      "description": "Research and development",
+      "mode": "primary",
+      "prompt": "You are a researcher who knows the docs of particular systems and processes. Always search the docs for the questions you are asked and make sure to give precise, but compact answers and edits. If you don't find anything in the docs, respond clearly that you do not know about this topic",
+      "tools": {
+        "knowledge*": true
+      }
+    },
+    "powerpoint": {
+      "description": "PowerPoint presentation generation",
+      "mode": "primary",
+      "prompt": "You are a tool that generates PowerPoint presentations from text prompts. Use the ppt-mcp tools manipulate the slides.",
+      "tools": {
+        "ppt-mcp*": true
+      }
+    },
+    "kinderspiel": {
+      "description": "Ein Agent, der Kindern beim Entwickeln von Spielen hilft",
+      "mode": "primary",
+      "prompt": "You are a friendly, patient, and encouraging AI assistant helping a child (ages 8-12) learn game development.\n\n## 🌍 Language (CRITICAL)\n\n**Detect and match the child's language immediately:**\n\n- All responses, documents, and code comments in their language\n- Never switch languages mid-conversation\n\n## 🎨 Your Language and Tone\n\n- **Simple language**, short sentences\n- **Enthusiastic** like an excited older sibling\n- **Patient** - never rushed\n- **Celebratory** - every small win matters\n- **Supportive** - mistakes are learning opportunities\n\n## 🔧 Tools You MUST Use\n\n### Start the Workflow\n\n```\nstart_development({\n  workflow: \"game-beginner\",\n  require_reviews: true,\n  commit_behaviour: \"phase\"\n})\n```\n\nIf you need to create project docs, link  docs if they already exist in .vibe/docs\n\n### After Each User Message\n\n```\nwhats_next({\n  context: \"Brief summary of current situation\",\n  user_input: \"What the user just said\",\n  conversation_summary: \"Overall progress\",\n  recent_messages: [...]\n})\n```\n\n**Then follow the instructions you receive exactly!**\nYou're inspiring future creators! 🚀\n",
+      "tools": {
+        "kinderspiel*": true,
+        "crowd-mcp-local*": false,
+        "workflows": false
+      }
+    },
+    "workflow": {
+      "description": "Metal alignment over autonomy",
+      "prompt": "You follow a defined workflow that helps you be in sync with the user.",
+      "permission": {
+        "start_development": "ask",
+        "reset_development": "ask",
+        "proceed_to_phase": "ask"
+      }
+    }
+  }
+}

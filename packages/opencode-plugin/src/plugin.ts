@@ -797,51 +797,6 @@ ACTION REQUIRED: Use proceed_to_phase tool to move to a phase that allows editin
         ),
       };
     })(),
-
-    /**
-     * Bridge Zod .describe() descriptions from plugin's registry into host's registry.
-     *
-     * Problem: this plugin uses a different zod instance than OpenCode (host). In Zod v4,
-     * .describe() stores descriptions in a module-level globalRegistry singleton. When
-     * OpenCode calls z.toJSONSchema(parameters), it reads from its own registry which has
-     * no entries for plugin schemas — so all parameter descriptions are missing from the
-     * JSON Schema sent to the LLM.
-     *
-     * Solution: dynamically import 'zod' at hook call time. When the plugin is installed
-     * without its own node_modules/zod (zod is a peerDependency), this import resolves to
-     * the host's (OpenCode's) zod module — the same instance used when creating
-     * output.parameters. We then register each field schema's description into the host's
-     * globalRegistry, making them visible to the subsequent z.toJSONSchema() call.
-     */
-    'tool.definition': async (
-      _input: { toolID: string },
-      output: { description: string; parameters: unknown }
-    ): Promise<void> => {
-      try {
-        const parameters = output.parameters as {
-          _zod?: { def?: { shape?: Record<string, { description?: string }> } };
-        };
-        const shape = parameters?._zod?.def?.shape;
-        if (!shape) return;
-
-        // Dynamically import zod — in production (installed without local node_modules/zod),
-        // this resolves to the host's zod instance, sharing the same globalRegistry.
-        const { globalRegistry: hostRegistry } = await import('zod');
-
-        for (const [_key, fieldSchema] of Object.entries(shape)) {
-          const desc = fieldSchema?.description;
-          if (desc && typeof desc === 'string') {
-            (
-              hostRegistry as {
-                add(schema: unknown, meta: { description: string }): void;
-              }
-            ).add(fieldSchema, { description: desc });
-          }
-        }
-      } catch {
-        // Silently ignore — descriptions are a nice-to-have, not critical
-      }
-    },
   };
 };
 
