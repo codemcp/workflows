@@ -83,6 +83,91 @@ The `tool.definition` hook bridges registries:
 - `toJSONSchema({ metadata: pluginRegistry })`: works but can't change OC's hardcoded call
 - Dynamic import approach: cleanest workable solution for production
 
+### All Investigated Approaches to Get Host's globalRegistry
+
+The core challenge: from within the plugin, we needed a reference to OpenCode's `globalRegistry` object (a `$ZodRegistry` instance). All approaches tried:
+
+**1. Static import of `'zod'` (plugin's own copy)**
+- `import { globalRegistry } from 'zod'` → resolves to plugin's zod 4.3.6 registry (wrong)
+- Even after moving to peerDep, monorepo still has plugin/node_modules/zod@4.3.6 (pulled by another workspace pkg)
+
+**2. Dynamic import of `'zod'` (production-only fix)**
+- `await import('zod')` from plugin code → also resolves to plugin's local zod in dev/monorepo
+- In **production** (no local node_modules/zod), this correctly resolves to host's zod ✅
+- Chosen approach — acceptable since dev uses known setup
+
+**3. `_zod.bag` property on schema**
+- Hypothesis: descriptions stored in `_zod.bag` (a per-instance metadata bag)
+- Result: `_zod.bag` is always `{}` for described schemas — NOT used for descriptions
+
+**4. `_zod.parent` trick**
+- `fieldSchema._zod.parent = ocDummySchema; ocRegistry.add(ocDummySchema, { description })`
+- `$ZodRegistry.get()` inherits from parent: `{ ...parentMeta, ...schemaOwnMeta }`
+- Result: `toJSONSchema` treats `_zod.parent` as a `$ref` clone relationship, outputs only `{ description }` with NO type info — field type entirely lost ❌
+
+**5. `toJSONSchema({ metadata: pluginRegistry })` option**
+- `JSONSchemaGenerator` accepts `params?.metadata` to override the default `globalRegistry`
+- `z.toJSONSchema(parameters, { metadata: pluginRegistry })` — WORKS in isolation ✅
+- Problem: OC's `prompt.ts:406` call is hardcoded as `z.toJSONSchema(item.parameters)` — we can't inject the option ❌
+
+**6. `$ZodRegistry.prototype.add` temporary monkey-patch**
+- Patch the prototype's `add` method; call `parameters.describe("probe")`; `this` inside `add` = the actual registry
+- WORKS in isolation ✅ (confirmed in test)
+- Problem: to get `$ZodRegistry.prototype`, need a `$ZodRegistry` instance first (circular)
+- `$ZodRegistry` is exported from `zod/v4/core`, but that resolves to plugin's zod in dev
+
+**7. Cross-instance `$ZodRegistry.prototype` patch**
+- Plugin's `$ZodRegistry.prototype` vs OC's `$ZodRegistry.prototype` → **different objects** (different module instances)
+- Patching plugin's prototype does NOT affect OC's globalRegistry ❌
+
+**8. Extract registry via `parameters.describe()` closure**
+- `describe()` is a closure: `(desc) => { core.globalRegistry.add(clone, {description}); return clone }`
+- `core.globalRegistry` is captured in closure — cannot be extracted from outside
+- Tried: wrapping `parameters.describe`, using Proxy, inspecting closure variables — all failed
+
+**9. `parameters.register(fakeReg, meta)` → `fakeReg.add(schema, meta)`**
+- `register(reg, meta)` just calls `reg.add(inst, meta)` with whatever `reg` we pass
+- We can intercept our own fake `reg.add` but that doesn't give us the HOST registry
+- Useful for writing TO a registry we provide, not for discovering the host's ❌
+
+**10. `WeakMap.prototype.set` monkey-patch**
+- `$ZodRegistry._map` is a `WeakMap`; `add()` calls `this._map.set(schema, meta)`
+- Patching `WeakMap.prototype.set` could intercept the write, but we'd get the WeakMap, not the registry
+- Too globally invasive ❌
+
+**11. Reconstructing parameters using `_zod.constr`**
+- `parameters._zod.constr` is the ZodObject constructor from host's zod
+- Can create new schema instances via `new parameters._zod.constr(def)`
+- Doesn't help: recreating schemas is complex, and we'd still need host's `describe()` context
+
+**12. `meta()` method**
+- `schema.meta()` (no args) → `core.globalRegistry.get(schema)` — returns metadata object or undefined
+- `schema.meta(obj)` → `core.globalRegistry.add(clone, obj); return clone` — same as describe() pattern
+- Cannot extract the registry from either form
+
+**13. `parameters.meta()` as registry sentinel**
+- After `parameters.describe("probe")`, the clone is IN host's registry
+- `clone.description === "probe"` confirms host registry works
+- Still no way to get a reference to the registry from the clone
+
+### How Descriptions Are Actually Stored (Zod v4 internals)
+
+- `describe(desc)`: `const cl = inst.clone(); core.globalRegistry.add(cl, { description: desc }); return cl`
+- `description` getter: `core.globalRegistry.get(inst)?.description`
+- `$ZodRegistry.get(schema)`: checks `schema._zod.parent` for inheritance, then `_map.get(schema)`
+- `JSONSchemaGenerator._metadataRegistry`: set from `params?.metadata ?? registries_js_1.globalRegistry`
+- During schema emit: `const meta = this.metadataRegistry.get(schema); if (meta) Object.assign(result.schema, meta)`
+- Descriptions (and all other metadata) are stored in `$ZodRegistry._map` (a `WeakMap<schema, meta>`)
+
+### Final Working Solution
+
+Dynamic `import('zod')` in the `tool.definition` hook + `globalRegistry.add()` for each field schema:
+- Works because in production (peerDep, no local copy) the import resolves to host's zod module cache
+- `output.parameters._zod.def.shape` gives access to the original plugin field schemas
+- `fieldSchema.description` reads from plugin's registry cross-instance (it's just a getter calling `core.globalRegistry.get(inst)`)
+- `hostRegistry.add(fieldSchema, { description })` makes the SAME schema object findable in host's registry
+- All 64 tests pass
+
 ## Implementation Plan (Code Phase Tasks)
 
 1. **`opencode-plugin/package.json`**: Move `zod` from `dependencies` to `peerDependencies` with version `">=4.1.8"`
