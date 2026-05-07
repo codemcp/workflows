@@ -172,9 +172,19 @@ export const WorkflowsPlugin: Plugin = async (
   // duplicate synthetic part for that specific message.
   let postCompactionMessagePending = false;
 
+  // Set to true right after session.compacted fires so that the very next
+  // chat.message (OpenCode's own auto-continue) bypasses the agent filter
+  // and injects proper phase instructions instead of a suppression notice.
+  let postCompactionAutoResume = false;
+
   // Last-known model from chat.message hook. Cached so proceed_to_phase can
   // pass providerID + modelID to the summarize API (which requires them).
   let lastKnownModel: { providerID: string; modelID: string } | null = null;
+
+  // Last-known agent from chat.message hook. Used when sending the
+  // post-compaction phase-aware continue message so it runs under the
+  // correct agent (e.g. 'workflow') rather than OpenCode's default.
+  let lastKnownAgent: string | null = null;
 
   /**
    * Set buffered instructions from a tool result.
@@ -305,6 +315,13 @@ export const WorkflowsPlugin: Plugin = async (
         lastKnownModel = hookInput.model;
       }
 
+      // Cache the agent for use by the post-compaction continue message.
+      // Only cache when the agent is enabled (i.e. a primary workflow agent),
+      // so we don't accidentally cache a subagent name.
+      if (hookInput.agent && isAgentEnabled(hookInput.agent)) {
+        lastKnownAgent = hookInput.agent;
+      }
+
       // If this message was the post-compaction instructions prompt sent by Hook 4,
       // skip synthetic part injection — the message body IS the instructions.
       if (postCompactionMessagePending) {
@@ -315,6 +332,19 @@ export const WorkflowsPlugin: Plugin = async (
         return;
       }
 
+      // After compaction, OpenCode sends an auto-continue message which may arrive
+      // as a non-workflow agent (e.g. 'build'). In that case we still want to inject
+      // the phase instructions rather than the suppression/no-workflow notice, so we
+      // consume the flag and fall through to normal phase-instruction injection below.
+      const bypassAgentFilter = postCompactionAutoResume;
+      if (bypassAgentFilter) {
+        postCompactionAutoResume = false;
+        logger.debug(
+          'chat.message: bypassing agent filter for post-compaction auto-resume',
+          { agent: hookInput.agent }
+        );
+      }
+
       // If WORKFLOW_AGENTS is set and this agent is not in the allowlist, inject a
       // suppression instruction as a synthetic part so the LLM knows not to call the
       // workflow tools (which would only throw errors for non-enabled agents).
@@ -322,7 +352,7 @@ export const WorkflowsPlugin: Plugin = async (
       //   1. chat.message already has hookInput.agent directly — no stale-state risk.
       //   2. chat.message fires reliably for every user turn; transform may fire for
       //      intermediate tool-loop LLM calls without a preceding chat.message.
-      if (!isAgentEnabled(hookInput.agent)) {
+      if (!bypassAgentFilter && !isAgentEnabled(hookInput.agent)) {
         logger.debug(
           'chat.message: Agent not enabled — injecting tool suppression',
           {
@@ -560,6 +590,11 @@ ACTION REQUIRED: Use proceed_to_phase tool to move to a phase that allows editin
 
       if (event.type === 'session.compacted') {
         postCompactionSession = event.properties.sessionID as string;
+        // Set flag so the next chat.message (OpenCode's own auto-continue,
+        // which may fire as a non-workflow agent like 'build') bypasses the
+        // agent filter and injects proper phase instructions instead of a
+        // suppression/no-workflow notice.
+        postCompactionAutoResume = true;
         logger.info('session.compacted: pending phase-aware continue', {
           sessionID: postCompactionSession,
         });
@@ -614,7 +649,10 @@ ACTION REQUIRED: Use proceed_to_phase tool to move to a phase that allows editin
             session: {
               promptAsync(params: {
                 path: { id: string };
-                body: { parts: Array<{ type: string; text: string }> };
+                body: {
+                  parts: Array<{ type: string; text: string }>;
+                  agent?: string;
+                };
               }): Promise<unknown>;
             };
           };
@@ -622,6 +660,7 @@ ACTION REQUIRED: Use proceed_to_phase tool to move to a phase that allows editin
             path: { id: sessionID },
             body: {
               parts: [{ type: 'text', text: promptText }],
+              ...(lastKnownAgent ? { agent: lastKnownAgent } : {}),
             },
           });
           logger.info('session.idle: phase-aware continue sent (async)', {
