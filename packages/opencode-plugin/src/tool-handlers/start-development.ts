@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import {
   StartDevelopmentHandler,
-  generateWorkflowDescription,
   buildWorkflowEnum,
   type WhatsNextResult,
   type ServerContext,
@@ -26,18 +25,20 @@ export function createStartDevelopmentTool(
     workflowManager.getAvailableWorkflowsForProject(projectDir);
   const workflowNames = availableWorkflows.map(w => w.name);
 
-  // Build tool description with workflow list
+  // Build tool description with full workflow details embedded,
+  // since OpenCode does not propagate Zod .describe() to the LLM.
+  const workflowLines = availableWorkflows
+    .map(w => `  - ${w.name}: ${w.displayName} — ${w.description}`)
+    .join('\n');
   const toolDescription =
     workflowNames.length > 0
-      ? `Start a development workflow. Available: ${workflowNames.join(', ')}`
+      ? `Start a development workflow.\n\nworkflow parameter — available values:\n${workflowLines}\n  - custom: Use a custom workflow name`
       : 'Start a development workflow (no workflows available - check WORKFLOW_DOMAINS)';
 
   return tool({
     description: toolDescription,
     args: {
-      workflow: z
-        .enum(buildWorkflowEnum(workflowNames))
-        .describe(generateWorkflowDescription(availableWorkflows)),
+      workflow: z.enum(buildWorkflowEnum(workflowNames)),
       require_reviews: z
         .boolean()
         .optional()
