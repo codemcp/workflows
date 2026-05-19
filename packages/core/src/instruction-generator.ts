@@ -117,7 +117,7 @@ export class InstructionGenerator implements IInstructionGenerator {
 
 **When all tasks are completed**: Make sure that all insights and decisions are captured in \`${conversationContext.planFilePath}\`. Then call proceed_to_phase to move to the next phase.
 
-**CRITICAL: Do NOT use other task/todo tools** - use only the plan file for task tracking`;
+**CRITICAL: Do NOT use other task/todo tools** - use only the development plan (\`${conversationContext.planFilePath}\`) for task tracking`;
 
     // Add file restriction guidance if patterns are restricted
     if (
