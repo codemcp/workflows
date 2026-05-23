@@ -15,6 +15,38 @@ import { ConfigManager } from './config-manager.js';
 
 const logger = createLogger('WorkflowManager');
 
+/**
+ * Domain descriptions for tool parameter metadata.
+ * These are exposed to the LLM via the load_workflows tool to help it
+ * discover and choose domains intelligently.
+ *
+ * Each description summarizes what the domain is suitable for,
+ * based on the actual workflow YAML descriptions.
+ */
+export const DOMAIN_DESCRIPTIONS: Record<string, string> = {
+  code: 'Day-to-day software engineering: features (epcc), test-driven development (tdd), bug fixes (bugfix, minor), greenfield projects (greenfield), large structured development (waterfall), and code reviews (pr-review)',
+  architecture:
+    'System understanding and planning: architectural decisions (adr), legacy system modernization (big-bang-conversion), API and boundary analysis (boundary-testing), business capability modeling (business-analysis), and progressive architecture discovery (c4-analysis)',
+  sdd: 'Specification-driven development: write detailed specs before coding — structured requirements, user stories, testability focus, and constitutional compliance gates for bugfixes, features, and greenfield projects',
+  'sdd-crowd':
+    'Multi-agent collaborative specification-driven development: role-based handoffs between business analysts (specify), architects (plan), and developers (implement) for coordinated distributed teams',
+  skilled:
+    'Skill-augmented development: explicit prompts to apply specialized expertise (architecture, coding, testing, application design) at each phase — for scenarios where best practices and domain expertise should be leveraged',
+  office:
+    'Content creation and communication: structured workflows for writing blog posts (discovery through distribution) and creating slide presentations (ideate through deliver)',
+  children:
+    'Educational game development for children ages 8-12: simplified, age-appropriate programming concepts with frequent positive reinforcement and incremental achievement',
+};
+
+export interface WorkflowManagerOptions {
+  /**
+   * Default domains to use for workflow filtering.
+   * Takes precedence over all environment variables.
+   * Can be a comma-separated string or an array of domain names.
+   */
+  defaultDomains?: string | string[];
+}
+
 export interface WorkflowInfo {
   name: string;
   displayName: string;
@@ -41,43 +73,88 @@ export class WorkflowManager {
   private stateMachineLoader: StateMachineLoader;
   private lastProjectPath: string | null = null; // Track last loaded project path
   private enabledDomains: Set<string>;
+  private _defaultDomains: string | string[] | null = null; // Constructor override
 
-  constructor() {
+  constructor(options?: WorkflowManagerOptions) {
     this.stateMachineLoader = new StateMachineLoader();
+    if (options?.defaultDomains !== undefined) {
+      this._defaultDomains = options.defaultDomains;
+    }
     this.enabledDomains = this.parseEnabledDomains();
     this.loadPredefinedWorkflows();
   }
 
   /**
-   * Parse enabled domains from environment variable.
-   * WORKFLOW_DOMAINS is the canonical name.
-   * VIBE_WORKFLOW_DOMAINS is supported as a legacy alias for backward compatibility.
-   * WORKFLOW_DOMAINS takes precedence when both are set.
+   * Parse enabled domains from environment variable with four-level precedence chain:
+   * 1. Constructor parameter `defaultDomains` (highest priority)
+   * 2. `WORKFLOW_DOMAINS` env var (canonical runtime configuration)
+   * 3. `DEFAULT_DOMAINS` env var (new: runtime default when canonical is unset)
+   * 4. `VIBE_WORKFLOW_DOMAINS` env var (legacy alias for backward compatibility)
+   * 5. Empty Set — final fallback: no filtering, all workflows load
    */
   private parseEnabledDomains(): Set<string> {
-    // WORKFLOW_DOMAINS (canonical) takes precedence over VIBE_WORKFLOW_DOMAINS (legacy alias)
-    const domainsEnv =
-      process.env['WORKFLOW_DOMAINS'] || process.env['VIBE_WORKFLOW_DOMAINS'];
-
-    if (!domainsEnv) {
-      logger.debug('No domain configuration found, using default: code');
-      return new Set(['code']);
+    // 1. Constructor parameter (highest priority)
+    if (this._defaultDomains !== null) {
+      const domains = new Set(
+        Array.isArray(this._defaultDomains)
+          ? this._defaultDomains
+          : this._defaultDomains
+              .split(',')
+              .map(d => d.trim())
+              .filter(d => d)
+      );
+      logger.debug('Using constructor default domains', {
+        domains: Array.from(domains),
+      });
+      return domains;
     }
 
+    // 2. WORKFLOW_DOMAINS (canonical)
+    if (process.env['WORKFLOW_DOMAINS']) {
+      return this._parseDomainString(
+        process.env['WORKFLOW_DOMAINS'],
+        'WORKFLOW_DOMAINS'
+      );
+    }
+
+    // 3. DEFAULT_DOMAINS (new: runtime default)
+    if (process.env['DEFAULT_DOMAINS']) {
+      return this._parseDomainString(
+        process.env['DEFAULT_DOMAINS'],
+        'DEFAULT_DOMAINS'
+      );
+    }
+
+    // 4. VIBE_WORKFLOW_DOMAINS (legacy alias)
+    if (process.env['VIBE_WORKFLOW_DOMAINS']) {
+      return this._parseDomainString(
+        process.env['VIBE_WORKFLOW_DOMAINS'],
+        'VIBE_WORKFLOW_DOMAINS (legacy)'
+      );
+    }
+
+    // 5. Empty Set — no filtering, all workflows load
+    logger.debug('No domain configuration found, loading all workflows');
+    return new Set();
+  }
+
+  /**
+   * Parse a comma-separated domain string into a Set.
+   */
+  private _parseDomainString(
+    domainString: string,
+    source: string
+  ): Set<string> {
     const domains = new Set(
-      domainsEnv
+      domainString
         .split(',')
         .map(d => d.trim())
         .filter(d => d)
     );
-
     logger.debug('Parsed enabled domains', {
-      source: process.env['WORKFLOW_DOMAINS']
-        ? 'WORKFLOW_DOMAINS'
-        : 'VIBE_WORKFLOW_DOMAINS (legacy)',
+      source,
       domains: Array.from(domains),
     });
-
     return domains;
   }
 
@@ -183,12 +260,17 @@ export class WorkflowManager {
     }
   }
   /**
-   * Get all available workflows regardless of domain filtering
+   * Get all available workflows regardless of domain filtering.
+   * Uses DEFAULT_ALL_DOMAINS env var if set, otherwise falls back to all known domains.
    */
   public getAllAvailableWorkflows(): WorkflowInfo[] {
     // Create a temporary manager with all domains enabled
     const originalEnv = process.env['WORKFLOW_DOMAINS'];
-    process.env['WORKFLOW_DOMAINS'] = 'code,architecture,office,sdd';
+    const allDomains =
+      process.env['DEFAULT_ALL_DOMAINS'] ||
+      'code,architecture,office,sdd,sdd-crowd,skilled,children';
+
+    process.env['WORKFLOW_DOMAINS'] = allDomains;
 
     try {
       const tempManager = new WorkflowManager();
@@ -200,6 +282,73 @@ export class WorkflowManager {
         delete process.env['WORKFLOW_DOMAINS'];
       }
     }
+  }
+
+  /**
+   * Get information about any currently active workflow.
+   * Returns null if no active workflow is detected.
+   */
+  private getActiveWorkflow(): WorkflowInfo | null {
+    // Check if any loaded workflow has metadata indicating it's active.
+    // Since WorkflowManager doesn't track conversation state directly,
+    // we return null here. The actual active workflow detection is handled
+    // by ConversationManager. This method exists as a placeholder for
+    // future integration if needed.
+    return null;
+  }
+
+  /**
+   * Replace the current domain set and reload workflows.
+   *
+   * This allows runtime switching of domains without recreating the WorkflowManager.
+   * Validates domains against known set and checks for active workflow conflicts.
+   *
+   * @param domains - Comma-separated string or array of domain names
+   * @throws Error if an unknown domain is provided or if switching would conflict with an active workflow
+   */
+  public setDomains(domains: string | string[]): void {
+    const newSet = new Set(
+      Array.isArray(domains)
+        ? domains
+        : domains
+            .split(',')
+            .map(d => d.trim())
+            .filter(d => d)
+    );
+
+    // Validate domains against known set
+    const knownDomains = new Set(Object.keys(DOMAIN_DESCRIPTIONS));
+    for (const domain of newSet) {
+      if (!knownDomains.has(domain)) {
+        throw new Error(
+          `Unknown domain: '${domain}'. Known domains: ${Array.from(knownDomains).join(', ')}`
+        );
+      }
+    }
+
+    // Guard: check for active workflow conflict
+    const activeWorkflow = this.getActiveWorkflow();
+    if (
+      activeWorkflow &&
+      activeWorkflow.metadata?.domain &&
+      !newSet.has(activeWorkflow.metadata.domain)
+    ) {
+      throw new Error(
+        `Cannot switch domains: active workflow '${activeWorkflow.name}' is in domain '${activeWorkflow.metadata.domain}', which is not in the new set. Finish or reset the current workflow first.`
+      );
+    }
+
+    // Update and reload
+    this.enabledDomains = newSet;
+    this.loadPredefinedWorkflows();
+    if (this.lastProjectPath) {
+      this.loadProjectWorkflows(this.lastProjectPath);
+    }
+
+    logger.info('Domains updated', {
+      domains: Array.from(newSet),
+      totalWorkflows: this.predefinedWorkflows.size,
+    });
   }
 
   public getAvailableWorkflows(): WorkflowInfo[] {
@@ -525,6 +674,10 @@ export class WorkflowManager {
    */
   private loadPredefinedWorkflows(): void {
     try {
+      // Clear existing workflows before reloading (important for setDomains)
+      this.predefinedWorkflows.clear();
+      this.workflowInfos.clear();
+
       const workflowsDir = this.findWorkflowsDirectory();
 
       if (!workflowsDir || !fs.existsSync(workflowsDir)) {

@@ -469,6 +469,39 @@ export async function registerMcpTools(
     createToolHandler('list_workflows', toolRegistry, responseRenderer, context)
   );
 
+  // Register load_workflows tool — allows LLM to dynamically load domains
+  mcpServer.registerTool(
+    'load_workflows',
+    {
+      description:
+        'Load workflows from one or more domains. Replaces the current domain set with the specified domains. Use this tool when you need to access workflows from a domain that is not currently loaded. The tool will reload all workflows for the specified domains.',
+      inputSchema: {
+        domains: z
+          .string()
+          .describe(
+            'Comma-separated domain names to load. Replaces the current domain set.\n\n' +
+              'Available domains:\n' +
+              '  - code: Day-to-day software engineering (features, TDD, bugfixes, greenfield, code reviews, structured development)\n' +
+              '  - architecture: System understanding and planning (architectural decisions, legacy modernization, capability modeling, boundary analysis)\n' +
+              '  - sdd: Specification-driven development — write detailed specs before coding\n' +
+              '  - sdd-crowd: Multi-agent collaborative SDD with role-based handoffs (analyst, architect, developer)\n' +
+              '  - skilled: Skill-augmented development — explicit prompts to apply expertise (architecture, coding, testing)\n' +
+              '  - office: Content creation and communication (blog posts, slide presentations)\n' +
+              '  - children: Educational game development for ages 8-12\n\n' +
+              'Examples: "code", "code,architecture", "architecture,office"'
+          ),
+      },
+      annotations: {
+        title: 'Workflow Domain Loader',
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    createToolHandler('load_workflows', toolRegistry, responseRenderer, context)
+  );
+
   // Register get_tool_info tool
   mcpServer.registerTool(
     'get_tool_info',

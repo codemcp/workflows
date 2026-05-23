@@ -19,6 +19,7 @@ import { createConductReviewTool } from './tool-handlers/conduct-review.js';
 import { createResetDevelopmentTool } from './tool-handlers/reset-development.js';
 import { createStartDevelopmentTool } from './tool-handlers/start-development.js';
 import { createSetupProjectDocsTool } from './tool-handlers/setup-project-docs.js';
+import { createLoadWorkflowsTool } from './tool-handlers/load-workflows.js';
 import {
   createOpenCodeLogger,
   createOpenCodeLoggerFactory,
@@ -794,6 +795,10 @@ ACTION REQUIRED: Use proceed_to_phase tool to move to a phase that allows editin
         setup_project_docs: wrap(
           'setup_project_docs',
           await createSetupProjectDocsTool(input.directory, getServerContext)
+        ),
+        load_workflows: wrap(
+          'load_workflows',
+          createLoadWorkflowsTool(getServerContext)
         ),
       };
     })(),
