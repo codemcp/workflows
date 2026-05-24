@@ -22,7 +22,7 @@ const LoadWorkflowsArgsSchema = z.object({
   domains: z
     .array(z.string())
     .describe(
-      'Domain names to load. Use domain-info:// resource to discover available domains and their descriptions.'
+      'Domain names to load. Use domain:// resource to discover available domains and their descriptions.'
     ),
 });
 

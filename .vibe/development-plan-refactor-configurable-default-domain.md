@@ -466,7 +466,7 @@ private getActiveWorkflow(): WorkflowInfo | null {
 - **Empty Set fallback**: When no domain config is set, ALL workflows load (no filtering). This is the expected behavior for users who don't configure domain filtering.
 - **`getActiveWorkflow()` returns null**: The actual active workflow detection is handled by `ConversationManager`. The guard in `setDomains()` is a placeholder for future integration.
 - **`loadPredefinedWorkflows()` now clears maps**: This was a pre-existing bug that became visible when `setDomains()` called `loadPredefinedWorkflows()`. Old workflows would accumulate across domain switches.
-- **Domain descriptions in tool parameters**: Both MCP server and OpenCode plugin embed the full domain descriptions in the tool's parameter schema, allowing the LLM to discover and choose domains intelligently.
+- **Domain descriptions as resource**: Domain descriptions are exposed via `domain://` resource (MCP server) rather than embedded in the tool parameter. This keeps the `load_workflows` tool schema lean and reduces LLM context usage. The LLM queries the resource to discover domains before calling the tool. OpenCode plugin uses a simple enum with inline domain list in the description.
 
 ## Commit
 
@@ -476,7 +476,8 @@ private getActiveWorkflow(): WorkflowInfo | null {
 - [x] Create pull request
 
 ### Completed
-- [x] Committed as `1999cd7` on `refactor/configurable-default-domain`
+- [x] Initial commit `1999cd7`: feat — configurable default domain
+- [x] Follow-up commit `80dcf69`: refactor — move domain descriptions from tool parameter to resource
 - [x] PR: https://github.com/codemcp/workflows/pull/281
 
 ### Domain Descriptions (improved)
