@@ -9,32 +9,21 @@
 
 import { z } from 'zod';
 import { BaseToolHandler } from './base-tool-handler.js';
-import { createLogger, DOMAIN_DESCRIPTIONS } from '@codemcp/workflows-core';
+import { createLogger } from '@codemcp/workflows-core';
 import { ServerContext } from '../types.js';
 
 const logger = createLogger('LoadWorkflowsHandler');
 
 /**
- * Domain descriptions for tool parameter metadata.
- * Exposed to the LLM via the tool's parameter description.
- */
-const DOMAIN_DESCRIPTION_TEXT = Object.entries(DOMAIN_DESCRIPTIONS)
-  .map(([domain, description]) => `  - ${domain}: ${description}`)
-  .join('\n');
-
-/**
- * Schema for load_workflows tool arguments
+ * Schema for load_workflows tool arguments.
+ * Domains are passed as an array of strings for type safety.
  */
 const LoadWorkflowsArgsSchema = z.object({
-  domains: z.string().describe(
-    `Comma-separated domain names to load. Replaces the current domain set.
-
-Available domains:
-${DOMAIN_DESCRIPTION_TEXT}
-
-Examples: "code", "code,architecture", "architecture,office"
-`
-  ),
+  domains: z
+    .array(z.string())
+    .describe(
+      'Domain names to load. Use domain-info:// resource to discover available domains and their descriptions.'
+    ),
 });
 
 type LoadWorkflowsArgs = z.infer<typeof LoadWorkflowsArgsSchema>;
@@ -73,21 +62,16 @@ export class LoadWorkflowsHandler extends BaseToolHandler<
       const totalWorkflows =
         context.workflowManager.getAvailableWorkflows().length;
 
-      const domains = args.domains
-        .split(',')
-        .map(d => d.trim())
-        .filter(d => d);
-
       logger.info('Workflows loaded successfully', {
-        domains,
+        domains: args.domains,
         totalWorkflows,
       });
 
       return {
         success: true,
-        domains,
+        domains: args.domains,
         totalWorkflows,
-        message: `Loaded workflows from domains: ${domains.join(', ')}. Total workflows available: ${totalWorkflows}.`,
+        message: `Loaded workflows from domains: ${args.domains.join(', ')}. Total workflows available: ${totalWorkflows}.`,
       };
     } catch (error) {
       const errorMessage =

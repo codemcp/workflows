@@ -1,28 +1,23 @@
 import { z } from 'zod';
-import type { ToolDefinition, ServerContext } from '../types.js';
+import type { ToolDefinition } from '../types.js';
+import type { ServerContext } from '@codemcp/workflows-server';
 import { tool } from './tool-helper.js';
 import { createLogger } from '@codemcp/workflows-core';
 
 const logger = createLogger('LoadWorkflowsHandler');
 
 /**
- * Domain descriptions for tool parameter metadata.
- * Exposed to the LLM via the tool's parameter description.
- * Short summaries for inline tool parameter use.
+ * Known domain names — kept in sync with DOMAIN_DESCRIPTIONS in core.
  */
-const SHORT_DOMAIN_DESCRIPTIONS: Record<string, string> = {
-  code: 'Day-to-day software engineering (features, TDD, bugfixes, greenfield, code reviews)',
-  architecture:
-    'System understanding and planning (architectural decisions, legacy modernization, capability modeling)',
-  sdd: 'Specification-driven development — write detailed specs before coding',
-  'sdd-crowd':
-    'Multi-agent collaborative SDD with role-based handoffs (analyst, architect, developer)',
-  skilled:
-    'Skill-augmented development — explicit prompts to apply expertise (architecture, coding, testing)',
-  office:
-    'Content creation and communication (blog posts, slide presentations)',
-  children: 'Educational game development for ages 8-12',
-};
+const KNOWN_DOMAINS = [
+  'code',
+  'architecture',
+  'sdd',
+  'sdd-crowd',
+  'skilled',
+  'office',
+  'children',
+] as const;
 
 /**
  * Create the load_workflows tool for the OpenCode plugin.
@@ -31,21 +26,14 @@ const SHORT_DOMAIN_DESCRIPTIONS: Record<string, string> = {
 export function createLoadWorkflowsTool(
   getServerContext: () => Promise<ServerContext>
 ): ToolDefinition {
-  const domainText = Object.entries(SHORT_DOMAIN_DESCRIPTIONS)
-    .map(([domain, description]) => `  - ${domain}: ${description}`)
-    .join('\n');
-
   return tool({
     description:
-      'Load workflows from one or more domains. Replaces the current domain set with the specified domains. Use this tool when you need to access workflows from a domain that is not currently loaded. The tool will reload all workflows for the specified domains.',
+      'Load workflows from one or more domains. Replaces the current domain set with the specified domains. Use this tool when you need to access workflows from a domain that is not currently loaded. The tool will reload all workflows for the specified domains. Available domains: code, architecture, sdd, sdd-crowd, skilled, office, children.',
     args: {
       domains: z
-        .string()
+        .array(z.enum(KNOWN_DOMAINS))
         .describe(
-          `Comma-separated domain names to load. Replaces the current domain set.\n\n` +
-            `Available domains:\n` +
-            `${domainText}\n\n` +
-            `Examples: "code", "code,architecture", "architecture,office"`
+          'Domain names to load. Available domains: code, architecture, sdd, sdd-crowd, skilled, office, children.'
         ),
     },
     execute: async args => {
@@ -57,24 +45,19 @@ export function createLoadWorkflowsTool(
         const serverContext = await getServerContext();
         serverContext.workflowManager.setDomains(args.domains);
 
-        const domains = args.domains
-          .split(',')
-          .map(d => d.trim())
-          .filter(d => d);
-
         const totalWorkflows =
           serverContext.workflowManager.getAvailableWorkflows().length;
 
         logger.info('Workflows loaded successfully', {
-          domains,
+          domains: args.domains,
           totalWorkflows,
         });
 
         return JSON.stringify({
           success: true,
-          domains,
+          domains: args.domains,
           totalWorkflows,
-          message: `Loaded workflows from domains: ${domains.join(', ')}. Total workflows available: ${totalWorkflows}.`,
+          message: `Loaded workflows from domains: ${args.domains.join(', ')}. Total workflows available: ${totalWorkflows}.`,
         });
       } catch (error) {
         const errorMessage =

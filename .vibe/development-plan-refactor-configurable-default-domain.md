@@ -471,12 +471,26 @@ private getActiveWorkflow(): WorkflowInfo | null {
 ## Commit
 
 ### Tasks
-- [ ] Commit with conventional commit message
-- [ ] Push branch
+- [x] Commit with conventional commit message
+- [x] Push branch
+- [x] Create pull request
 
 ### Completed
-*None yet*
+- [x] Committed as `1999cd7` on `refactor/configurable-default-domain`
+- [x] PR: https://github.com/codemcp/workflows/pull/281
 
+### Domain Descriptions (improved)
+Domain descriptions were refined to summarize what each domain is suitable for, based on reading all 24 workflow YAML files:
+
+| Domain | Description |
+|--------|-------------|
+| `code` | Day-to-day software engineering (features, TDD, bugfixes, greenfield, code reviews) |
+| `architecture` | System understanding and planning (architectural decisions, legacy modernization, capability modeling) |
+| `sdd` | Specification-driven development — write detailed specs before coding |
+| `sdd-crowd` | Multi-agent collaborative SDD with role-based handoffs (analyst, architect, developer) |
+| `skilled` | Skill-augmented development — explicit prompts to apply expertise (architecture, coding, testing) |
+| `office` | Content creation and communication (blog posts, slide presentations) |
+| `children` | Educational game development for ages 8-12 |
 
 ---
 *This plan is maintained by the LLM. Tool responses provide guidance on which section to focus on and what tasks to work on.*

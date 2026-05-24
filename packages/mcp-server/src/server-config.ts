@@ -19,6 +19,7 @@ import { TransitionEngine } from '@codemcp/workflows-core';
 import { InteractionLogger } from '@codemcp/workflows-core';
 import { WorkflowManager } from '@codemcp/workflows-core';
 import { TemplateManager } from '@codemcp/workflows-core';
+import { DOMAIN_DESCRIPTIONS } from '@codemcp/workflows-core';
 import {
   createLogger,
   setLoggingLevelFromString,
@@ -474,21 +475,22 @@ export async function registerMcpTools(
     'load_workflows',
     {
       description:
-        'Load workflows from one or more domains. Replaces the current domain set with the specified domains. Use this tool when you need to access workflows from a domain that is not currently loaded. The tool will reload all workflows for the specified domains.',
+        'Load workflows from one or more domains. Replaces the current domain set with the specified domains. Use this tool when you need to access workflows from a domain that is not currently loaded. The tool will reload all workflows for the specified domains. Use the domain-info:// resource to discover available domains and their descriptions.',
       inputSchema: {
         domains: z
-          .string()
+          .array(
+            z.enum([
+              'code' as const,
+              'architecture' as const,
+              'sdd' as const,
+              'sdd-crowd' as const,
+              'skilled' as const,
+              'office' as const,
+              'children' as const,
+            ])
+          )
           .describe(
-            'Comma-separated domain names to load. Replaces the current domain set.\n\n' +
-              'Available domains:\n' +
-              '  - code: Day-to-day software engineering (features, TDD, bugfixes, greenfield, code reviews, structured development)\n' +
-              '  - architecture: System understanding and planning (architectural decisions, legacy modernization, capability modeling, boundary analysis)\n' +
-              '  - sdd: Specification-driven development — write detailed specs before coding\n' +
-              '  - sdd-crowd: Multi-agent collaborative SDD with role-based handoffs (analyst, architect, developer)\n' +
-              '  - skilled: Skill-augmented development — explicit prompts to apply expertise (architecture, coding, testing)\n' +
-              '  - office: Content creation and communication (blog posts, slide presentations)\n' +
-              '  - children: Educational game development for ages 8-12\n\n' +
-              'Examples: "code", "code,architecture", "architecture,office"'
+            'Domain names to load. Use domain-info:// resource to discover available domains.'
           ),
       },
       annotations: {
@@ -703,6 +705,35 @@ export function registerMcpResources(
 
       const result = await handler.handle(new URL(uri.href), context);
       return responseRenderer.renderResourceResponse(result);
+    }
+  );
+
+  // Domain info resource — exposes all available domains with descriptions
+  mcpServer.resource(
+    'Available Domains',
+    'domain-info://',
+    {
+      description:
+        'List of all available workflow domains with descriptions. Use this resource before calling load_workflows to discover which domains are available and what each domain is suitable for.',
+      mimeType: 'application/json',
+    },
+    async () => {
+      const domains = Object.entries(DOMAIN_DESCRIPTIONS).map(
+        ([domain, description]) => ({
+          domain,
+          description,
+        })
+      );
+
+      return {
+        contents: [
+          {
+            uri: 'domain-info://',
+            mimeType: 'application/json',
+            text: JSON.stringify(domains, null, 2),
+          },
+        ],
+      };
     }
   );
 
