@@ -51,6 +51,10 @@
           "type": "boolean",
           "description": "Whether this workflow requires project documentation (architecture, requirements, design) to be set up before starting. Defaults to false for backwards compatibility.",
           "default": false
+        },
+        "domain": {
+          "type": "string",
+          "description": "Domain or category of the workflow (e.g., code, architecture, office, skilled)"
         }
       }
     },
@@ -70,6 +74,13 @@
         "description": {
           "type": "string",
           "description": "Description of this state"
+        },
+        "allowed_file_patterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Glob patterns for files that can be edited in this state. Use '**/*' to allow all files."
         },
         "default_instructions": {
           "type": "string",
@@ -107,6 +118,24 @@
         "transition_reason": {
           "type": "string",
           "description": "Reason for this transition"
+        },
+        "review_perspectives": {
+          "type": "array",
+          "description": "Optional review perspectives to apply when this transition is taken",
+          "items": {
+            "type": "object",
+            "required": ["perspective", "prompt"],
+            "properties": {
+              "perspective": {
+                "type": "string",
+                "description": "Name of the review perspective (e.g., architect, security_expert)"
+              },
+              "prompt": {
+                "type": "string",
+                "description": "Prompt or instructions for the review perspective"
+              }
+            }
+          }
         }
       }
     }
