@@ -1,0 +1,275 @@
+# yaml-language-server: $schema=../state-machine-schema.json
+---
+name: 'qrspi'
+description: 'Question, Research, Structure, Plan, Implement — 5 alignment phases + execution, inspired by QRSPI framework'
+initial_state: 'questions'
+
+# Enhanced metadata for better discoverability
+metadata:
+  domain: 'code'
+  complexity: 'high'
+  bestFor:
+    - 'Complex features requiring deep exploration'
+    - 'Tasks where AI agents tend to code too quickly'
+    - 'Research-heavy development'
+    - 'Architecturally significant changes'
+  useCases:
+    - 'Building a new subsystem with unknown patterns'
+    - 'Refactoring a complex module'
+    - 'Integrating unfamiliar third-party APIs'
+    - 'Features requiring cross-module coordination'
+  examples:
+    - 'Design a new plugin architecture'
+    - 'Implement a caching layer with multiple backends'
+    - 'Migrate a module to a new framework'
+
+# States with QRSPI-inspired alignment philosophy:
+# 5 alignment phases (Questions → Research → Design Discussion → Structure Outline → Plan)
+# 1 execution phase (Implement)
+#
+# Design decisions:
+# - Work Tree phase removed (task organization is part of Plan phase)
+# - PR phase is a manual review process, not an agent state
+# - Feature ticket is hidden during Research to collect facts first
+# - Design Discussion enforces ~200 line brain dump before planning
+# - Structure Outline uses "C Header File" style signatures
+states:
+  questions:
+    description: 'Surface knowledge gaps, validate assumptions, and define research scope'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
+    default_instructions: |
+      Before diving into research, surface your knowledge gaps and validate assumptions:
+
+      1. **Identify what you DON'T understand** about the problem domain
+      2. **List assumptions** that need validation
+      3. **Define the research scope** — what areas need investigation?
+      4. **Identify key questions** that must be answered before proceeding
+
+      Write your findings in the development plan file. Be honest about uncertainty —
+      it's better to surface gaps now than discover them during implementation.
+
+      Focus on understanding the problem space, not the solution.
+    transitions:
+      - trigger: 'ready_for_research'
+        to: 'research'
+        additional_instructions: 'Begin factual codebase research without reading the feature ticket.'
+        transition_reason: 'Knowledge gaps identified, ready to research the codebase'
+
+      - trigger: 'abandon_feature'
+        to: 'questions'
+        instructions: >
+          Feature development abandoned. Return to questions state for new tasks.
+          Task history and any completed work will remain for future reference.
+        additional_instructions: 'Clean up any questions and prepare for new tasks.'
+        transition_reason: 'User decided to abandon feature during questions phase'
+
+  research:
+    description: 'Factual codebase map WITHOUT reading the feature ticket — collect facts first'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
+    default_instructions: |
+      Conduct factual codebase research. IMPORTANT: Do NOT read the feature ticket yet.
+      Instead, map the codebase objectively:
+
+      1. **Map existing patterns** — What architectural patterns are used?
+      2. **Identify relevant modules** — Which files/packages relate to the domain?
+      3. **Document dependencies** — What are the external and internal dependencies?
+      4. **Note conventions** — Coding styles, testing patterns, naming conventions
+      5. **Find similar implementations** — Are there existing solutions to learn from?
+
+      Collect FACTS, not opinions. This is a reconnaissance mission.
+
+      After building the factual map, you may read the feature ticket to understand
+      how the facts relate to the problem. Document your understanding in the plan file.
+
+      Write your findings in the development plan file.
+    transitions:
+      - trigger: 'need_more_questions'
+        to: 'questions'
+        additional_instructions: 'The research revealed deeper knowledge gaps. Return to questions to refine the scope.'
+        transition_reason: 'Research uncovered new knowledge gaps requiring redefinition'
+
+      - trigger: 'ready_for_design'
+        to: 'design_discussion'
+        additional_instructions: 'Present your research findings and transition to design discussion.'
+        transition_reason: 'Factual codebase map is complete, ready for design discussion'
+
+      - trigger: 'abandon_feature'
+        to: 'questions'
+        instructions: >
+          Feature development abandoned during research. Return to questions state.
+          Task history and research findings will remain for future reference.
+        additional_instructions: 'Clean up any research artifacts and prepare for new tasks.'
+        transition_reason: 'User decided to abandon feature during research phase'
+
+  design_discussion:
+    description: '~200 line brain dump of design options before committing to a plan'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
+    default_instructions: |
+      Before planning, conduct a thorough design discussion. This is NOT a detailed
+      implementation plan — it's a brainstorming session to explore options.
+
+      Write a comprehensive brain dump (~200 lines minimum) covering:
+
+      1. **Problem analysis** — What are we really solving?
+      2. **Design options** — At least 2-3 approaches with pros/cons
+      3. **Trade-off analysis** — What do we gain/lose with each option?
+      4. **Risks and mitigations** — What could go wrong?
+      5. **Recommendation** — Which approach do you recommend and why?
+
+      Present your design discussion to the user and get feedback before proceeding
+      to structure outline. This phase is about THINKING, not planning.
+
+      Document your findings in the development plan file.
+    transitions:
+      - trigger: 'need_more_research'
+        to: 'research'
+        additional_instructions: 'The design discussion revealed gaps in understanding. Return to research.'
+        transition_reason: 'Design discussion uncovered need for more research'
+
+      - trigger: 'ready_for_structure'
+        to: 'structure_outline'
+        additional_instructions: 'Present the design discussion to the user and transition to structure outline.'
+        transition_reason: 'Design discussion complete with clear recommendation'
+
+      - trigger: 'abandon_feature'
+        to: 'questions'
+        instructions: >
+          Feature development abandoned during design discussion. Return to questions state.
+          Task history and design artifacts will remain for future reference.
+        additional_instructions: 'Clean up any design artifacts and prepare for new tasks.'
+        transition_reason: 'User decided to abandon feature during design discussion phase'
+
+  structure_outline:
+    description: '"C Header File" style signatures, new types, and vertical slice decomposition'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
+    default_instructions: |
+      Create a structure outline in "C Header File" style. Think of this as writing
+      the interface layer before the implementation:
+
+      1. **Type signatures** — What new types/interfaces are needed?
+      2. **New types** — Define the data structures and their contracts
+      3. **Vertical slices** — Decompose into testable, end-to-end units
+      4. **Dependencies** — What does each slice depend on?
+      5. **Integration points** — How do slices connect to existing code?
+
+      Each vertical slice should be a testable unit that delivers value independently.
+      Think in terms of "what can be tested" not "what files to create."
+
+      Document the structure outline in the development plan file.
+    transitions:
+      - trigger: 'need_more_design'
+        to: 'design_discussion'
+        additional_instructions: 'The structure outline revealed design gaps. Return to design discussion.'
+        transition_reason: 'Structure outline uncovered design considerations needing discussion'
+
+      - trigger: 'ready_for_plan'
+        to: 'plan'
+        additional_instructions: 'Present the structure outline and transition to the planning phase.'
+        transition_reason: 'Structure outline is complete with clear vertical slices'
+
+      - trigger: 'abandon_feature'
+        to: 'questions'
+        instructions: >
+          Feature development abandoned during structure outline. Return to questions state.
+          Task history and structure artifacts will remain for future reference.
+        additional_instructions: 'Clean up any structure artifacts and prepare for new tasks.'
+        transition_reason: 'User decided to abandon feature during structure outline phase'
+
+  plan:
+    description: 'Tactical implementation document with task organization (includes Work Tree content)'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
+    default_instructions: |
+      Create a tactical implementation plan based on the structure outline:
+
+      1. **Implementation steps** — Ordered list of tasks following vertical slices
+      2. **Task breakdown** — Each vertical slice decomposed into actionable tasks
+      3. **Dependencies** — Which tasks must complete before others can start?
+      4. **Testing strategy** — How will each slice be verified?
+      5. **Risk mitigation** — What are the fallback strategies?
+
+      Organize tasks in implementation order. Each task should be small enough to
+      complete in one focused session. Include acceptance criteria for each task.
+
+      Document the plan in the development plan file. This is the last alignment phase
+      before implementation begins.
+    transitions:
+      - trigger: 'need_more_structure'
+        to: 'structure_outline'
+        additional_instructions: 'The plan revealed gaps in the structure. Return to structure outline.'
+        transition_reason: 'Planning uncovered need for structural refinement'
+
+      - trigger: 'ready_to_implement'
+        to: 'implement'
+        transition_reason: 'Implementation plan is complete and ready for coding'
+        review_perspectives:
+          - perspective: 'architect'
+            prompt: 'Review the implementation plan for architectural soundness, ensuring vertical slices align with the recommended design and integration points are well-defined.'
+          - perspective: 'security_expert'
+            prompt: 'Assess security considerations in the planned implementation. Review data handling, authentication patterns, and potential attack surfaces.'
+
+      - trigger: 'abandon_feature'
+        to: 'questions'
+        instructions: >
+          Feature development abandoned during planning. Return to questions state.
+          Task history and planning artifacts will remain for future reference.
+        additional_instructions: 'Clean up any planning artifacts and prepare for new tasks.'
+        transition_reason: 'User decided to abandon feature during planning phase'
+
+  implement:
+    description: 'Write code following the plan, build/lint/test each vertical slice'
+    allowed_file_patterns:
+      - '**/*'
+    default_instructions: |
+      Follow your plan to build the solution:
+
+      - If `$DESIGN_DOC` exists: Follow the design from it
+      - Otherwise: Elaborate design options and present them to the user
+      - If `$ARCHITECTURE_DOC` exists: Build according to the architecture from it
+      - Otherwise: Elaborate architectural options and present them to the user
+      - If `$REQUIREMENTS_DOC` exists: Ensure requirements from it are met
+      - Otherwise: Ensure existing requirements are met based on your task context
+
+      Write clean, well-structured code with proper error handling. Prevent regression
+      by building, linting, and executing existing tests. Stay flexible and adapt the
+      plan as you learn more during implementation.
+
+      Complete each vertical slice end-to-end (code + tests + build) before moving
+      to the next one. Update task progress and create new tasks as needed.
+    transitions:
+      - trigger: 'need_replanning'
+        to: 'plan'
+        additional_instructions: "Consider what you've learned during implementation and adjust the plan. Document changes and reasons."
+        transition_reason: 'Implementation revealed need to revise the plan'
+
+      - trigger: 'need_more_exploration'
+        to: 'questions'
+        additional_instructions: 'Focus on the specific areas that are blocking implementation progress.'
+        transition_reason: 'Implementation revealed need for more exploration and question-asking'
+
+      - trigger: 'implement_complete'
+        to: 'questions'
+        transition_reason: 'Implementation is complete, ready for the next feature'
+
+      - trigger: 'abandon_feature'
+        to: 'questions'
+        instructions: >
+          Feature development abandoned during implementation. Clean up any incomplete
+          code and return to questions state. Task history and completed work will
+          remain for future reference.
+        additional_instructions: 'Clean up any incomplete code and prepare for new tasks.'
+        transition_reason: 'User decided to abandon feature during implementation phase'

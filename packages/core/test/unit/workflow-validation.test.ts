@@ -31,7 +31,13 @@ describe('Workflow Validation', () => {
       expect(workflows.length).toBeGreaterThan(0);
 
       // Check that we have the expected core workflows
-      const expectedCoreWorkflows = ['bugfix', 'waterfall', 'epcc', 'minor'];
+      const expectedCoreWorkflows = [
+        'bugfix',
+        'waterfall',
+        'epcc',
+        'minor',
+        'qrspi',
+      ];
       const workflowNames = workflows.map(w => w.name);
       for (const workflow of expectedCoreWorkflows) {
         expect(workflowNames).toContain(workflow);
