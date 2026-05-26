@@ -12,6 +12,7 @@ export const workflowList = [
   'minor',
   'posts',
   'pr-review',
+  'qrspi',
   'sdd-bugfix',
   'sdd-bugfix-crowd',
   'sdd-feature',
