@@ -41,6 +41,15 @@
 - [x] **Design Docs Updated on Loop-Back**: When `need_design_changes` loops back to design, the agent updates `$DESIGN_DOC` and `$ARCHITECTURE_DOC` if they exist, to reflect the revised direction
 - [x] **Delegation Principle Replaces Context Magic Number**: Removed "40% context window" magic number from plan and implement phases. Instead, implement phase now instructs delegating each vertical slice to a fresh agent session with focused context
 - [x] **Document Contradictions Trigger Design Loop-Back**: Plan phase now instructs that if `$REQUIREMENTS_DOC`, `$ARCHITECTURE_DOC`, or `$DESIGN_DOC` contradict what is needed for the increment, document the contradiction in the development plan and use `need_design_changes` to loop back to design
+- [x] **Verbosity Reduced — Principles Over Prescription**: After comparing with colleague's PR #283, instructions rewritten to rely on single **Principle** statements per phase (e.g., "Clarify intent before exploring solutions") rather than STEP-by-STEP prescriptive checklists. File went from 373 lines to 245 lines (-34%).
+- [x] **Phase Separation Sharpened**: Each phase now has a razor-sharp responsibility with explicit "Do not X" constraints:
+  - questions: Do not research, design, plan, or write code
+  - research: Do not propose solutions, make design decisions, or write code
+  - design: Do not plan detailed implementation or write code
+  - structure: Do not plan implementation tasks or write code
+  - plan: Do not change the design direction or write code
+  - implement: Adapt tactics within slices; loop back only if high-level approach is fundamentally flawed
+  - commit: Do not add new features
 
 ## Notes
 *Additional context and observations*
@@ -139,7 +148,7 @@
 - [x] Updated `resources/state-machine-schema.json` with missing fields (`allowed_file_patterns`, `review_perspectives`, `domain`)
 - [x] Updated development plan with all key decisions and insights
 - [x] Committed and pushed changes on `feat/qrspi-infra-workflow` branch
-- [x] Created pull request via gh CLI
+- [x] Created pull request via gh CLI: https://github.com/codemcp/workflows/pull/282
 
 
 
