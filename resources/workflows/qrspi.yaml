@@ -224,9 +224,11 @@ states:
     default_instructions: |
       **Principle**: Leave the codebase cleaner than you found it.
 
-      Remove debug output, temporary code, and completed TODOs. Update `$REQUIREMENTS_DOC`, `$ARCHITECTURE_DOC`, and `$DESIGN_DOC` if they exist and changed during implementation. Otherwise, document changes in the development plan.
+      **Cleanup**: Remove debug output, temporary code, test code blocks, and completed TODOs. Address or document any remaining FIXMEs.
 
-      Run tests to ensure no regressions. Ensure the development plan reflects the final state, not the development process.
+      **Documentation**: Update `$REQUIREMENTS_DOC`, `$ARCHITECTURE_DOC`, and `$DESIGN_DOC` if they exist and changed during implementation. Otherwise, document changes in the development plan. Ensure docs reflect the final implemented state, not the development process.
+
+      **Validation**: Run tests to ensure no regressions. Verify the development plan is accurate.
 
       Do not add new features.
     transitions:
