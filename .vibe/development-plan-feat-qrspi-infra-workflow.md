@@ -149,6 +149,9 @@
 - [x] Updated development plan with all key decisions and insights
 - [x] Committed and pushed changes on `feat/qrspi-infra-workflow` branch
 - [x] Created pull request via gh CLI: https://github.com/codemcp/workflows/pull/282
+- [x] Refactored `qrspi.yaml` to principle-driven instructions with sharp phase separation (373 → 245 lines, -34%)
+- [x] Registered `qrspi` in test suite and visualizer workflow list
+- [x] Restored commit phase action categories (Cleanup / Documentation / Validation) after identifying over-condensation
 
 
 
