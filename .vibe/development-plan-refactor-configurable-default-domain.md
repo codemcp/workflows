@@ -478,6 +478,7 @@ private getActiveWorkflow(): WorkflowInfo | null {
 ### Completed
 - [x] Initial commit `1999cd7`: feat — configurable default domain
 - [x] Follow-up commit `80dcf69`: refactor — move domain descriptions from tool parameter to resource
+- [x] Follow-up commit `726c749`: refactor — rename domain-info:// resource to domain://
 - [x] PR: https://github.com/codemcp/workflows/pull/281
 
 ### Domain Descriptions (improved)

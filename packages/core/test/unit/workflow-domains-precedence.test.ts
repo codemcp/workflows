@@ -170,7 +170,7 @@ describe('WORKFLOW_DOMAINS precedence (backward compat)', () => {
     expect(hasArchitecture).toBe(false);
   });
 
-  it('should load all workflows when no domain configuration is set (empty Set fallback)', () => {
+  it('should load only code workflows when no domain configuration is set (default: code)', () => {
     delete process.env['WORKFLOW_DOMAINS'];
     delete process.env['VIBE_WORKFLOW_DOMAINS'];
     delete process.env['DEFAULT_DOMAINS'];
@@ -178,13 +178,17 @@ describe('WORKFLOW_DOMAINS precedence (backward compat)', () => {
     const manager = new WorkflowManager();
     const workflows = manager.getAvailableWorkflows();
 
-    // Collect all unique domains from loaded workflows
-    const domains = new Set(
-      workflows.map(w => w.metadata?.domain).filter(Boolean) as string[]
+    // Default is 'code' — should only include code domain workflows
+    const workflowNames = workflows.map(w => w.name);
+    const hasCode = workflowNames.some(w =>
+      ['epcc', 'tdd', 'bugfix', 'minor'].includes(w)
+    );
+    const hasArchitecture = workflowNames.some(w =>
+      ['adr', 'big-bang-conversion'].includes(w)
     );
 
-    // Should have workflows from multiple domains, not just 'code'
-    expect(domains.size).toBeGreaterThan(1);
+    expect(hasCode).toBe(true);
+    expect(hasArchitecture).toBe(false);
   });
 
   it('should use DEFAULT_ALL_DOMAINS env var in getAllAvailableWorkflows()', () => {

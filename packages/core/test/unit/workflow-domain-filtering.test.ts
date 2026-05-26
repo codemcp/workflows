@@ -16,18 +16,22 @@ describe('Workflow Domain Filtering', () => {
     }
   });
 
-  it('should load all workflows when no domain filter is set (empty Set fallback)', () => {
+  it('should load only code workflows when no domain filter is set (default: code)', () => {
     delete process.env.WORKFLOW_DOMAINS;
 
     const manager = new WorkflowManager();
     const workflows = manager.getAvailableWorkflows();
 
-    // With empty Set, all workflows load (no filtering applied)
-    // Should have workflows from multiple domains
-    const domains = new Set(
-      workflows.map(w => w.metadata?.domain).filter(Boolean) as string[]
+    // Default is 'code' — should only include code domain workflows
+    const codeWorkflows = workflows.filter(
+      w => !w.metadata?.domain || w.metadata.domain === 'code'
     );
-    expect(domains.size).toBeGreaterThan(1);
+    const nonCodeWorkflows = workflows.filter(
+      w => w.metadata?.domain && w.metadata.domain !== 'code'
+    );
+
+    expect(codeWorkflows.length).toBeGreaterThan(0);
+    expect(nonCodeWorkflows.length).toBe(0);
   });
 
   it('should filter workflows by domain when WORKFLOW_DOMAINS is set', () => {

@@ -38,6 +38,20 @@ export const DOMAIN_DESCRIPTIONS: Record<string, string> = {
     'Educational game development for children ages 8-12: simplified, age-appropriate programming concepts with frequent positive reinforcement and incremental achievement',
 };
 
+/**
+ * Known domain names — use this constant to avoid duplicating the domain list.
+ * Import from '@codemcp/workflows-core' in plugin/tool handler code.
+ */
+export const KNOWN_DOMAIN_NAMES = Object.keys(DOMAIN_DESCRIPTIONS) as [
+  'code',
+  'architecture',
+  'sdd',
+  'sdd-crowd',
+  'skilled',
+  'office',
+  'children',
+];
+
 export interface WorkflowManagerOptions {
   /**
    * Default domains to use for workflow filtering.
@@ -133,9 +147,9 @@ export class WorkflowManager {
       );
     }
 
-    // 5. Empty Set — no filtering, all workflows load
-    logger.debug('No domain configuration found, loading all workflows');
-    return new Set();
+    // 5. Default — 'code' (maintains backward-compatible out-of-the-box behavior)
+    logger.debug('No domain configuration found, using default: code');
+    return new Set(['code']);
   }
 
   /**
@@ -264,47 +278,27 @@ export class WorkflowManager {
    * Uses DEFAULT_ALL_DOMAINS env var if set, otherwise falls back to all known domains.
    */
   public getAllAvailableWorkflows(): WorkflowInfo[] {
-    // Create a temporary manager with all domains enabled
-    const originalEnv = process.env['WORKFLOW_DOMAINS'];
+    // Use constructor param instead of env var mutation for thread safety
     const allDomains =
       process.env['DEFAULT_ALL_DOMAINS'] ||
       'code,architecture,office,sdd,sdd-crowd,skilled,children';
-
-    process.env['WORKFLOW_DOMAINS'] = allDomains;
-
-    try {
-      const tempManager = new WorkflowManager();
-      return tempManager.getAvailableWorkflows();
-    } finally {
-      if (originalEnv !== undefined) {
-        process.env['WORKFLOW_DOMAINS'] = originalEnv;
-      } else {
-        delete process.env['WORKFLOW_DOMAINS'];
-      }
-    }
-  }
-
-  /**
-   * Get information about any currently active workflow.
-   * Returns null if no active workflow is detected.
-   */
-  private getActiveWorkflow(): WorkflowInfo | null {
-    // Check if any loaded workflow has metadata indicating it's active.
-    // Since WorkflowManager doesn't track conversation state directly,
-    // we return null here. The actual active workflow detection is handled
-    // by ConversationManager. This method exists as a placeholder for
-    // future integration if needed.
-    return null;
+    const tempManager = new WorkflowManager({ defaultDomains: allDomains });
+    return tempManager.getAvailableWorkflows();
   }
 
   /**
    * Replace the current domain set and reload workflows.
    *
    * This allows runtime switching of domains without recreating the WorkflowManager.
-   * Validates domains against known set and checks for active workflow conflicts.
+   * Validates domains against known set.
    *
-   * @param domains - Comma-separated string or array of domain names
-   * @throws Error if an unknown domain is provided or if switching would conflict with an active workflow
+   * NOTE: Active workflow conflict detection is not yet implemented (see getActiveWorkflow).
+   * Callers can switch domains freely regardless of active workflow state.
+   *
+   * @param domains - Comma-separated string or array of domain names.
+   *   Pass an empty string or empty array to load ALL workflows (no domain filtering).
+   *   To reset to the default domain, pass 'code' explicitly.
+   * @throws Error if an unknown domain is provided
    */
   public setDomains(domains: string | string[]): void {
     const newSet = new Set(
@@ -326,17 +320,9 @@ export class WorkflowManager {
       }
     }
 
-    // Guard: check for active workflow conflict
-    const activeWorkflow = this.getActiveWorkflow();
-    if (
-      activeWorkflow &&
-      activeWorkflow.metadata?.domain &&
-      !newSet.has(activeWorkflow.metadata.domain)
-    ) {
-      throw new Error(
-        `Cannot switch domains: active workflow '${activeWorkflow.name}' is in domain '${activeWorkflow.metadata.domain}', which is not in the new set. Finish or reset the current workflow first.`
-      );
-    }
+    // NOTE: Active workflow conflict detection is not yet implemented.
+    // getActiveWorkflow() always returns null until ConversationManager integration is complete.
+    // Callers can switch domains freely regardless of active workflow state.
 
     // Update and reload
     this.enabledDomains = newSet;

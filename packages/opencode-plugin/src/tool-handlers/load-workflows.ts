@@ -2,22 +2,9 @@ import { z } from 'zod';
 import type { ToolDefinition } from '../types.js';
 import type { ServerContext } from '@codemcp/workflows-server';
 import { tool } from './tool-helper.js';
-import { createLogger } from '@codemcp/workflows-core';
+import { createLogger, KNOWN_DOMAIN_NAMES } from '@codemcp/workflows-core';
 
 const logger = createLogger('LoadWorkflowsHandler');
-
-/**
- * Known domain names — kept in sync with DOMAIN_DESCRIPTIONS in core.
- */
-const KNOWN_DOMAINS = [
-  'code',
-  'architecture',
-  'sdd',
-  'sdd-crowd',
-  'skilled',
-  'office',
-  'children',
-] as const;
 
 /**
  * Create the load_workflows tool for the OpenCode plugin.
@@ -31,7 +18,7 @@ export function createLoadWorkflowsTool(
       'Load workflows from one or more domains. Replaces the current domain set with the specified domains. Use this tool when you need to access workflows from a domain that is not currently loaded. The tool will reload all workflows for the specified domains. Available domains: code, architecture, sdd, sdd-crowd, skilled, office, children.',
     args: {
       domains: z
-        .array(z.enum(KNOWN_DOMAINS))
+        .array(z.enum(KNOWN_DOMAIN_NAMES))
         .describe(
           'Domain names to load. Available domains: code, architecture, sdd, sdd-crowd, skilled, office, children.'
         ),

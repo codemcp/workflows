@@ -19,7 +19,10 @@ import { TransitionEngine } from '@codemcp/workflows-core';
 import { InteractionLogger } from '@codemcp/workflows-core';
 import { WorkflowManager } from '@codemcp/workflows-core';
 import { TemplateManager } from '@codemcp/workflows-core';
-import { DOMAIN_DESCRIPTIONS } from '@codemcp/workflows-core';
+import {
+  DOMAIN_DESCRIPTIONS,
+  KNOWN_DOMAIN_NAMES,
+} from '@codemcp/workflows-core';
 import {
   createLogger,
   setLoggingLevelFromString,
@@ -478,17 +481,7 @@ export async function registerMcpTools(
         'Load workflows from one or more domains. Replaces the current domain set with the specified domains. Use this tool when you need to access workflows from a domain that is not currently loaded. The tool will reload all workflows for the specified domains. Use the domain:// resource to discover available domains and their descriptions.',
       inputSchema: {
         domains: z
-          .array(
-            z.enum([
-              'code' as const,
-              'architecture' as const,
-              'sdd' as const,
-              'sdd-crowd' as const,
-              'skilled' as const,
-              'office' as const,
-              'children' as const,
-            ])
-          )
+          .array(z.enum(KNOWN_DOMAIN_NAMES))
           .describe(
             'Domain names to load. Use domain:// resource to discover available domains.'
           ),
