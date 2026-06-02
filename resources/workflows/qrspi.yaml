@@ -8,7 +8,7 @@ metadata:
   domain: 'code'
   complexity: 'high'
   bestFor:
-    - 'Creative and complex challenges'
+    - 'Creative or complex challenges'
     - 'Deep alignment before execution'
     - 'Unconventional problems'
     - 'Architecture-heavy features'
@@ -34,7 +34,11 @@ states:
       - '**/*.adoc'
     default_instructions: |
       **Principle**: Clarify intent before exploring solutions.
-
+      This is the most important phase: You need to really deeply understand what makes the user want to introduce a change.
+      Ask questions about everything you can't determine straight from the existing codebase.
+      - Ask about the context
+      - follow up on explanations
+      - Ask about rejected alternatives or workarounds
       Document in the development plan: the problem being solved, success criteria, constraints, and any clarifying questions asked. Use `$REQUIREMENTS_DOC` as context only — do not modify it.
 
       Do not research, design, plan, or write code.
@@ -83,8 +87,9 @@ states:
       - '**/*.adoc'
     default_instructions: |
       **Principle**: Align on WHAT and WHY before deciding detailed HOW.
-
+      This is the phase when the we imagening a suitable solution given the boundary conditions.
       Propose 2-3 viable high-level approaches with trade-offs. Reference `$DESIGN_DOC` and `$ARCHITECTURE_DOC` if they exist. Reach consensus with the user on the direction. On loop-back from `need_design_changes`, update those docs if they exist.
+      It's crucial that the user gets actively involved to take an educated decision.
 
       Document the agreed direction in the development plan.
 
