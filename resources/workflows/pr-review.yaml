@@ -171,7 +171,5 @@ states:
       Once confirmed, deliver accordingly. For inline comments, attach each finding to the
       specific file and line it refers to. For cross-cutting findings, use a top-level comment.
 
-    transitions:
-      - trigger: 'review_published'
-        to: 'determine_intent'
-        transition_reason: 'Review delivered, ready for next PR'
+      $DONE_DEFAULT
+    transitions: []

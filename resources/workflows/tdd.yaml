@@ -160,11 +160,21 @@ states:
         transition_reason: 'Refactoring revealed need to revise implementation'
 
       - trigger: 'feature_complete'
-        to: 'explore'
+        to: 'done'
         additional_instructions: 'Update task progress to reflect feature completion.'
-        transition_reason: 'Feature fully implemented and cleaned up, ready for new tasks'
+        transition_reason: 'Feature fully implemented and cleaned up, ready to exit TDD cycle'
 
       - trigger: 'abandon_feature'
         to: 'explore'
         additional_instructions: 'Clean up any refactoring work and prepare for new tasks.'
         transition_reason: 'User decided to abandon feature during refactoring'
+
+  done:
+    description: 'TDD cycle complete - feature fully implemented and cleaned up'
+    allowed_file_patterns:
+      - '**/*'
+    default_instructions: |
+      The TDD cycle is complete. All aspects of the feature have been implemented and refactored.
+
+      $DONE_DEFAULT
+    transitions: []

@@ -214,12 +214,6 @@ states:
       - Ensure code is ready for production/delivery
 
       Update task progress and mark completed work as you finalize the feature.
-    transitions:
-      - trigger: 'need_final_changes'
-        to: 'implementation'
-        additional_instructions: 'Finalization revealed issues that require code changes. Focus on the specific problems identified during final review.'
-        transition_reason: 'Final review found issues requiring implementation changes'
 
-      - trigger: 'finalization_complete'
-        to: 'requirements'
-        transition_reason: 'Feature delivery complete, beginning new development cycle'
+      $DONE_DEFAULT
+    transitions: []

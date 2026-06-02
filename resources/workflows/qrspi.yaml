@@ -231,17 +231,6 @@ states:
       **Validation**: Run tests to ensure no regressions. Verify the development plan is accurate.
 
       Do not add new features.
-    transitions:
-      - trigger: 'commit_complete'
-        to: 'questions'
-        transition_reason: 'Feature delivered, ready for next task'
 
-      - trigger: 'need_code_changes'
-        to: 'implement'
-        additional_instructions: 'Fix the problems identified during final review.'
-        transition_reason: 'Final review found issues requiring code changes'
-
-      - trigger: 'abandon_feature'
-        to: 'questions'
-        instructions: 'Feature abandoned. Clean up artifacts and reset for new tasks.'
-        transition_reason: 'User abandoned feature during finalization'
+      $DONE_DEFAULT
+    transitions: []

@@ -6,7 +6,6 @@ export * from './state-machine-types.js';
 export * from './interfaces/index.js';
 
 // State machine and workflow management
-export * from './state-machine.js';
 export * from './state-machine-loader.js';
 export * from './workflow-manager.js';
 export * from './transition-engine.js';

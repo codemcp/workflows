@@ -364,13 +364,6 @@ states:
       - Ensure test suite is ready for ongoing use and maintenance
 
       Update the plan file with finalization progress and mark completed tasks.
-    transitions:
-      - trigger: 'need_test_changes'
-        to: 'test_suite_implementation'
-        additional_instructions: 'Finalization revealed issues with the test suite. Focus on addressing the specific problems identified during final review.'
-        transition_reason: 'Finalization revealed issues requiring test implementation changes'
 
-      - trigger: 'finalization_complete'
-        to: 'architecture_analysis'
-        additional_instructions: 'Boundary testing workflow complete! Test suite is ready for ongoing use and maintenance. Prepare for next boundary testing project.'
-        transition_reason: 'Test suite finalization complete, ready for production use'
+      $DONE_DEFAULT
+    transitions: []

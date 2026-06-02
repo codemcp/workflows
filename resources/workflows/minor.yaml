@@ -130,17 +130,6 @@ states:
       - Verify documentation accuracy with a final review
       - Ensure minor enhancement is ready for delivery
       - Update task progress and mark completed work as you finalize the minor enhancement
-    transitions:
-      - trigger: 'need_implementation_changes'
-        to: 'implement'
-        additional_instructions: 'Finalization revealed issues that require implementation changes. Focus on the specific problems identified during final review.'
-        transition_reason: 'Finalization revealed issues requiring implementation changes'
 
-      - trigger: 'finalization_complete'
-        to: 'explore'
-        transition_reason: 'Minor enhancement delivery complete, ready for next task'
-
-      - trigger: 'abandon_feature'
-        to: 'explore'
-        additional_instructions: 'Clean up any finalization artifacts and prepare for new tasks.'
-        transition_reason: 'User decided to abandon minor enhancement during finalization'
+      $DONE_DEFAULT
+    transitions: []
