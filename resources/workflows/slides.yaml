@@ -67,15 +67,6 @@ states:
         additional_instructions: 'Structural work revealed gaps in the initial concept or goals. Focus on clarifying these fundamental aspects.'
         transition_reason: 'Structure work revealed need for more ideation or concept refinement'
 
-      - trigger: abandon_presentation
-        to: ideate
-        instructions: |
-          **Abandon structural work** - Clean up structural work and return to ideation.
-
-          The plan file and any completed work will remain for future reference.
-        additional_instructions: 'Presentation abandoned during structure phase. Clean up and prepare for new topics.'
-        transition_reason: 'User decided to abandon presentation during structure phase'
-
   draft:
     description: 'Create content, speaker notes, and visual planning'
     default_instructions: |
@@ -104,15 +95,6 @@ states:
         to: structure
         additional_instructions: 'Drafting revealed issues with content organization or flow. Focus on refining the structural foundation.'
         transition_reason: 'Content creation revealed need for better structure or organization'
-
-      - trigger: abandon_presentation
-        to: ideate
-        instructions: |
-          **Abandon drafting work** - Clean up content work and return to ideation.
-
-          The plan file and any completed work will remain for future reference.
-        additional_instructions: 'Presentation abandoned during draft phase. Clean up and prepare for new topics.'
-        transition_reason: 'User decided to abandon presentation during draft phase'
 
   style:
     description: 'Apply design, create visuals, and enhance presentation aesthetics'
@@ -143,15 +125,6 @@ states:
         to: draft
         additional_instructions: 'Styling work revealed gaps in content or speaker notes. Focus on completing the content foundation.'
         transition_reason: 'Visual design revealed need for additional content or speaker note refinement'
-
-      - trigger: abandon_presentation
-        to: ideate
-        instructions: |
-          **Abandon styling work** - Clean up design work and return to ideation.
-
-          The plan file and any completed work will remain for future reference.
-        additional_instructions: 'Presentation abandoned during style phase. Clean up and prepare for new topics.'
-        transition_reason: 'User decided to abandon presentation during style phase'
 
   review:
     description: 'Validate content quality and presentation effectiveness'
@@ -187,15 +160,6 @@ states:
         to: draft
         additional_instructions: 'Review revealed content gaps or issues that need addressing. Focus on refining the content and speaker notes.'
         transition_reason: 'Review process identified content issues requiring draft phase work'
-
-      - trigger: abandon_presentation
-        to: ideate
-        instructions: |
-          **Abandon review work** - Clean up review work and return to ideation.
-
-          The plan file and any completed work will remain for future reference.
-        additional_instructions: 'Presentation abandoned during review phase. Clean up and prepare for new topics.'
-        transition_reason: 'User decided to abandon presentation during review phase'
 
   deliver:
     description: 'Prepare final presentation for delivery'

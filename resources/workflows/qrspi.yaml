@@ -47,11 +47,6 @@ states:
         to: 'research'
         transition_reason: 'Intent clarified, ready to gather facts'
 
-      - trigger: 'abandon_feature'
-        to: 'questions'
-        instructions: 'Feature abandoned. Reset for new tasks.'
-        transition_reason: 'User abandoned feature during questions'
-
   research:
     description: 'Gather facts without forming conclusions or proposing solutions'
     allowed_file_patterns:
@@ -73,11 +68,6 @@ states:
         to: 'questions'
         additional_instructions: 'Focus on the specific areas where intent is still unclear.'
         transition_reason: 'Research revealed gaps in understanding'
-
-      - trigger: 'abandon_feature'
-        to: 'questions'
-        instructions: 'Feature abandoned. Reset for new tasks.'
-        transition_reason: 'User abandoned feature during research'
 
   design:
     description: 'Explore options and reach consensus on WHAT and high-level HOW'
@@ -107,11 +97,6 @@ states:
         additional_instructions: 'Focus on the specific gaps that block design consensus.'
         transition_reason: 'Design discussion revealed need for more research'
 
-      - trigger: 'abandon_feature'
-        to: 'questions'
-        instructions: 'Feature abandoned. Reset for new tasks.'
-        transition_reason: 'User abandoned feature during design'
-
   structure:
     description: 'Decompose the approved design into end-to-end vertical slices'
     allowed_file_patterns:
@@ -135,11 +120,6 @@ states:
         to: 'design'
         additional_instructions: 'The design approach makes slicing difficult. Revisit the high-level approach with the user.'
         transition_reason: 'Structure work revealed design gaps'
-
-      - trigger: 'abandon_feature'
-        to: 'questions'
-        instructions: 'Feature abandoned. Reset for new tasks.'
-        transition_reason: 'User abandoned feature during structure'
 
   plan:
     description: 'Create a detailed implementation plan per vertical slice'
@@ -174,11 +154,6 @@ states:
         to: 'structure'
         additional_instructions: 'The slice boundaries are wrong. Redefine the vertical slices.'
         transition_reason: 'Planning revealed flaws in slice boundaries'
-
-      - trigger: 'abandon_feature'
-        to: 'questions'
-        instructions: 'Feature abandoned. Reset for new tasks.'
-        transition_reason: 'User abandoned feature during planning'
 
   implement:
     description: 'Build the solution slice by slice'
@@ -216,11 +191,6 @@ states:
         to: 'research'
         additional_instructions: 'Focus on the specific areas blocking implementation progress.'
         transition_reason: 'Implementation revealed need for more research'
-
-      - trigger: 'abandon_feature'
-        to: 'questions'
-        instructions: 'Feature abandoned. Clean up incomplete code and reset for new tasks.'
-        transition_reason: 'User abandoned feature during implementation'
 
   commit:
     description: 'Cleanup, documentation finalization, and delivery'

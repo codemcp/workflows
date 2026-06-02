@@ -706,8 +706,3 @@ states:
 
 # Global transitions available from any state
 global_transitions:
-  - trigger: 'abandon_feature'
-    to: 'analyze'
-    transition_reason: 'Feature abandoned, restart from beginning'
-    additional_instructions: |
-      If you want to restart, begin again by analyzing the requirements and current state.

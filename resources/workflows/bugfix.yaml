@@ -67,11 +67,6 @@ states:
           - perspective: 'security_expert'
             prompt: "Evaluate if the bug has security implications and ensure the fix doesn't introduce new vulnerabilities. Review the security aspects of the proposed solution."
 
-      - trigger: 'abandon_bug'
-        to: 'reproduce'
-        additional_instructions: 'Bug analysis abandoned. Clean up any analysis work and prepare for new bug reports.'
-        transition_reason: 'Bug analysis abandoned'
-
   fix:
     description: 'Implement the bug fix'
     allowed_file_patterns:
@@ -103,11 +98,6 @@ states:
           - perspective: 'performance_engineer'
             prompt: "Verify that the fix doesn't introduce performance regressions or new bottlenecks. Assess the performance impact of the implemented solution."
 
-      - trigger: 'abandon_bug'
-        to: 'reproduce'
-        additional_instructions: 'Bug fix abandoned. Clean up any fix work and prepare for new bug reports.'
-        transition_reason: 'Bug fix abandoned'
-
   verify:
     description: 'Verify the fix and ensure no regressions'
     allowed_file_patterns:
@@ -127,11 +117,6 @@ states:
       - trigger: 'bug_fixed'
         to: 'finalize'
         transition_reason: 'Bug fix complete and verified, ready for next issue'
-
-      - trigger: 'abandon_bug'
-        to: 'reproduce'
-        additional_instructions: 'Bug verification abandoned. Clean up any verification work and prepare for new bug reports.'
-        transition_reason: 'Bug verification abandoned'
 
   finalize:
     description: 'Code cleanup and documentation finalization'

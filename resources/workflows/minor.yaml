@@ -81,14 +81,6 @@ states:
         to: 'finalize'
         transition_reason: 'Implementation complete, ready for finalization'
 
-      - trigger: 'abandon_feature'
-        to: 'explore'
-        instructions: >
-          Minor enhancement abandoned during implementation. Clean up any incomplete code and return to exploration.
-          Task history and any completed work will remain for future reference.
-        additional_instructions: 'Clean up any incomplete code and prepare for new tasks.'
-        transition_reason: 'User decided to abandon minor enhancement during implementation'
-
   finalize:
     description: 'Code cleanup and documentation finalization'
     allowed_file_patterns:
