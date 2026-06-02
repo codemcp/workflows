@@ -1011,6 +1011,19 @@ onUnmounted(() => {
   margin: var(--spacing-sm) 0;
 }
 
+#workflow-visualizer-app .code-block ul,
+#workflow-visualizer-app .code-block ol {
+  padding: 0;
+  margin: 0 0 0 1rem;
+}
+
+#workflow-visualizer-app .code-block li,
+#workflow-visualizer-app .code-block p {
+  line-height: 1.25rem;
+  padding: 0;
+  margin: 0;
+}
+
 /* Badges */
 #workflow-visualizer-app .badge {
   display: inline-flex;

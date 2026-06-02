@@ -4,7 +4,7 @@ export default defineConfig({
   title: 'Responsible Vibe MCP',
   description:
     'Model Context Protocol server for intelligent conversation state management and development guidance',
-  base: '/responsible-vibe-mcp/',
+  base: '/workflows/',
   ignoreDeadLinks: true,
   rewrites: {
     'README.md': 'index.md',
@@ -16,7 +16,7 @@ export default defineConfig({
       { text: 'Workflows', link: '/workflows' },
       {
         text: 'Github',
-        link: 'https://github.com/mrsimpson/responsible-vibe-mcp',
+        link: 'https://github.com/codemcp/workflows',
       },
     ],
 
@@ -49,5 +49,5 @@ export default defineConfig({
     ],
   },
 
-  head: [['link', { rel: 'icon', href: '/responsible-vibe-mcp/favicon.ico' }]],
+  head: [['link', { rel: 'icon', href: '/workflows/favicon.ico' }]],
 });

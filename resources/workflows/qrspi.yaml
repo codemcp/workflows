@@ -1,0 +1,241 @@
+# yaml-language-server: $schema=../state-machine-schema.json
+---
+name: 'qrspi'
+description: 'Questions, Research, Design, Structure, Plan, Implement — for creative, complex challenges requiring deep alignment before execution'
+initial_state: 'questions'
+
+metadata:
+  domain: 'code'
+  complexity: 'high'
+  bestFor:
+    - 'Creative or complex challenges'
+    - 'Deep alignment before execution'
+    - 'Unconventional problems'
+    - 'Architecture-heavy features'
+    - 'High-stakes changes'
+  useCases:
+    - 'Designing a novel system architecture'
+    - 'Implementing complex multi-domain features'
+    - 'Solving problems with unclear requirements'
+    - 'Building features requiring extensive stakeholder alignment'
+    - 'Refactoring core infrastructure'
+  examples:
+    - 'Design and implement a new plugin architecture'
+    - 'Create a custom workflow engine with validation'
+    - 'Refactor monolith to modular services'
+    - 'Build a creative AI-powered feature with novel UX'
+
+states:
+  questions:
+    description: 'Clarify intent, scope, and success criteria before any exploration'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
+    default_instructions: |
+      **Principle**: Clarify intent before exploring solutions.
+      This is the most important phase: You need to really deeply understand what makes the user want to introduce a change.
+      Ask questions about everything you can't determine straight from the existing codebase.
+      - Ask about the context
+      - follow up on explanations
+      - Ask about rejected alternatives or workarounds
+      Document in the development plan: the problem being solved, success criteria, constraints, and any clarifying questions asked. Use `$REQUIREMENTS_DOC` as context only — do not modify it.
+
+      Do not research, design, plan, or write code.
+    transitions:
+      - trigger: 'questions_answered'
+        to: 'research'
+        transition_reason: 'Intent clarified, ready to gather facts'
+
+      - trigger: 'abandon_feature'
+        to: 'questions'
+        instructions: 'Feature abandoned. Reset for new tasks.'
+        transition_reason: 'User abandoned feature during questions'
+
+  research:
+    description: 'Gather facts without forming conclusions or proposing solutions'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
+    default_instructions: |
+      **Principle**: Gather facts before forming opinions.
+
+      Explore the codebase, patterns, and relevant documentation. Document findings as facts (not opinions) in the development plan. Highlight what requires design decisions. Use `$REQUIREMENTS_DOC` as context only — do not modify it.
+
+      Do not propose solutions, make design decisions, or write code.
+    transitions:
+      - trigger: 'research_complete'
+        to: 'design'
+        transition_reason: 'Facts gathered, ready for design discussion'
+
+      - trigger: 'need_more_questions'
+        to: 'questions'
+        additional_instructions: 'Focus on the specific areas where intent is still unclear.'
+        transition_reason: 'Research revealed gaps in understanding'
+
+      - trigger: 'abandon_feature'
+        to: 'questions'
+        instructions: 'Feature abandoned. Reset for new tasks.'
+        transition_reason: 'User abandoned feature during research'
+
+  design:
+    description: 'Explore options and reach consensus on WHAT and high-level HOW'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
+    default_instructions: |
+      **Principle**: Align on WHAT and WHY before deciding detailed HOW.
+      This is the phase when the we imagening a suitable solution given the boundary conditions.
+      Propose 2-3 viable high-level approaches with trade-offs. Reference `$DESIGN_DOC` and `$ARCHITECTURE_DOC` if they exist. Reach consensus with the user on the direction. On loop-back from `need_design_changes`, update those docs if they exist.
+      It's crucial that the user gets actively involved to take an educated decision.
+
+      Document the agreed direction in the development plan.
+
+      Do not plan detailed implementation or write code.
+    transitions:
+      - trigger: 'design_approved'
+        to: 'structure'
+        transition_reason: 'Design direction approved, ready to decompose'
+        review_perspectives:
+          - perspective: 'product_owner'
+            prompt: 'Review whether the proposed design aligns with user goals, business value, and intended outcomes. Ensure the solution direction serves the actual need.'
+
+      - trigger: 'need_research'
+        to: 'research'
+        additional_instructions: 'Focus on the specific gaps that block design consensus.'
+        transition_reason: 'Design discussion revealed need for more research'
+
+      - trigger: 'abandon_feature'
+        to: 'questions'
+        instructions: 'Feature abandoned. Reset for new tasks.'
+        transition_reason: 'User abandoned feature during design'
+
+  structure:
+    description: 'Decompose the approved design into end-to-end vertical slices'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
+    default_instructions: |
+      **Principle**: Decompose into end-to-end, testable units before planning implementation details.
+
+      Define 1-5 vertical slices that each deliver user-visible behavior independently. Describe what each slice delivers, which components it touches, and how it will be tested end-to-end. Reference `$ARCHITECTURE_DOC` if it exists.
+
+      Document slice definitions in the development plan.
+
+      Do not plan implementation tasks or write code.
+    transitions:
+      - trigger: 'structure_defined'
+        to: 'plan'
+        transition_reason: 'Slices defined, ready for detailed planning'
+
+      - trigger: 'need_design_changes'
+        to: 'design'
+        additional_instructions: 'The design approach makes slicing difficult. Revisit the high-level approach with the user.'
+        transition_reason: 'Structure work revealed design gaps'
+
+      - trigger: 'abandon_feature'
+        to: 'questions'
+        instructions: 'Feature abandoned. Reset for new tasks.'
+        transition_reason: 'User abandoned feature during structure'
+
+  plan:
+    description: 'Create a detailed implementation plan per vertical slice'
+    allowed_file_patterns:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.adoc'
+    default_instructions: |
+      **Principle**: Define detailed HOW per slice without changing the design direction.
+
+      For each vertical slice, define actionable tasks, dependencies, and risks. If any existing document contradicts what is needed, document the contradiction in the development plan and use `need_design_changes`.
+
+      Document the plan in the development plan.
+
+      Do not change the design direction or write code.
+    transitions:
+      - trigger: 'plan_complete'
+        to: 'implement'
+        transition_reason: 'Plan complete, ready for coding'
+        review_perspectives:
+          - perspective: 'architect'
+            prompt: 'Review implementation strategy, design decisions, and integration approach for soundness and maintainability. Ensure the plan aligns with existing system architecture and follows best practices.'
+          - perspective: 'security_expert'
+            prompt: 'Assess security considerations and potential risks in the planned implementation approach. Review data handling, authentication, and potential vulnerabilities.'
+
+      - trigger: 'need_design_changes'
+        to: 'design'
+        additional_instructions: 'The approved design direction is unworkable for the planned slices. Revisit the high-level approach with the user.'
+        transition_reason: 'Planning revealed fundamental flaws in design direction'
+
+      - trigger: 'need_restructuring'
+        to: 'structure'
+        additional_instructions: 'The slice boundaries are wrong. Redefine the vertical slices.'
+        transition_reason: 'Planning revealed flaws in slice boundaries'
+
+      - trigger: 'abandon_feature'
+        to: 'questions'
+        instructions: 'Feature abandoned. Reset for new tasks.'
+        transition_reason: 'User abandoned feature during planning'
+
+  implement:
+    description: 'Build the solution slice by slice'
+    allowed_file_patterns:
+      - '**/*'
+    default_instructions: |
+      **Principle**: Execute the plan one slice at a time; delegate each slice to a fresh context.
+
+      Build each vertical slice end-to-end before moving to the next. Delegate each slice to a fresh agent session with focused context. Reference `$DESIGN_DOC`, `$ARCHITECTURE_DOC`, and `$REQUIREMENTS_DOC` if they exist. Prevent regressions via build, lint, and tests.
+
+      Adapt tactics within slices. Loop back via `need_design_changes` only if the high-level approach is fundamentally flawed.
+
+      Document progress in the development plan.
+    transitions:
+      - trigger: 'implementation_complete'
+        to: 'commit'
+        transition_reason: 'Implementation complete, ready for finalization'
+        review_perspectives:
+          - perspective: 'senior_software_developer'
+            prompt: 'Review code quality, best practices, testing coverage, and readiness for production deployment. Ensure the implementation follows coding standards and is maintainable.'
+          - perspective: 'performance_engineer'
+            prompt: 'Evaluate performance impact, resource efficiency, and scalability of the implemented solution. Check for potential bottlenecks or optimization opportunities.'
+
+      - trigger: 'need_replanning'
+        to: 'plan'
+        additional_instructions: 'Adjust the plan based on what you learned during coding. Document changes and reasons.'
+        transition_reason: 'Implementation revealed need to revise the plan'
+
+      - trigger: 'need_design_changes'
+        to: 'design'
+        additional_instructions: 'The high-level design approach is fundamentally flawed. Revisit design decisions with the user.'
+        transition_reason: 'Implementation revealed the approved design is unworkable'
+
+      - trigger: 'need_more_research'
+        to: 'research'
+        additional_instructions: 'Focus on the specific areas blocking implementation progress.'
+        transition_reason: 'Implementation revealed need for more research'
+
+      - trigger: 'abandon_feature'
+        to: 'questions'
+        instructions: 'Feature abandoned. Clean up incomplete code and reset for new tasks.'
+        transition_reason: 'User abandoned feature during implementation'
+
+  commit:
+    description: 'Cleanup, documentation finalization, and delivery'
+    allowed_file_patterns:
+      - '**/*'
+    default_instructions: |
+      **Principle**: Leave the codebase cleaner than you found it.
+
+      **Cleanup**: Remove debug output, temporary code, test code blocks, and completed TODOs. Address or document any remaining FIXMEs.
+
+      **Documentation**: Update `$REQUIREMENTS_DOC`, `$ARCHITECTURE_DOC`, and `$DESIGN_DOC` if they exist and changed during implementation. Otherwise, document changes in the development plan. Ensure docs reflect the final implemented state, not the development process.
+
+      **Validation**: Run tests to ensure no regressions. Verify the development plan is accurate.
+
+      Do not add new features.
+
+      $DONE_DEFAULT
+    transitions: []

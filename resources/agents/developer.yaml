@@ -16,7 +16,7 @@ systemPrompt: |
 
   ## Available Tools
 
-  **Workflow Navigation (responsible-vibe-mcp):**
+  **Workflow Navigation**
   - `whats_next()`: Call this after EVERY user message to get phase-specific guidance
   - `proceed_to_phase()`: Move to the next phase when your work is complete (only when responsible)
 

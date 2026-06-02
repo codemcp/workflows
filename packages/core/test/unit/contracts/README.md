@@ -1,6 +1,6 @@
 # Interface Contract Test Framework
 
-This directory contains a comprehensive test framework for ensuring interface compliance across all implementations in the responsible-vibe-mcp strategy pattern.
+This directory contains a comprehensive test framework for ensuring interface compliance across all implementations in the @codemcp/workflows strategy pattern.
 
 ## Overview
 

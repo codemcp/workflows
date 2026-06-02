@@ -534,7 +534,7 @@ Then retry \`start_development\`.`;
     }
 
     // Generate URL for predefined workflows
-    return `https://mrsimpson.github.io/responsible-vibe-mcp/workflows/${workflowName}`;
+    return `https://codemcp.github.io/workflows/workflows/${workflowName}`;
   }
 
   /**

@@ -18,7 +18,7 @@ Set up professional publishing workflow for the responsible-vibe MCP server to n
 ### Completed
 - [x] Created development plan file
 - [x] Analyzed current project structure
-- [x] Confirmed git repository setup (https://github.com/mrsimpson/vibe-feature-mcp.git)
+- [x] Confirmed git repository setup (https://github.com/codemcp/workflows.git)
 - [x] Verified no existing GitHub Actions workflows
 - [x] Confirmed no existing git tags (clean slate for versioning)
 - [x] Analyzed package.json structure and dependencies
@@ -180,7 +180,7 @@ Set up professional publishing workflow for the responsible-vibe MCP server to n
 *None yet*
 
 ## Key Decisions
-- **Repository**: Using existing GitHub repo (https://github.com/mrsimpson/vibe-feature-mcp.git)
+- **Repository**: Using existing GitHub repo (https://github.com/codemcp/workflows.git)
 - **Current State**: No existing tags or GitHub Actions (clean slate)
 - **Package Name**: @mrsimpson/responsible-vibe-mcp (scoped npm package)
 - **Versioning**: Conventional commits with automatic semantic versioning
@@ -215,7 +215,7 @@ Set up professional publishing workflow for the responsible-vibe MCP server to n
    - Copy the token (starts with `npm_`)
 
 2. **Add GitHub Secret:**
-   - Go to your repo: https://github.com/mrsimpson/vibe-feature-mcp/settings/secrets/actions
+   - Go to your repo: https://github.com/codemcp/workflows/settings/secrets/actions
    - Click "New repository secret"
    - Name: `NPM_TOKEN`
    - Value: Your npm token

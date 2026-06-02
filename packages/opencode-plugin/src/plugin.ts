@@ -13,6 +13,7 @@
  */
 
 import type { Plugin, PluginInput, Hooks, ToolDefinition } from './types.js';
+import { Effect } from 'effect';
 import { createProceedToPhaseTool } from './tool-handlers/proceed-to-phase.js';
 import { createConductReviewTool } from './tool-handlers/conduct-review.js';
 import { createResetDevelopmentTool } from './tool-handlers/reset-development.js';
@@ -171,9 +172,19 @@ export const WorkflowsPlugin: Plugin = async (
   // duplicate synthetic part for that specific message.
   let postCompactionMessagePending = false;
 
+  // Set to true right after session.compacted fires so that the very next
+  // chat.message (OpenCode's own auto-continue) bypasses the agent filter
+  // and injects proper phase instructions instead of a suppression notice.
+  let postCompactionAutoResume = false;
+
   // Last-known model from chat.message hook. Cached so proceed_to_phase can
   // pass providerID + modelID to the summarize API (which requires them).
   let lastKnownModel: { providerID: string; modelID: string } | null = null;
+
+  // Last-known agent from chat.message hook. Used when sending the
+  // post-compaction phase-aware continue message so it runs under the
+  // correct agent (e.g. 'workflow') rather than OpenCode's default.
+  let lastKnownAgent: string | null = null;
 
   /**
    * Set buffered instructions from a tool result.
@@ -304,6 +315,13 @@ export const WorkflowsPlugin: Plugin = async (
         lastKnownModel = hookInput.model;
       }
 
+      // Cache the agent for use by the post-compaction continue message.
+      // Only cache when the agent is enabled (i.e. a primary workflow agent),
+      // so we don't accidentally cache a subagent name.
+      if (hookInput.agent && isAgentEnabled(hookInput.agent)) {
+        lastKnownAgent = hookInput.agent;
+      }
+
       // If this message was the post-compaction instructions prompt sent by Hook 4,
       // skip synthetic part injection — the message body IS the instructions.
       if (postCompactionMessagePending) {
@@ -314,6 +332,19 @@ export const WorkflowsPlugin: Plugin = async (
         return;
       }
 
+      // After compaction, OpenCode sends an auto-continue message which may arrive
+      // as a non-workflow agent (e.g. 'build'). In that case we still want to inject
+      // the phase instructions rather than the suppression/no-workflow notice, so we
+      // consume the flag and fall through to normal phase-instruction injection below.
+      const bypassAgentFilter = postCompactionAutoResume;
+      if (bypassAgentFilter) {
+        postCompactionAutoResume = false;
+        logger.debug(
+          'chat.message: bypassing agent filter for post-compaction auto-resume',
+          { agent: hookInput.agent }
+        );
+      }
+
       // If WORKFLOW_AGENTS is set and this agent is not in the allowlist, inject a
       // suppression instruction as a synthetic part so the LLM knows not to call the
       // workflow tools (which would only throw errors for non-enabled agents).
@@ -321,7 +352,7 @@ export const WorkflowsPlugin: Plugin = async (
       //   1. chat.message already has hookInput.agent directly — no stale-state risk.
       //   2. chat.message fires reliably for every user turn; transform may fire for
       //      intermediate tool-loop LLM calls without a preceding chat.message.
-      if (!isAgentEnabled(hookInput.agent)) {
+      if (!bypassAgentFilter && !isAgentEnabled(hookInput.agent)) {
         logger.debug(
           'chat.message: Agent not enabled — injecting tool suppression',
           {
@@ -377,7 +408,7 @@ export const WorkflowsPlugin: Plugin = async (
               messageID: hookInput.messageID || output.message.id,
               type: 'text' as const,
               synthetic: true,
-              text: `No Active Workflow Use the \`start_development\` tool to begin.`,
+              text: `No Active Workflow Detected. You MUST initiate a new development workflow before proceeding. First, create a new branch with a meaningful name using a conventional commit prefix (e.g., \`feat/add-new-feature\`, \`fix/bug-description\`, \`refactor/improve-logic\`). Then call the \`start_development\` tool to begin. Do NOT attempt any file edits or tool executions until a workflow is active.`,
             } as (typeof output.parts)[0]);
             return;
           }
@@ -396,7 +427,7 @@ export const WorkflowsPlugin: Plugin = async (
               messageID: hookInput.messageID || output.message.id,
               type: 'text' as const,
               synthetic: true,
-              text: `No Active Workflow Use the \`start_development\` tool to begin.`,
+              text: `No Active Workflow Detected. You MUST initiate a new development workflow before proceeding. First, create a new branch with a meaningful name using a conventional commit prefix (e.g., \`feat/add-new-feature\`, \`fix/bug-description\`, \`refactor/improve-logic\`). Then call the \`start_development\` tool to begin. Do NOT attempt any file edits or tool executions until a workflow is active.`,
             } as (typeof output.parts)[0]);
             return;
           }
@@ -479,7 +510,7 @@ export const WorkflowsPlugin: Plugin = async (
 Current phase "${state.phase}" only allows editing:
 ${allowedList}
 
-ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editing this file type, OR focus on files matching the allowed patterns above.`;
+ACTION REQUIRED: Use proceed_to_phase tool to move to a phase that allows editing this file type, OR focus on files matching the allowed patterns above.`;
 
         logger.error('BLOCKING edit', {
           filePath,
@@ -559,6 +590,11 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
 
       if (event.type === 'session.compacted') {
         postCompactionSession = event.properties.sessionID as string;
+        // Set flag so the next chat.message (OpenCode's own auto-continue,
+        // which may fire as a non-workflow agent like 'build') bypasses the
+        // agent filter and injects proper phase instructions instead of a
+        // suppression/no-workflow notice.
+        postCompactionAutoResume = true;
         logger.info('session.compacted: pending phase-aware continue', {
           sessionID: postCompactionSession,
         });
@@ -613,7 +649,10 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
             session: {
               promptAsync(params: {
                 path: { id: string };
-                body: { parts: Array<{ type: string; text: string }> };
+                body: {
+                  parts: Array<{ type: string; text: string }>;
+                  agent?: string;
+                };
               }): Promise<unknown>;
             };
           };
@@ -621,6 +660,7 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
             path: { id: sessionID },
             body: {
               parts: [{ type: 'text', text: promptText }],
+              ...(lastKnownAgent ? { agent: lastKnownAgent } : {}),
             },
           });
           logger.info('session.idle: phase-aware continue sent (async)', {
@@ -641,7 +681,64 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
      * an error if the agent is not allowed to use workflows.
      */
     tool: await (async (): Promise<{ [key: string]: ToolDefinition }> => {
-      const wrap = (def: ToolDefinition): ToolDefinition => ({
+      /**
+       * Build human-readable permission patterns for the web UI.
+       * The opencode web permission dialog only shows `patterns`, so we put
+       * meaningful "key: value" strings here instead of the generic '*'.
+       */
+      const buildPermissionPatterns = (
+        toolName: string,
+        args: Record<string, unknown>
+      ): string[] => {
+        const entry = (key: string, value: unknown): string | null => {
+          if (value === undefined || value === null || value === '')
+            return null;
+          return `${key}: ${value}`;
+        };
+
+        switch (toolName) {
+          case 'start_development': {
+            const patterns = [entry('workflow', args['workflow'])].filter(
+              (p): p is string => p !== null
+            );
+            return patterns.length > 0 ? patterns : ['*'];
+          }
+          case 'proceed_to_phase': {
+            const patterns = [
+              entry('target_phase', args['target_phase']),
+              entry('reason', args['reason']),
+            ].filter((p): p is string => p !== null);
+            return patterns.length > 0 ? patterns : ['*'];
+          }
+          case 'conduct_review': {
+            const patterns = [
+              entry('target_phase', args['target_phase']),
+            ].filter((p): p is string => p !== null);
+            return patterns.length > 0 ? patterns : ['*'];
+          }
+          case 'reset_development': {
+            const patterns = [
+              args['delete_plan'] === true
+                ? entry('delete_plan', args['delete_plan'])
+                : null,
+              entry('reason', args['reason']),
+            ].filter((p): p is string => p !== null);
+            return patterns.length > 0 ? patterns : ['*'];
+          }
+          case 'setup_project_docs': {
+            const patterns = [
+              entry('architecture', args['architecture']),
+              entry('requirements', args['requirements']),
+              entry('design', args['design']),
+            ].filter((p): p is string => p !== null);
+            return patterns.length > 0 ? patterns : ['*'];
+          }
+          default:
+            return ['*'];
+        }
+      };
+
+      const wrap = (toolName: string, def: ToolDefinition): ToolDefinition => ({
         ...def,
         execute: async (args, ctx) => {
           const agent = ctx.agent;
@@ -652,12 +749,25 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
             );
           }
 
+          await Effect.runPromise(
+            ctx.ask({
+              permission: toolName,
+              patterns: buildPermissionPatterns(
+                toolName,
+                args as Record<string, unknown>
+              ),
+              always: ['*'],
+              metadata: args as Record<string, unknown>,
+            })
+          );
+
           return def.execute(args, ctx);
         },
       });
 
       return {
         start_development: wrap(
+          'start_development',
           createStartDevelopmentTool(
             input.directory,
             getServerContext,
@@ -665,6 +775,7 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
           )
         ),
         proceed_to_phase: wrap(
+          'proceed_to_phase',
           createProceedToPhaseTool(
             getServerContext,
             setBufferedInstructions,
@@ -672,11 +783,16 @@ ACTION REQUIRED: Use transition_phase tool to move to a phase that allows editin
             () => lastKnownModel
           )
         ),
-        conduct_review: wrap(createConductReviewTool(getServerContext)),
+        conduct_review: wrap(
+          'conduct_review',
+          createConductReviewTool(getServerContext)
+        ),
         reset_development: wrap(
+          'reset_development',
           createResetDevelopmentTool(input.directory, getServerContext)
         ),
         setup_project_docs: wrap(
+          'setup_project_docs',
           await createSetupProjectDocsTool(input.directory, getServerContext)
         ),
       };

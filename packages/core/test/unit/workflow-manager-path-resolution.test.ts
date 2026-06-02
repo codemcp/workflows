@@ -57,7 +57,7 @@ describe('WorkflowManager path resolution', () => {
       writeFileSync(
         join(projectRoot, 'package.json'),
         JSON.stringify({
-          name: 'responsible-vibe-mcp',
+          name: '@codemcp/workflows',
           version: '1.0.0',
         })
       );

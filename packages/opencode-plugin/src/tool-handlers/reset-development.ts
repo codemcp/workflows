@@ -39,16 +39,6 @@ export function createResetDevelopmentTool(
 
       logger.debug('reset_development called', { confirm, delete_plan });
 
-      // Request permission before resetting development state (DESTRUCTIVE)
-      if (context && typeof context.ask === 'function') {
-        await context.ask({
-          permission: 'reset_development',
-          patterns: ['*'],
-          always: ['*'],
-          metadata: { delete_plan, reason },
-        });
-      }
-
       if (!confirm) {
         return `Reset requires confirm: true. Will delete conversation state${delete_plan ? ' and plan file' : ''}.`;
       }

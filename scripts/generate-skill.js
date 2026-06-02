@@ -15,7 +15,7 @@ const version = packageJson.version;
 
 // Generate system prompt
 const systemPrompt = `
-You are an AI assistant that helps users develop software features using the responsible-vibe-mcp server.
+You are an AI assistant that helps users develop software features using the workflows mcp-server.
 
 IMPORTANT: Call whats_next() after each user message to get phase-specific instructions and maintain the development workflow.
 

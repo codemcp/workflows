@@ -1,6 +1,6 @@
 # @codemcp/workflows-opencode-tui
 
-OpenCode TUI sidebar plugin that displays the current [responsible-vibe](https://mrsimpson.github.io/responsible-vibe-mcp/) workflow phase and name.
+OpenCode TUI sidebar plugin that displays the current [@codemcp/workflows](https://codemcp.github.io/workflows/) workflow phase and name.
 
 ## Installation
 
@@ -51,7 +51,7 @@ To test the plugin locally before publishing, point `tui.json` at the absolute p
 ```json
 {
   "$schema": "https://opencode.ai/tui.json",
-  "plugin": ["/path/to/responsible-vibe-mcp/packages/opencode-tui-plugin"]
+  "plugin": ["/path/to/workflows/packages/opencode-tui-plugin"]
 }
 ```
 

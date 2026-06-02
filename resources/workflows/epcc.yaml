@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=../state-machine-schema.json
 ---
 name: 'epcc'
-description: "A comprehensive development workflow based on Anthropic's best practices: Explore, Plan, Code, Commit - ideal for smaller features and iterative development"
+description: 'Explore, Plan, Code, Commit - ideal for features and iterative development'
 initial_state: 'explore'
 
 # Enhanced metadata for better discoverability
@@ -31,6 +31,7 @@ states:
       - '**/*.txt'
       - '**/*.adoc'
     default_instructions: |
+      Figure out the INTENT of the users instructions.
       Research the codebase to understand existing patterns and gather context about the problem space.
 
       - If uncertain about conventions or rules, ask the user about them
@@ -179,17 +180,6 @@ states:
       - Ensure code is ready for production/delivery
 
       Update task progress and mark completed work as you finalize the feature.
-    transitions:
-      - trigger: 'need_code_changes'
-        to: 'code'
-        additional_instructions: 'Focus on the problems identified during final review.'
-        transition_reason: 'Final review found issues requiring code changes'
 
-      - trigger: 'commit_complete'
-        to: 'explore'
-        transition_reason: 'Feature delivery complete, ready for next task'
-
-      - trigger: 'abandon_feature'
-        to: 'explore'
-        additional_instructions: 'Clean up any finalization artifacts and prepare for new tasks.'
-        transition_reason: 'User decided to abandon feature during finalization'
+      $DONE_DEFAULT
+    transitions: []

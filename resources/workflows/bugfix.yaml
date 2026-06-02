@@ -162,17 +162,6 @@ states:
       - Verify documentation accuracy with a final review
       - Ensure bug fix is ready for production
       - Update task progress and mark completed work as you finalize the bug fix
-    transitions:
-      - trigger: 'need_fix_changes'
-        to: 'fix'
-        additional_instructions: 'Finalization revealed issues with the bug fix. Focus on addressing the specific problems identified during final review.'
-        transition_reason: 'Finalization revealed issues requiring fix changes'
 
-      - trigger: 'finalization_complete'
-        to: 'reproduce'
-        transition_reason: 'Bug fix complete and finalized, ready for next issue'
-
-      - trigger: 'abandon_bug'
-        to: 'reproduce'
-        additional_instructions: 'Bug finalization abandoned. Clean up any finalization work and prepare for new bug reports.'
-        transition_reason: 'Bug finalization abandoned'
+      $DONE_DEFAULT
+    transitions: []

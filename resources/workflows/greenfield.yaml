@@ -201,17 +201,6 @@ states:
       - Verify documentation accuracy with a final review
       - Ensure project is ready for users and contributors
       - Update task progress and mark completed work as you finalize the project
-    transitions:
-      - trigger: 'need_code_changes'
-        to: 'code'
-        additional_instructions: 'Finalization revealed issues that require code changes. Focus on the problems identified during final review that affect usability or functionality.'
-        transition_reason: 'Finalization revealed issues requiring code changes'
 
-      - trigger: 'finalization_complete'
-        to: 'ideation'
-        transition_reason: 'Project delivery complete with finalized code and documentation, ready for next greenfield project'
-
-      - trigger: 'abandon_project'
-        to: 'ideation'
-        additional_instructions: 'Project development abandoned during finalization. Clean up any finalization artifacts and prepare for new projects.'
-        transition_reason: 'User decided to abandon project during finalization phase'
+      $DONE_DEFAULT
+    transitions: []

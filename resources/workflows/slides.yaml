@@ -213,25 +213,5 @@ states:
 
       **Update** the plan file with delivery preparation progress to ensure successful delivery.
 
-    transitions:
-      - trigger: delivery_complete
-        to: ideate
-        additional_instructions: |
-          **Delivery phase complete!** Your presentation has been successfully delivered.
-
-          Mark all delivery tasks as complete in the plan file and prepare for new work.
-        transition_reason: 'Presentation delivery completed successfully, ready for new projects'
-
-      - trigger: need_final_review
-        to: review
-        additional_instructions: 'Final preparation revealed issues requiring additional review. Focus on addressing these concerns before delivery.'
-        transition_reason: 'Delivery preparation identified issues requiring additional review'
-
-      - trigger: abandon_presentation
-        to: ideate
-        instructions: |
-          **Abandon delivery preparation** - Clean up delivery preparation and return to ideation.
-
-          The plan file and completed work will remain for future reference.
-        additional_instructions: 'Presentation abandoned before delivery. Clean up and prepare for new topics.'
-        transition_reason: 'User decided to abandon presentation before delivery'
+      $DONE_DEFAULT
+    transitions: []

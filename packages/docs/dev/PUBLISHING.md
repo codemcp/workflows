@@ -22,7 +22,7 @@ The project uses GitHub Actions to automatically:
    - Copy the token (starts with `npm_`)
 
 2. **Add GitHub Secret:**
-   - Go to your repo: https://github.com/mrsimpson/vibe-feature-mcp/settings/secrets/actions
+   - Go to your repo: https://github.com/codemcp/workflows/settings/secrets/actions
    - Click "New repository secret"
    - Name: `NPM_TOKEN`
    - Value: Your npm token
@@ -103,8 +103,8 @@ If needed, you can manually trigger releases:
 ### Checking Status:
 
 - **npm package**: https://www.npmjs.com/package/@codemcp/workflows
-- **GitHub releases**: https://github.com/mrsimpson/vibe-feature-mcp/releases
-- **Actions logs**: https://github.com/mrsimpson/vibe-feature-mcp/actions
+- **GitHub releases**: https://github.com/codemcp/workflows/releases
+- **Actions logs**: https://github.com/codemcp/workflows/actions
 
 ## Version History
 

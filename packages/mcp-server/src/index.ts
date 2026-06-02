@@ -19,6 +19,12 @@ export {
 // Re-export tool handlers for external use (e.g., OpenCode plugin)
 export * from './tool-handlers/index.js';
 
+// Re-export helper functions for workflow description generation (used by OpenCode plugin)
+export {
+  generateWorkflowDescription,
+  buildWorkflowEnum,
+} from './server-helpers.js';
+
 // Re-export types needed by external consumers
 export type { ServerContext, HandlerResult, SessionMetadata } from './types.js';
 
@@ -95,8 +101,7 @@ export { main as startMcpServer };
 // More robust check that works with npx and direct execution
 const isMainModule =
   import.meta.url === `file://${process.argv[1]}` ||
-  process.argv[1]?.endsWith('ade-workflows-server') ||
-  process.argv[1]?.endsWith('index.js');
+  process.argv[1]?.endsWith('ade-workflows-server');
 
 if (isMainModule) {
   await main().catch(error => {

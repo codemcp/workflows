@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 // Global test configuration
-const TEST_DB_DIR = join(tmpdir(), 'responsible-vibe-mcp-test');
+const TEST_DB_DIR = join(tmpdir(), 'codemcp-workflows-test');
 
 // Export test utilities
 export const TEST_CONFIG = {
