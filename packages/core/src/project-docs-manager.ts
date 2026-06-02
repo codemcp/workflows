@@ -462,6 +462,8 @@ export class ProjectDocsManager {
       $VIBE_DIR: vibeDir,
       $BRANCH_NAME: branchDirName,
       $VIBE_ROLE: agentRole,
+      $DONE_DEFAULT:
+        'Feature work is complete. Do NOT transition to any other state — this is a terminal state. If this is a GitHub repository: create a PR. Always: present the final result to the user.',
     };
   }
 

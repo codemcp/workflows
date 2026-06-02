@@ -464,8 +464,6 @@ states:
       - Modernization roadmap
 
       The analysis provides a foundation for future development. Consider using other workflows (waterfall, epcc, etc.) with the comprehensive understanding gained.
-    transitions:
-      - trigger: 'refine_analysis'
-        to: 'component_analysis'
-        additional_instructions: 'Refine specific aspects of analysis. Focus on areas that need additional investigation.'
-        transition_reason: 'Analysis review revealed need for additional component analysis'
+
+      $DONE_DEFAULT
+    transitions: []

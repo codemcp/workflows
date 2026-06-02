@@ -151,7 +151,5 @@ states:
 
       Complete final validation and cleanup before the ADR is finalized.
 
-    transitions:
-      - trigger: need_decision_changes
-        to: decide
-        transition_reason: 'Final review found problems with the decision documentation'
+      $DONE_DEFAULT
+    transitions: []
