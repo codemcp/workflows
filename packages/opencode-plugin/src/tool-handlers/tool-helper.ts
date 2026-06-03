@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { ToolDefinition, ToolContext } from '../types.js';
+import type { ToolContext } from '../types.js';
+import type { ToolDefinition } from '@opencode-ai/plugin';
 
 /**
  * Tool definition helper
