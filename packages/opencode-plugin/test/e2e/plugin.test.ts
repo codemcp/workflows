@@ -6,7 +6,6 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Effect } from 'effect';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { tmpdir } from 'node:os';
@@ -64,7 +63,10 @@ function createMockToolContext(overrides: Record<string, unknown> = {}) {
     worktree: '',
     abort: new AbortController().signal,
     metadata: vi.fn(),
-    ask: vi.fn().mockReturnValue(Effect.void),
+    // Return a plain Promise to match the current SDK (1.15.x).
+    // The plugin's runAsk() helper handles both Promise and Effect return
+    // values, so either form works here — but we match the real SDK default.
+    ask: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

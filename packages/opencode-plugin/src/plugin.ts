@@ -35,6 +35,46 @@ import {
 } from './server-context.js';
 import { stripWhatsNextReferences } from './utils.js';
 
+// ---------------------------------------------------------------------------
+// Monkey-patch resilience: ToolContext.ask return-type detection
+//
+// opencode has changed ToolContext.ask's return type between SDK releases:
+//   • SDK ≤ some pre-April-2026 version  → Promise<void>
+//   • SDK after PR #21986 (Apr 10 2026)  → Effect.Effect<void>
+//   • SDK 1.15.x (current, Jun 2026)     → Promise<void>  ← reverted again
+//
+// Rather than chasing each flip, we inspect the actual return value at
+// runtime and dispatch accordingly.  An Effect object carries the property
+// key "~effect/Effect" (its TypeId), which is stable across Effect 3.x and
+// 4.x.  A plain Promise does not have that key and is always thenable.
+//
+// This is intentionally a monkey-patch: it compensates for an upstream API
+// that has been unstable across SDK versions.  If the SDK stabilises on one
+// form, this helper can be simplified, but it is cheap enough to keep.
+// ---------------------------------------------------------------------------
+
+const EFFECT_TYPE_ID = '~effect/Effect';
+
+/**
+ * Execute the result of `ToolContext.ask()`, regardless of whether the SDK
+ * version returns a `Promise<void>` or an `Effect.Effect<void>`.
+ */
+async function runAsk(
+  askResult: Promise<void> | Effect.Effect<void>
+): Promise<void> {
+  if (
+    askResult !== null &&
+    typeof askResult === 'object' &&
+    EFFECT_TYPE_ID in askResult
+  ) {
+    // SDK returned an Effect — bridge it into the async/await world.
+    await Effect.runPromise(askResult as Effect.Effect<void>);
+  } else {
+    // SDK returned a Promise (current behaviour as of SDK 1.15.x).
+    await (askResult as Promise<void>);
+  }
+}
+
 /**
  * Buffered instructions from proceed_to_phase or start_development tools.
  * Consumed (and cleared) by the next chat.message hook invocation.
@@ -749,7 +789,7 @@ ACTION REQUIRED: Use proceed_to_phase tool to move to a phase that allows editin
             );
           }
 
-          await Effect.runPromise(
+          await runAsk(
             ctx.ask({
               permission: toolName,
               patterns: buildPermissionPatterns(
@@ -779,7 +819,7 @@ ACTION REQUIRED: Use proceed_to_phase tool to move to a phase that allows editin
           createProceedToPhaseTool(
             getServerContext,
             setBufferedInstructions,
-            input.client as OpenCodeClient,
+            input.client as unknown as OpenCodeClient,
             () => lastKnownModel
           )
         ),

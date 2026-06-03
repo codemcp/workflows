@@ -29,17 +29,22 @@
   "devDependencies": {
     "@codemcp/workflows-core": "workspace:*",
     "@codemcp/workflows-server": "workspace:*",
+    "@opencode-ai/plugin": "*",
     "rimraf": "^6.0.1",
     "tsup": "^8.0.0",
     "vitest": "4.0.18"
   },
   "peerDependencies": {
     "@anthropic-ai/sdk": "*",
+    "@opencode-ai/plugin": "*",
     "zod": ">=4.1.8"
   },
   "peerDependenciesMeta": {
     "@anthropic-ai/sdk": {
       "optional": true
+    },
+    "@opencode-ai/plugin": {
+      "optional": false
     },
     "zod": {
       "optional": false
