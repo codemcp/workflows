@@ -241,8 +241,8 @@ Create a new workflow YAML file (`socratic-recovery.yaml`) that guides an LLM th
 
 ### Key Implementation Facts (final state)
 
-- `resources/workflows/socratic-recovery.yaml`: 5 states, 589 lines, schema-valid
-- `resources/templates/requirements/cockburn-use-cases.md`: 149 lines, lean structure-only template
+- `resources/workflows/socratic-recovery.yaml`: 5 states, schema-valid, agent delegation on 3 states
+- `resources/templates/requirements/cockburn-use-cases.md`: **deleted** — not needed; no state uses `$REQUIREMENTS_DOC`; Cockburn format referenced by name in agent instructions only
 - All output paths use `.md` (not `.adoc` as in original blog post prompts — normalised throughout)
 - No debug artifacts, no TODOs, no commented-out code in either file
 - Integration tests pass (`test/integration/workflow-configuration.test.ts`)
