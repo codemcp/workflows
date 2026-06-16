@@ -2,7 +2,7 @@
 ---
 name: 'socratic-recovery'
 description: >-
-  Brownfield architecture recovery using Socratic Code-Theory Recovery (Naur, 1985).
+  Brownfield architecture recovery for undocumented codebases.
   Builds a hierarchical Question Tree from source code, surfaces OPEN_QUESTIONS
   for the team to answer, then synthesizes arc42 documentation, a PRD, Cockburn
   use-case spec, and Nygard ADRs — with an independent Fagan/ATAM review pass.
@@ -31,192 +31,157 @@ metadata:
 states:
   question_tree:
     description: >-
-      Set up arc42 + Cockburn use-case documentation skeleton, then run Phase 1
-      Socratic Code-Theory Recovery. Builds QUESTION_TREE-<context-name>.md and
-      OPEN_QUESTIONS-<context-name>.md for a named bounded context.
+      Set up arc42 + Cockburn use-case documentation skeleton, then build a
+      hierarchical Question Tree from the codebase. Produces
+      QUESTION_TREE-<context-name>.md and OPEN_QUESTIONS-<context-name>.md
+      for a named bounded context.
     allowed_file_patterns:
       - 'docs/**/*.md'
       - 'QUESTION_TREE-*.md'
       - 'OPEN_QUESTIONS-*.md'
     default_instructions: >
-      You are starting Phase 1 of Socratic Code-Theory Recovery on a brownfield
-      bounded context.
+      **STEP 1 — Confirm the bounded context.**
 
-      **STEP 0 — Ask for the bounded context if not already provided.**
-
-      Before doing anything else, confirm:
+      Before doing anything else, confirm with the user:
         1. The path to the bounded context (directory or set of directories).
            NEVER default to CWD — always ask.
         2. A short kebab-case context name (e.g. `auth`, `order-service`,
-           `payment-gateway`). This name is used in every output file name so
+           `payment-gateway`). This name is appended to every output file so
            that sequential runs on different contexts never overwrite each other.
 
-      **STEP 1 — Set up documentation skeleton.**
+      **STEP 2 — Set up documentation skeleton.**
 
       Call:
         `setup_project_docs({ architecture: "arc42", requirements: "cockburn-use-cases", design: "none" })`
 
-      This creates:
-        - An arc42 Markdown skeleton (12 chapters) in the docs/ tree.
-        - A Cockburn Fully Dressed use-case template in the docs/ tree.
+      This creates two structural reference files in `.vibe/docs/`:
+        - `.vibe/docs/architecture.md` — arc42 skeleton (12 chapters). Use this
+          as the chapter structure reference when filling the arc42 output file
+          later.
+        - `.vibe/docs/requirements.md` — Cockburn Fully Dressed use-case
+          template. Use this as the section structure reference when filling the
+          use-case output file later.
 
-      Read both created files so you understand their structure before
-      generating content.
+      Read both files now so you understand their structure.
 
-      **STEP 2 — Run Phase 1: Build the Question Tree.**
+      **STEP 3 — Build the Question Tree.**
 
-      Delegate this step to an agent. Ask the agent specifically to: perform
-      Socratic Code-Theory Recovery Phase 1 on the bounded context at
-      [bounded context path], follow the prompt below exactly, and write the
-      two output files (QUESTION_TREE-[context-name].md and
-      OPEN_QUESTIONS-[context-name].md) to the repository root before
-      returning. Do not return intermediate results — only return once both
-      files are written and the sanity-check (Step 3 of the prompt) is
-      complete.
+      Delegate this step to an agent. Ask the agent specifically to: read the
+      codebase at [bounded context path], build a hierarchical Question Tree by
+      recursively decomposing five root questions down to leaf level, classify
+      every leaf as [ANSWERED] (with file:line evidence) or [OPEN] (with
+      category and role), run the sanity-check described in the prompt, and
+      write both output files before returning.
 
-      The prompt for the agent:
+      **Agent prompt:**
 
       ```
-      You are performing Socratic Code-Theory Recovery on a brownfield bounded
-      context located at [bounded context path]. Phase 1 of two.
+      Build a hierarchical Question Tree for the codebase at
+      [bounded context path].
 
-      Goal: recover the program's theory (Naur, 1985) from source code through
-      recursive question refinement, before any documentation is written.
+      Start with these five root questions:
+        Q1  What problem does this bounded context solve, and for whom?
+        Q2  What is the specification of this bounded context?
+        Q3  What is the architecture of this bounded context?
+        Q4  What quality goals drive the design?
+        Q5  What risks and technical debt exist?
 
-      Process:
+      The second level of the tree is FIXED — emit exactly these nodes in this
+      order, even when a node's only leaf is [OPEN] or [ANSWERED: not
+      applicable]:
+        Q1.1–Q1.6   product identity, primary users, channels, why-built,
+                    success metrics, segment priority
+        Q2.1–Q2.6   actors, use-case catalog, per-interface system specs,
+                    data/entity model, acceptance criteria, cross-cutting
+                    business rules
+        Q3.1–Q3.12  the twelve arc42 chapters, in arc42 order
+        Q4.1–Q4.8   the eight ISO/IEC 25010 characteristics
+        Q4.9        which characteristic has priority
+        Q5.1–Q5.5   technical debt, security risks, operational risks,
+                    dependency/supply-chain risks, scaling/performance risks
 
-      1. Start with five root questions about the bounded context:
-         Q1 What problem does this bounded context solve, and for whom?
-         Q2 What is the specification of this bounded context?
-         Q3 What is the architecture of this bounded context?
-         Q4 What quality goals drive the design?
-         Q5 What risks and technical debt exist?
+      Q3.2 (Architecture Constraints) carries a FIXED third level too:
+        Q3.2.1  technical constraints — language, runtime, mandated
+                frameworks/libraries
+        Q3.2.2  organizational/process constraints — git workflow, branching,
+                release process, review rules
+        Q3.2.3  conventional constraints — naming, file layout, code-style
+                rules, commit conventions
+      For Q3.2, also look beyond source code: CLAUDE.md / AGENTS.md,
+      CONTRIBUTING files, CI workflow definitions, and linter/formatter configs
+      are valid evidence sources — cite them file:line like any other evidence.
 
-      2. The second level of the tree is FIXED, not free. Emit exactly these
-         nodes, in this order, even when a node's only leaf is [OPEN] or
-         [ANSWERED: not applicable]:
-           Q1.1-Q1.6  product identity, primary users, channels, why-built,
-                      success metrics, segment priority
-           Q2.1-Q2.6  actors, use-case catalog, per-interface system specs,
-                      data/entity model, acceptance criteria, cross-cutting
-                      business rules
-           Q3.1-Q3.12 the twelve arc42 chapters, in arc42 order
-           Q4.1-Q4.8  the eight ISO/IEC 25010 characteristics;
-           Q4.9       which characteristic has priority
-           Q5.1-Q5.5  technical debt, security risks, operational risks,
-                      dependency/supply-chain risks, scaling/performance risks
+      Below the fixed second level, decompose ADAPTIVELY and code-driven.
+      A node is a leaf ONLY when its question can be answered with specific
+      file:line (or file::function) evidence, or definitively marked [OPEN].
+      If the honest answer is still coarse (a whole directory, a bare package
+      name, a paragraph standing in for an entire arc42 chapter), the node is
+      NOT a leaf — decompose it further until every leaf maps to one specific,
+      citable piece of code. Do not decompose more than four levels below any
+      fixed node; if a leaf is still too coarse at that depth, mark it [OPEN]
+      (Category: business-context or design-rationale).
 
-         One node carries a FIXED third level too: Q3.2 (Architecture
-         Constraints) always emits exactly these three sub-nodes, mirroring the
-         constraint kinds arc42 Chapter 2 distinguishes:
-           Q3.2.1 technical constraints — language, runtime, mandated
-                  frameworks/libraries
-           Q3.2.2 organizational/process constraints — git workflow, branching,
-                  release process, review rules
-           Q3.2.3 conventional constraints — naming, file layout, code-style
-                  rules, commit conventions
-         For the Q3.2 branch specifically, look beyond source code: CLAUDE.md /
-         AGENTS.md, CONTRIBUTING files, CI workflow definitions, and
-         linter/formatter configs are valid evidence sources — cite them
-         file:line like any other evidence. Constraints of these kinds rarely
-         live in dense code, so a code-density-driven decomposition would walk
-         right past them.
+      For each leaf, classify it:
 
-      3. Below the fixed second level, decompose ADAPTIVELY and code-driven.
-         A node is a leaf ONLY when its question can be answered with specific
-         `file:line` (or `file::function`) evidence, or definitively marked
-         [OPEN]. If the honest answer would still be coarse — a whole directory
-         as evidence, "the building blocks are these four packages", a single
-         paragraph standing in for an entire arc42 chapter — the node is NOT a
-         leaf yet. Decompose it further ("building blocks?" -> "building blocks
-         of the tool subsystem?" -> "...of the agent loop?") until every leaf
-         maps to one specific, citable piece of code.
+        [ANSWERED]
+          — You found the answer in the code.
+          — Cite evidence as <file>:<line> or <file>::<function>.
+          — Be exact. A directory path is NOT valid evidence.
 
-         Tree depth therefore tracks code density: a small bounded context
-         yields a shallow tree, a large one a deep tree — you do not have to
-         guess the right bounded-context granularity up front. Backstop against
-         runaway recursion: do not decompose more than four levels below a fixed
-         node. If a leaf is still too coarse at that depth, mark it [OPEN]
-         (Category: business-context or design-rationale) and note that the
-         bounded context may be too large to recover in one pass.
+        [OPEN]
+          — The answer is not derivable from code alone.
+          — Category: business-context | design-rationale | quality-goals |
+                      stakeholder-context | future-direction
+          — Ask role: Product Owner | Architect | Developer | Domain Expert |
+                      Operations
+          — State precisely what cannot be answered and why.
 
-         The fixed second level (Q1.1-Q5.5) is the SAME on every run, so the
-         skeleton stays diffable; only the depth below it is adaptive. Q-IDs are
-         stable: Q3.7 is always the Deployment View, in every run, so trees from
-         different runs can be diffed node-by-node.
+      Quality (the Q4 branch) is not wholly team knowledge. Where the code
+      shows measurable behaviour — a timeout, a retry policy, a budget, a
+      truncation limit — write it as an [ANSWERED] quality scenario with
+      file:line. Only the quality-goal ranking (Q4.9) is [OPEN].
 
-      4. For each leaf, classify it:
+      Write two output files in Markdown at the repository root. Name them
+      after the bounded context so sequential runs never overwrite each other:
 
-         [ANSWERED]
-           - You found the answer in the code.
-           - Cite the evidence as <file>:<line> or <file>::<function>.
-           - Be exact. No "see X for details."
-           - A directory or a bare folder path is NOT valid evidence. If the
-             only honest cite is a directory, the leaf still covers too much —
-             go back to step 3 and decompose it further.
+        QUESTION_TREE-[context-name].md
+          — Full hierarchical tree with all nodes and Q-IDs.
+          — Each leaf marked [ANSWERED] (with evidence) or [OPEN] (with
+            Category and Ask role).
+          — Includes all reasoning, not only the leaves.
 
-         [OPEN]
-           - The answer is not derivable from code alone.
-           - Category: business-context | design-rationale | quality-goals |
-                       stakeholder-context | future-direction
-           - Ask role: Product Owner | Architect | Developer | Domain Expert |
-                       Operations
-           - State precisely what cannot be answered, and why.
+        OPEN_QUESTIONS-[context-name].md
+          — Only the [OPEN] leaves, copied verbatim from the Question Tree.
+          — One section per Ask role (Product Owner, Architect, Developer,
+            Domain Expert, Operations) — emit every section even when empty
+            ("No open questions for this role").
+          — Each question short enough to be answered in 1–3 sentences.
 
-         Quality (the Q4 branch) is not wholly team knowledge. Where the code
-         shows measurable behaviour — a timeout, a truncation limit, a budget,
-         a retry policy, the threats and test concept from Q3.8 — write it as
-         an [ANSWERED] quality scenario with file:line. Never invent a target
-         number. Only the quality-goal ranking (Q4.9) is [OPEN].
-
-      5. Output two files in Markdown, named after the bounded context so that
-         sequential runs on different contexts never overwrite each other:
-
-         QUESTION_TREE-[context-name].md
-           - Full hierarchical tree with all nodes and Q-IDs
-           - Each leaf marked [ANSWERED] (with evidence) or [OPEN] (with Category
-             and Ask role)
-           - Includes all reasoning, not only the leaves
-
-         OPEN_QUESTIONS-[context-name].md
-           - Only the [OPEN] leaves, copied verbatim from the Question Tree file
-           - Always one section per Ask role (Product Owner, Architect,
-             Developer, Domain Expert, Operations) — emit every section even
-             when it is empty ("No open questions for this role")
-           - Each question short enough to be answered in 1-3 sentences
-
-      Do not write any other documentation in this phase. Phase 2 will synthesize
-      the answered tree into PRD, specification, arc42, and ADRs — only after the
-      team has filled in the [OPEN] leaves.
-      ```
-
-      **STEP 3 — Sanity-check the output.**
-
-      After writing both files:
-        1. Pick three `[ANSWERED]` leaves at random. Verify each cited `file:line`
+      Before returning, run this sanity-check:
+        1. Pick three [ANSWERED] leaves at random. Verify each cited file:line
            actually contains the claimed fact. If any citation is fabricated,
-           the bounded context is too large — stop and tell the user to narrow
-           the scope and re-run.
-        2. Scan for `[ANSWERED]` leaves whose evidence is a directory path or a
-           whole file, or whose answer summarises an entire arc42 chapter in one
-           paragraph. Those leaves need further decomposition — the tree stopped
-           too early.
-        3. Count the `[OPEN]` leaves:
-           - 10–15: healthy for a small bounded context.
-           - 15–30: acceptable for a larger one.
-           - > 50: the bounded context is too large; split it and re-run Phase 1
-                   on each half before proceeding.
-           - < 5: check whether decomposition depth was sufficient.
+           stop and report that the bounded context is too large.
+        2. Scan for [ANSWERED] leaves whose evidence is a directory path or
+           whole file. Those need further decomposition.
+        3. Count [OPEN] leaves: 10–15 is healthy for a small context;
+           15–30 acceptable for a larger one; > 50 means the context is too
+           large — split it; < 5 means check decomposition depth.
 
-      **STOP HERE.** Do NOT run Phase 2 in this state. Phase 2 begins only after
-      the team has answered or deferred every `[OPEN]` leaf.
+      Do not write any documentation other than these two files.
+      ```
+
+      **STEP 4 — Report to the user.**
+
+      After the agent returns, summarise the OPEN leaf count and health
+      assessment. Do NOT proceed to synthesis — that happens only after the
+      team has answered every [OPEN] leaf.
 
     transitions:
       - trigger: 'question_tree_complete'
         to: 'answer_open_questions'
         transition_reason: >-
-          Phase 1 complete. QUESTION_TREE and OPEN_QUESTIONS files written,
-          sanity-checked, and ready for team routing.
+          Question Tree and OPEN_QUESTIONS files written, sanity-checked,
+          and ready for team routing.
         additional_instructions: |
           Remind the user:
 
@@ -227,8 +192,8 @@ states:
              - **Developer** — Q3 / implementation questions
              - **Domain Expert** — Q1–Q2 / domain knowledge questions
              - **Operations** — Q5 / operational / deployment questions
-          3. Each person writes their answer **directly under the question**,
-             in plain prose (1–3 sentences is enough).
+          3. Each person writes their answer **directly under the question**
+             in plain prose (1–3 sentences).
           4. If a question cannot be answered now, mark it explicitly as
              `(deferred)` — do NOT leave it blank.
           5. When every question has an answer or `(deferred)`, trigger
@@ -243,49 +208,45 @@ states:
     allowed_file_patterns:
       - 'OPEN_QUESTIONS-*.md'
     default_instructions: >
-      You are the gate-keeper for Phase 1 → Phase 2 hand-off.
-
-      **CRITICAL RULE: You must NEVER invent answers to [OPEN] leaves.**
+      **CRITICAL RULE: Never invent answers to [OPEN] leaves.**
       A deferred leaf is honest documentation. An invented answer is the
-      primary failure mode of this entire workflow — it produces documentation
-      that looks authoritative but is fabricated. If in doubt, mark as
-      (deferred).
+      primary failure mode of this workflow. If in doubt, mark as (deferred).
 
-      **STEP 1 — Read the current state of the file.**
+      **STEP 1 — Read the file.**
 
       Read `OPEN_QUESTIONS-<context-name>.md`. (Ask the user for the
-      context-name if it was not carried over from the previous state.)
+      context-name if it is not clear from context.)
 
       **STEP 2 — Check the gate condition.**
 
-      Scan every `[OPEN]` leaf. For each one, check:
+      Scan every [OPEN] leaf. For each one, check:
         - Does it have a team answer written under it? (1–3 sentences of prose)
         - Does it have an explicit `(deferred)` marker?
 
       If ANY leaf has neither:
         - List all unanswered leaves grouped by Ask role.
-        - State clearly: "The following questions must be answered or explicitly
-          deferred before Phase 2 can run."
+        - State: "The following questions must be answered or explicitly
+          deferred before synthesis can run."
         - Do NOT proceed. Wait for the user to provide answers.
 
       If ALL leaves are answered or deferred:
         - Confirm: "Gate condition met — every [OPEN] leaf has a team answer
           or (deferred) marker."
-        - Suggest triggering `open_questions_answered` to proceed to Phase 2.
+        - Suggest triggering `open_questions_answered`.
 
       **STEP 3 — Assist with answering (optional).**
 
-      If the user asks for help formulating a question to send to a stakeholder,
-      help them write a clear, concise question. Do NOT provide the answer
-      yourself unless you can derive it from the codebase with a `file:line`
-      citation.
+      If the user asks for help formulating a question to send to a
+      stakeholder, help write a clear, concise question. Do NOT provide the
+      answer yourself unless you can derive it from the codebase with a
+      file:line citation.
 
     transitions:
       - trigger: 'open_questions_answered'
         to: 'synthesize_documentation'
         transition_reason: >-
           Every [OPEN] leaf has a team answer or (deferred) marker.
-          Phase 2 can now synthesize documentation from the answered tree.
+          Synthesis can now proceed.
         review_perspectives:
           - perspective: 'fabrication_check'
             prompt: >-
@@ -300,164 +261,127 @@ states:
 
   synthesize_documentation:
     description: >-
-      Run Phase 2 — synthesize PRD, Cockburn use-case spec, arc42 (12 chapters),
-      and Nygard ADRs from the answered Question Tree. Code-derived claims cite
-      file:line; team answers are marked (team answer); deferred questions remain
-      explicit gaps — never filled by invention.
+      Synthesize PRD, Cockburn use-case spec, arc42 (12 chapters), and Nygard
+      ADRs from the answered Question Tree. Code-derived claims cite file:line;
+      team answers are marked (team answer); deferred questions remain explicit
+      gaps — never filled by invention.
     allowed_file_patterns:
       - 'docs/specs/prd-*.md'
       - 'docs/specs/use-cases-*.md'
       - 'docs/arc42/arc42-*.md'
       - 'docs/specs/adrs/*.md'
     default_instructions: >
-      You are running Phase 2 of Socratic Code-Theory Recovery.
+      **STEP 1 — Re-verify the gate condition.**
 
-      **STEP 0 — Re-verify the gate condition (belt-and-suspenders).**
-
-      Read `OPEN_QUESTIONS-<context-name>.md`. If ANY `[OPEN]` leaf has
-      neither a team answer nor an explicit `(deferred)` marker, STOP.
-      List the unanswered leaves and instruct the user to return to
+      Read `OPEN_QUESTIONS-<context-name>.md`. If ANY [OPEN] leaf has neither
+      a team answer nor an explicit `(deferred)` marker, STOP. List the
+      unanswered leaves and instruct the user to return to
       `answer_open_questions`.
 
-      **STEP 1 — Run Phase 2: Synthesize Documentation.**
+      **STEP 2 — Synthesize the four output documents.**
 
-      Delegate the four artifacts to four agents running in parallel. For each
-      agent, ask it specifically to: read QUESTION_TREE-[context-name].md and
-      OPEN_QUESTIONS-[context-name].md, follow the traceability rules in the
-      prompt below, synthesize only its assigned artifact, write the file to
-      the correct path, and return only after the file is written and the
-      traceability self-check (no Q-IDs in output, every code claim has
-      file:line, every deferred item is labelled) is complete.
+      The two structural reference files created by `setup_project_docs` in
+      `.vibe/docs/` define the expected chapter and section structure:
+        - `.vibe/docs/architecture.md` — use as chapter structure guide when
+          writing `docs/arc42/arc42-<context-name>.md`
+        - `.vibe/docs/requirements.md` — use as section structure guide when
+          writing `docs/specs/use-cases-<context-name>.md`
 
-        - Agent A: synthesize docs/specs/prd-[context-name].md from the Q1
-          branch of the Question Tree.
-        - Agent B: synthesize docs/specs/use-cases-[context-name].md from the
-          Q2 branch.
-        - Agent C: synthesize docs/arc42/arc42-[context-name].md (all 12
-          chapters) from the Q3 branch, with Chapter 10 from Q4 scenarios.
-        - Agent D: synthesize docs/specs/adrs/[context-name]-adr-NNN-*.md
-          (one file per Q3.9 decision) from the Q3.9 branch.
+      The four output files written in this state go to `docs/` (not to
+      `.vibe/docs/`). They are the deliverables; the `.vibe/docs/` files are
+      only reference templates.
 
-      Give every agent the full prompt below so each understands the
-      traceability rules. Replace `[context-name]` with the kebab-case context
-      name used in Phase 1.
+      Delegate the four output files to four agents running in parallel. Give
+      every agent the traceability rules below. Ask each agent specifically to
+      read `QUESTION_TREE-<context-name>.md` and
+      `OPEN_QUESTIONS-<context-name>.md`, synthesize only its assigned output
+      file, run the traceability self-check, write the file, and return only
+      after the file is written.
+
+        - Agent for `docs/specs/prd-<context-name>.md`: ask it specifically
+          to synthesize the PRD from the Q1 branch of the Question Tree,
+          covering problem statement, target users, goals, success criteria,
+          scope boundaries, constraints, and open questions.
+
+        - Agent for `docs/specs/use-cases-<context-name>.md`: ask it
+          specifically to synthesize the use-case spec from the Q2 branch,
+          following the Cockburn Fully Dressed section structure in
+          `.vibe/docs/requirements.md`. Include Persona Use Cases (user-goal
+          level: actor, trigger, stakeholders & interests, preconditions, main
+          success scenario, extensions, postconditions, business rules), System
+          Use Cases per technical interface (input + validation, processing,
+          output + status codes, error responses), and Supplementary
+          Specifications (entity model, state machines, interface contracts,
+          validation rules). Add Gherkin acceptance criteria where applicable.
+
+        - Agent for `docs/arc42/arc42-<context-name>.md`: ask it specifically
+          to synthesize all 12 arc42 chapters from the Q3 branch, following
+          the chapter structure in `.vibe/docs/architecture.md`. Mark chapters
+          with no content as "No information" rather than fabricating content.
+          Chapter 10 (Quality Requirements) is an exception: synthesize it
+          from the answered Q4 quality scenarios plus the Q4.9 ranking —
+          reuse evidence already cited in Q3.8 (security scenarios cite STRIDE
+          T-IDs, maintainability scenarios the test concept). Only the
+          quality-goal ranking stays as a gap if Q4.9 was deferred.
+
+        - Agent for `docs/specs/adrs/<context-name>-adr-NNN-*.md`: ask it
+          specifically to synthesize one ADR file per significant design
+          decision from the Q3.9 branch. Use Nygard format (Title, Status,
+          Context, Decision, Consequences) and include a Pugh Matrix scoring
+          alternatives against Q4 quality goals on a -1 / 0 / +1 scale.
+
+      **Traceability rules (give these to every agent):**
 
       ```
-      You are performing Phase 2 of Socratic Code-Theory Recovery.
+      Every claim in the output must trace to a leaf in the Question Tree.
+      Q-IDs must NOT appear in the output documents.
 
-      Inputs:
-      - QUESTION_TREE-[context-name].md — the answered Question Tree from
-        Phase 1.
-      - OPEN_QUESTIONS-[context-name].md — same OPEN leaves, now with team
-        answers (or (deferred) markers) written under each question.
+      - A claim from an [ANSWERED] leaf: cite the code evidence verbatim from
+        that leaf — e.g. "The system uses Hexagonal Architecture
+        [src/app/Ports.java, src/adapter/JpaOrderRepository.java:30]." Copy
+        the Evidence line exactly; do not invent, shorten, or re-derive paths.
+        A leaf with no Evidence line is not [ANSWERED] and must not be cited.
 
-      Goal: synthesize documentation from the answered tree. Every claim must
-      trace back to a tree leaf — this is a build-time check, not a Q-ID stamped
-      into the text; Q-IDs do NOT appear in the final documents (see Rules for
-      traceability below). Team-supplied facts must be marked (team answer).
-      Anything still marked (deferred) must remain an explicit gap in the output,
-      not be filled with invention.
+      - A claim from a team answer: mark it (team answer) — e.g. "Sessions
+        expire after 24 hours (team answer)."
 
-      Produce four artifacts:
+      - A deferred item: keep it as an explicit gap — e.g. "Quality-goal
+        priorities are deferred and must be resolved before the next release."
 
-      1. docs/specs/prd-[context-name].md — Product Requirements Document
-         - Problem statement, target users, goals, success criteria, scope
-           boundaries, constraints, open questions
-         - Source: Q1 branch of QUESTION_TREE-[context-name].md
-         - Anchor: PRD (Cagan / Pichler)
+      Do not introduce facts that do not appear in the Question Tree or
+      OPEN_QUESTIONS file. If a section feels under-specified, leave it
+      under-specified — that is signal, not a defect.
 
-      2. docs/specs/use-cases-[context-name].md — Specification
-         - Persona Use Cases in Cockburn Fully Dressed format at User Goal level:
-           Primary Actor, Trigger, Stakeholders & Interests, Preconditions,
-           Main Success Scenario, Extensions, Postconditions, Business Rules.
-         - System Use Cases for each technical interface (API endpoint, CLI
-           command, event, file format): input + validation, processing,
-           output + status codes, error responses.
-         - Supplementary Specifications: Entity Model, State Machines, Interface
-           Contracts, Validation Rules.
-         - Gherkin acceptance criteria where applicable.
-         - Source: Q2 branch of QUESTION_TREE-[context-name].md
-         - Anchor: Cockburn Use Cases
-
-      3. docs/arc42/arc42-[context-name].md — Architecture
-         - All 12 arc42 chapters. Mark chapters with no content as
-           "No information from Phase 1" rather than fabricating content.
-         - Chapter 10 (Quality Requirements) is an exception: synthesize it
-           from the [ANSWERED] Q4 quality scenarios plus the Q4.9 ranking. It
-           is never just an [OPEN] pointer. Reuse evidence already in Q3.8 —
-           Security scenarios cite the STRIDE T-IDs, Maintainability scenarios
-           the test concept. Only the goal ranking stays [OPEN]; "No
-           information" is legitimate here only if Q4 produced no answered
-           scenario at all.
-         - Source: Q3 branch of QUESTION_TREE-[context-name].md
-         - Anchor: arc42 (Starke / Hruschka)
-
-      4. docs/specs/adrs/[context-name]-adr-NNN-*.md — one ADR per
-         significant design decision. The context-name prefix keeps ADRs from
-         different bounded contexts from colliding in the shared adrs/ folder.
-         - Nygard format: Title, Status, Context, Decision, Consequences.
-         - Include a Pugh Matrix listing the alternatives considered with a
-           3-point scale (-1, 0, +1) against the quality goals from Q4.
-         - Source: Q3.9 branch of QUESTION_TREE-[context-name].md
-         - Anchor: ADR according to Nygard
-
-      Rules for traceability:
-      - The synthesized documentation must be self-contained. The Question Tree
-        is a temporary intermediate artifact — its fixed second level is stable,
-        but third-level Q-IDs are run-specific and the tree is not shipped — so
-        Q-IDs must NOT appear in the output. While synthesizing, trace every
-        claim back to a leaf: each claim must come from an [ANSWERED] leaf or an
-        answered [OPEN] leaf. This tracing is a build-time check, not something
-        written into the documents.
-      - A claim backed by an [ANSWERED] leaf cites the code evidence from that
-        leaf — the reference to the code, the only durable, canonical artifact:
-        "The system uses Hexagonal Architecture [src/app/Ports.java,
-        src/adapter/JpaOrderRepository.java:30]."
-        Copy the Evidence line verbatim from the leaf; do not invent, shorten,
-        or re-derive file paths. A leaf with no Evidence line is not [ANSWERED]
-        and must not be cited as fact.
-      - Team-supplied facts have no code evidence — mark them (team answer):
-        "Sessions expire after 24 hours (team answer)."
-      - Deferred questions stay as explicit gaps: "Quality-goal priorities are
-        deferred and must be resolved before the next release."
-      - Do not introduce facts that do not appear in
-        QUESTION_TREE-[context-name].md or OPEN_QUESTIONS-[context-name].md.
-        If a section feels under-specified, leave it
-        under-specified — that is signal, not a defect.
+      Before returning, self-check: no Q-IDs in output, every code-derived
+      claim has a file:line citation, every deferred item is labelled.
       ```
 
-      **STEP 2 — Verify the four artifacts.**
+      **STEP 3 — Verify the four artifacts.**
 
-      After writing all four artifacts, confirm:
-        1. `docs/specs/prd-<context-name>.md` — problem, users, success criteria, scope.
-        2. `docs/specs/use-cases-<context-name>.md` — Cockburn Fully Dressed persona
-           use cases + system use cases per interface.
-        3. `docs/arc42/arc42-<context-name>.md` — all 12 chapters (gaps marked,
-           not invented; Chapter 10 synthesized from Q4 scenarios).
-        4. `docs/specs/adrs/<context-name>-adr-NNN-*.md` — one Nygard ADR with
-           Pugh Matrix per Q3.9 decision.
-
-      Check that no Q-IDs appear in the output documents. Check that every
-      code-derived claim has a file:line citation. Check that deferred items
-      are labelled "(deferred)", not left blank or filled with speculation.
+      After all agents return, confirm:
+        1. `docs/specs/prd-<context-name>.md` — problem, users, success
+           criteria, scope.
+        2. `docs/specs/use-cases-<context-name>.md` — Cockburn Fully Dressed
+           persona use cases + system use cases per interface.
+        3. `docs/arc42/arc42-<context-name>.md` — all 12 chapters (gaps
+           marked, not invented; Chapter 10 synthesized from Q4 scenarios).
+        4. `docs/specs/adrs/<context-name>-adr-NNN-*.md` — one Nygard ADR
+           with Pugh Matrix per Q3.9 decision.
 
     transitions:
       - trigger: 'synthesis_complete'
         to: 'review_and_rework'
         transition_reason: >-
-          All four Phase 2 artifacts produced and verified. Ready for
-          independent Fagan Inspection, Traceability Check, and ATAM.
+          All four output documents produced and verified. Ready for
+          independent review.
         additional_instructions: |
-          **IMPORTANT — Independent Review Session Required**
+          **IMPORTANT — Independent Review Session**
 
-          The review in the next state MUST run in a FRESH LLM session with no
-          memory of this synthesis session. Confirmation bias is a real risk:
-          a model that wrote the documentation will miss its own errors.
+          The review in the next state should run in a fresh LLM session with
+          no memory of the synthesis session. A model that wrote the
+          documentation will miss its own errors.
 
-          Ideally use a different model for the review session. At minimum,
-          start a brand-new conversation without any context from Phase 2.
-
-          Hand the reviewer these files:
+          Hand the reviewer:
             - `docs/specs/prd-<context-name>.md`
             - `docs/specs/use-cases-<context-name>.md`
             - `docs/arc42/arc42-<context-name>.md`
@@ -468,9 +392,9 @@ states:
   review_and_rework:
     description: >-
       Independent review of the four synthesized documents — Fagan Inspection,
-      Traceability Check, and ATAM. Must run in a FRESH session (different model
-      ideally). Fix confirmed defects only; leave (deferred) gaps as gaps.
-      Review results written to docs/reports/.
+      Traceability Check, and ATAM. Should run in a fresh session (different
+      model ideally). Fix confirmed defects only; leave (deferred) gaps as
+      gaps. Review results written to docs/reports/.
     allowed_file_patterns:
       - 'docs/reports/*.md'
       - 'docs/specs/prd-*.md'
@@ -478,59 +402,73 @@ states:
       - 'docs/arc42/arc42-*.md'
       - 'docs/specs/adrs/*.md'
     default_instructions: >
-      You are performing an independent review of Socratic Recovery documentation.
-
-      **IMPORTANT: This state should run in a new, independent LLM session.**
+      **IMPORTANT: This state should run in a fresh LLM session.**
 
       If you have memory of writing the documents you are about to review,
-      STOP and tell the user: "I wrote these documents. Review in this session
-      would be biased. Please start a new session for the review, ideally with
-      a different model." Do not proceed with review in that case.
+      stop and tell the user: "I wrote these documents — review in this
+      session would be biased. Please start a new session for the review."
 
       **STEP 1 — Run the three review passes in parallel.**
 
-      Delegate each pass to a separate agent. Give every agent the six input
-      files listed below so it can read them independently. Ask each agent
-      specifically to read those files, perform its assigned pass, write its
-      report file, and return only after the report is written.
+      Delegate each pass to a separate agent. Ask each agent specifically to
+      read the six input files listed in its prompt, perform its assigned
+      review, write its report file, and return only after the report is
+      written.
 
-      Input files for all agents:
+      Input files for all agents (substitute <context-name>):
         - `docs/specs/prd-<context-name>.md`
         - `docs/specs/use-cases-<context-name>.md`
         - `docs/arc42/arc42-<context-name>.md`
         - `docs/specs/adrs/<context-name>-adr-NNN-*.md` (all ADRs)
-        - `QUESTION_TREE-<context-name>.md` (for traceability)
-        - `OPEN_QUESTIONS-<context-name>.md` (for gap verification)
+        - `QUESTION_TREE-<context-name>.md`
+        - `OPEN_QUESTIONS-<context-name>.md`
 
-        - Agent A — Fagan Inspection: ask it specifically to evaluate
-          completeness (every required section present; "No information" is
-          acceptable, blank is a defect), clarity (ambiguous statements,
-          undefined terms), consistency (contradictions across documents), and
-          verifiability (claims testable or confirmable). Log each defect with
-          document+section, severity (Major / Minor), and description. Write
-          results to `docs/reports/fagan-inspection-<context-name>.md`.
+      **Agent prompt for Fagan Inspection:**
 
-        - Agent B — Traceability Check: ask it specifically to scan every
-          code-derived claim in the four synthesis documents, verify each
-          cited `file:line` exists and contains the claimed fact, verify all
-          team-supplied facts are marked `(team answer)`, and list any uncited
-          or wrongly-cited claims as defects. Write results to
-          `docs/reports/traceability-<context-name>.md`.
+      ```
+      Read the six input files listed above. Evaluate each of the four
+      synthesis documents against:
+        - Completeness: every required section present? ("No information" is
+          acceptable; blank or missing sections are defects.)
+        - Clarity: ambiguous statements, undefined terms?
+        - Consistency: contradictions across documents?
+        - Verifiability: claims stated in a testable or confirmable way?
+      Log each defect with document + section, severity (Major / Minor), and
+      description. Write all defects to
+      `docs/reports/fagan-inspection-<context-name>.md`. Return only after
+      the file is written.
+      ```
 
-        - Agent C — ATAM: ask it specifically to read Chapter 10 (Quality
-          Requirements) of the arc42 document and each ADR's Pugh Matrix,
-          evaluate whether the ADR trade-offs address the quality goals in
-          Chapter 10, and — if Q4.9 (quality-goal priority) was `(deferred)`
-          — mark the entire ATAM as provisional. Write results to
-          `docs/reports/atam-<context-name>.md`.
+      **Agent prompt for Traceability Check:**
+
+      ```
+      Read the six input files listed above. For every code-derived claim in
+      the four synthesis documents, verify that the cited file:line exists and
+      contains the claimed fact. Verify that all team-supplied facts are marked
+      (team answer). List any uncited or wrongly-cited claims as defects. Write
+      all findings to `docs/reports/traceability-<context-name>.md`. Return
+      only after the file is written.
+      ```
+
+      **Agent prompt for ATAM:**
+
+      ```
+      Read the six input files listed above. Read Chapter 10 (Quality
+      Requirements) of the arc42 document and each ADR's Pugh Matrix.
+      Evaluate whether the ADR trade-offs actually address the quality goals in
+      Chapter 10. If the quality-goal ranking (Q4.9) was marked (deferred),
+      mark the entire ATAM result as provisional — the ranking is assumed, not
+      confirmed. Write results to `docs/reports/atam-<context-name>.md`.
+      Return only after the file is written.
+      ```
 
       **STEP 2 — Fix confirmed defects.**
 
         - Fix defects that have wrong content or missing citations in the
           source documents.
-        - Fixing means CORRECTING a wrong fact or adding a missing citation —
-          NOT filling in a gap with speculation.
-        - `(deferred)` gaps are NOT defects. Do not fill them.
+        - Fixing means correcting a wrong fact or adding a missing citation —
+          not filling in a gap with speculation.
+        - `(deferred)` gaps are not defects. Do not fill them.
 
       **STEP 3 — Write review summary.**
 
@@ -552,23 +490,23 @@ states:
         to: 'recovery_done'
         transition_reason: >-
           Review clean — all defects resolved or confirmed as intentional gaps.
-          Socratic Recovery is complete.
+          Recovery is complete.
 
   recovery_done:
     description: >-
-      Socratic Code-Theory Recovery complete. Four documentation artifacts
-      produced (PRD, use-case spec, arc42, ADRs) plus review reports.
-      OPEN_QUESTIONS-<context-name>.md is the living gap register.
+      Recovery complete. Four documentation artifacts produced (PRD, use-case
+      spec, arc42, ADRs) plus review reports. OPEN_QUESTIONS is the living
+      gap register.
     default_instructions: >
-      Socratic Code-Theory Recovery is complete.
+      Present the following summary to the user.
 
-      **Deliverables produced:**
+      **Deliverables:**
 
         - `docs/specs/prd-<context-name>.md` — Product Requirements Document
         - `docs/specs/use-cases-<context-name>.md` — Cockburn Fully Dressed
           use-case specification + system interface specs
-        - `docs/arc42/arc42-<context-name>.md` — arc42 architecture documentation
-          (all 12 chapters)
+        - `docs/arc42/arc42-<context-name>.md` — arc42 architecture
+          documentation (all 12 chapters)
         - `docs/specs/adrs/<context-name>-adr-NNN-*.md` — Nygard ADRs with
           Pugh Matrices
         - `docs/reports/fagan-inspection-<context-name>.md` — inspection log
@@ -577,23 +515,22 @@ states:
 
       **Living gap register:**
 
-        `OPEN_QUESTIONS-<context-name>.md` contains all items that could not
-        be recovered from code alone and were deferred by the team. Treat this
-        file as a living register — revisit it at each release.
+        `OPEN_QUESTIONS-<context-name>.md` lists everything that could not be
+        recovered from code alone and was deferred by the team. Revisit it at
+        each release.
 
-      **Spec drift:**
+      **Spec drift — do this before every release:**
 
-        Re-run Phase 1 against the current codebase before each release. Diff
-        the new `QUESTION_TREE-<context-name>.md` against the existing
-        documentation to surface:
+        Re-run the `question_tree` state against the current codebase and diff
+        the new `QUESTION_TREE-<context-name>.md` against the existing docs:
           - **NEW**: present in code, not yet in spec
           - **CHANGED**: spec and code have diverged
           - **DEAD**: in spec, but no longer in code
 
       **Next bounded context:**
 
-        Pick the next bounded context only when this one's documentation is
-        being actively used. Breadth-first recovery across a whole system
+        Only start the next bounded context when this one's documentation is
+        actively being used. Breadth-first recovery across a whole system
         produces shallow trees everywhere — depth on one context first.
 
       $DONE_DEFAULT

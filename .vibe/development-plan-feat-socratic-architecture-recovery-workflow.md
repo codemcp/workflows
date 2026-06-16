@@ -252,4 +252,9 @@ Create a new workflow YAML file (`socratic-recovery.yaml`) that guides an LLM th
     - `synthesize_documentation` STEP 1: 4 artifacts → 4 parallel agents (A: PRD, B: use-cases, C: arc42, D: ADRs)
     - `review_and_rework` STEP 1: 3 review passes → 3 parallel agents (A: Fagan, B: Traceability, C: ATAM)
   No agent role names used — instructions describe the task, inputs, and expected output only.
+- **Workflow prose refactored** (second amendment):
+    1. "Phase 1/2" and "Socratic Code-Theory Recovery" wording stripped from all state instructions — the workflow implements the method; no need to name it internally.
+    2. Agent prompts wrapped in named fenced blocks (`**Agent prompt:**`, `**Agent prompt for Fagan Inspection:**`, etc.) so the receiving LLM knows exactly what text to delegate.
+    3. `setup_project_docs` vs synthesis paths clarified: `.vibe/docs/architecture.md` and `.vibe/docs/requirements.md` are structural *reference templates*; the four deliverable files go to `docs/arc42/`, `docs/specs/` (explicitly distinguished in both `question_tree` STEP 2 and `synthesize_documentation` STEP 2).
+    4. `recovery_done` tightened: instructions now explicitly say "Present the following summary to the user" — the LLM has a concrete action (present + `$DONE_DEFAULT`).
 
