@@ -246,4 +246,10 @@ Create a new workflow YAML file (`socratic-recovery.yaml`) that guides an LLM th
 - All output paths use `.md` (not `.adoc` as in original blog post prompts — normalised throughout)
 - No debug artifacts, no TODOs, no commented-out code in either file
 - Integration tests pass (`test/integration/workflow-configuration.test.ts`)
+- **Agent delegation added** (post-PR amendment): three states now instruct the LLM to delegate
+  heavy tasks to agents with explicit "ask the agent specifically to..." phrasing:
+    - `question_tree` STEP 2: Phase 1 codebase read → single agent, returns only after both files written
+    - `synthesize_documentation` STEP 1: 4 artifacts → 4 parallel agents (A: PRD, B: use-cases, C: arc42, D: ADRs)
+    - `review_and_rework` STEP 1: 3 review passes → 3 parallel agents (A: Fagan, B: Traceability, C: ATAM)
+  No agent role names used — instructions describe the task, inputs, and expected output only.
 

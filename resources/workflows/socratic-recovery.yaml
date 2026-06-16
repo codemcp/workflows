@@ -65,9 +65,16 @@ states:
 
       **STEP 2 — Run Phase 1: Build the Question Tree.**
 
-      Copy the following prompt verbatim into your working context. Replace
-      `[bounded context path]` with the actual path the user provided and
-      `[context-name]` with the kebab-case name from STEP 0.
+      Delegate this step to an agent. Ask the agent specifically to: perform
+      Socratic Code-Theory Recovery Phase 1 on the bounded context at
+      [bounded context path], follow the prompt below exactly, and write the
+      two output files (QUESTION_TREE-[context-name].md and
+      OPEN_QUESTIONS-[context-name].md) to the repository root before
+      returning. Do not return intermediate results — only return once both
+      files are written and the sanity-check (Step 3 of the prompt) is
+      complete.
+
+      The prompt for the agent:
 
       ```
       You are performing Socratic Code-Theory Recovery on a brownfield bounded
@@ -314,8 +321,26 @@ states:
 
       **STEP 1 — Run Phase 2: Synthesize Documentation.**
 
-      Copy the following prompt verbatim. Replace `[context-name]` with the
-      kebab-case context name used in Phase 1.
+      Delegate the four artifacts to four agents running in parallel. For each
+      agent, ask it specifically to: read QUESTION_TREE-[context-name].md and
+      OPEN_QUESTIONS-[context-name].md, follow the traceability rules in the
+      prompt below, synthesize only its assigned artifact, write the file to
+      the correct path, and return only after the file is written and the
+      traceability self-check (no Q-IDs in output, every code claim has
+      file:line, every deferred item is labelled) is complete.
+
+        - Agent A: synthesize docs/specs/prd-[context-name].md from the Q1
+          branch of the Question Tree.
+        - Agent B: synthesize docs/specs/use-cases-[context-name].md from the
+          Q2 branch.
+        - Agent C: synthesize docs/arc42/arc42-[context-name].md (all 12
+          chapters) from the Q3 branch, with Chapter 10 from Q4 scenarios.
+        - Agent D: synthesize docs/specs/adrs/[context-name]-adr-NNN-*.md
+          (one file per Q3.9 decision) from the Q3.9 branch.
+
+      Give every agent the full prompt below so each understands the
+      traceability rules. Replace `[context-name]` with the kebab-case context
+      name used in Phase 1.
 
       ```
       You are performing Phase 2 of Socratic Code-Theory Recovery.
@@ -462,9 +487,14 @@ states:
       would be biased. Please start a new session for the review, ideally with
       a different model." Do not proceed with review in that case.
 
-      **STEP 1 — Read the artifacts.**
+      **STEP 1 — Run the three review passes in parallel.**
 
-      Read all six files:
+      Delegate each pass to a separate agent. Give every agent the six input
+      files listed below so it can read them independently. Ask each agent
+      specifically to read those files, perform its assigned pass, write its
+      report file, and return only after the report is written.
+
+      Input files for all agents:
         - `docs/specs/prd-<context-name>.md`
         - `docs/specs/use-cases-<context-name>.md`
         - `docs/arc42/arc42-<context-name>.md`
@@ -472,47 +502,29 @@ states:
         - `QUESTION_TREE-<context-name>.md` (for traceability)
         - `OPEN_QUESTIONS-<context-name>.md` (for gap verification)
 
-      **STEP 2 — Fagan Inspection.**
+        - Agent A — Fagan Inspection: ask it specifically to evaluate
+          completeness (every required section present; "No information" is
+          acceptable, blank is a defect), clarity (ambiguous statements,
+          undefined terms), consistency (contradictions across documents), and
+          verifiability (claims testable or confirmable). Log each defect with
+          document+section, severity (Major / Minor), and description. Write
+          results to `docs/reports/fagan-inspection-<context-name>.md`.
 
-      Evaluate each document against:
-        - **Completeness**: Every required section present? Chapters marked
-          "No information" are acceptable; blank or missing chapters are defects.
-        - **Clarity**: Ambiguous statements? Undefined terms?
-        - **Consistency**: Do documents contradict each other?
-        - **Verifiability**: Are claims stated in a way that can be tested or
-          confirmed?
+        - Agent B — Traceability Check: ask it specifically to scan every
+          code-derived claim in the four synthesis documents, verify each
+          cited `file:line` exists and contains the claimed fact, verify all
+          team-supplied facts are marked `(team answer)`, and list any uncited
+          or wrongly-cited claims as defects. Write results to
+          `docs/reports/traceability-<context-name>.md`.
 
-      Log each defect with:
-        - Document + section
-        - Severity: Major (blocks use of the document) or Minor (reduces quality)
-        - Description
+        - Agent C — ATAM: ask it specifically to read Chapter 10 (Quality
+          Requirements) of the arc42 document and each ADR's Pugh Matrix,
+          evaluate whether the ADR trade-offs address the quality goals in
+          Chapter 10, and — if Q4.9 (quality-goal priority) was `(deferred)`
+          — mark the entire ATAM as provisional. Write results to
+          `docs/reports/atam-<context-name>.md`.
 
-      Write defects to `docs/reports/fagan-inspection-<context-name>.md`.
-
-      **STEP 3 — Traceability Check.**
-
-        1. For every code-derived claim in the four documents, verify the cited
-           `file:line` exists and contains the claimed fact.
-        2. Verify all team-supplied facts are marked `(team answer)`.
-        3. List any claims that are:
-           - Uncited (no `file:line` and no `(team answer)` marker)
-           - Wrongly cited (the cited location does not support the claim)
-
-      Append traceability defects to `docs/reports/fagan-inspection-<context-name>.md`
-      or write a separate `docs/reports/traceability-<context-name>.md`.
-
-      **STEP 4 — ATAM (Architecture Tradeoff Analysis).**
-
-        1. Read Chapter 10 (Quality Requirements) of `arc42-<context-name>.md`.
-        2. Read each ADR's Pugh Matrix.
-        3. Evaluate: do the ADR trade-offs actually address the quality goals
-           in Chapter 10?
-        4. If Q4.9 (quality-goal priority) was `(deferred)`, mark the ATAM as
-           **provisional** — the ranking is assumed, not confirmed.
-
-      Write results to `docs/reports/atam-<context-name>.md`.
-
-      **STEP 5 — Fix confirmed defects.**
+      **STEP 2 — Fix confirmed defects.**
 
         - Fix defects that have wrong content or missing citations in the
           source documents.
@@ -520,7 +532,7 @@ states:
           NOT filling in a gap with speculation.
         - `(deferred)` gaps are NOT defects. Do not fill them.
 
-      **STEP 6 — Write review summary.**
+      **STEP 3 — Write review summary.**
 
       Write `docs/reports/review-summary-<context-name>.md` with:
         - Total defects found (major / minor)
