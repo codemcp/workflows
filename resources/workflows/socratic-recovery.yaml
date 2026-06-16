@@ -36,7 +36,6 @@ states:
       QUESTION_TREE-<context-name>.md and OPEN_QUESTIONS-<context-name>.md
       for a named bounded context.
     allowed_file_patterns:
-      - 'docs/**/*.md'
       - 'QUESTION_TREE-*.md'
       - 'OPEN_QUESTIONS-*.md'
     default_instructions: >
@@ -49,22 +48,7 @@ states:
            `payment-gateway`). This name is appended to every output file so
            that sequential runs on different contexts never overwrite each other.
 
-      **STEP 2 — Set up documentation skeleton.**
-
-      Call:
-        `setup_project_docs({ architecture: "arc42", requirements: "cockburn-use-cases", design: "none" })`
-
-      This creates two structural reference files in `.vibe/docs/`:
-        - `.vibe/docs/architecture.md` — arc42 skeleton (12 chapters). Use this
-          as the chapter structure reference when filling the arc42 output file
-          later.
-        - `.vibe/docs/requirements.md` — Cockburn Fully Dressed use-case
-          template. Use this as the section structure reference when filling the
-          use-case output file later.
-
-      Read both files now so you understand their structure.
-
-      **STEP 3 — Build the Question Tree.**
+      **STEP 2 — Build the Question Tree.**
 
       Delegate this step to an agent. Ask the agent specifically to: read the
       codebase at [bounded context path], build a hierarchical Question Tree by
@@ -170,7 +154,7 @@ states:
       Do not write any documentation other than these two files.
       ```
 
-      **STEP 4 — Report to the user.**
+      **STEP 3 — Report to the user.**
 
       After the agent returns, summarise the OPEN leaf count and health
       assessment. Do NOT proceed to synthesis — that happens only after the
@@ -280,17 +264,6 @@ states:
 
       **STEP 2 — Synthesize the four output documents.**
 
-      The two structural reference files created by `setup_project_docs` in
-      `.vibe/docs/` define the expected chapter and section structure:
-        - `.vibe/docs/architecture.md` — use as chapter structure guide when
-          writing `docs/arc42/arc42-<context-name>.md`
-        - `.vibe/docs/requirements.md` — use as section structure guide when
-          writing `docs/specs/use-cases-<context-name>.md`
-
-      The four output files written in this state go to `docs/` (not to
-      `.vibe/docs/`). They are the deliverables; the `.vibe/docs/` files are
-      only reference templates.
-
       Delegate the four output files to four agents running in parallel. Give
       every agent the traceability rules below. Ask each agent specifically to
       read `QUESTION_TREE-<context-name>.md` and
@@ -304,25 +277,24 @@ states:
           scope boundaries, constraints, and open questions.
 
         - Agent for `docs/specs/use-cases-<context-name>.md`: ask it
-          specifically to synthesize the use-case spec from the Q2 branch,
-          following the Cockburn Fully Dressed section structure in
-          `.vibe/docs/requirements.md`. Include Persona Use Cases (user-goal
-          level: actor, trigger, stakeholders & interests, preconditions, main
-          success scenario, extensions, postconditions, business rules), System
-          Use Cases per technical interface (input + validation, processing,
-          output + status codes, error responses), and Supplementary
-          Specifications (entity model, state machines, interface contracts,
-          validation rules). Add Gherkin acceptance criteria where applicable.
+          specifically to synthesize the use-case spec from the Q2 branch
+          using Cockburn Fully Dressed format. Include Persona Use Cases
+          (user-goal level: actor, trigger, stakeholders & interests,
+          preconditions, main success scenario, extensions, postconditions,
+          business rules), System Use Cases per technical interface (input +
+          validation, processing, output + status codes, error responses), and
+          Supplementary Specifications (entity model, state machines, interface
+          contracts, validation rules). Add Gherkin acceptance criteria where
+          applicable.
 
         - Agent for `docs/arc42/arc42-<context-name>.md`: ask it specifically
-          to synthesize all 12 arc42 chapters from the Q3 branch, following
-          the chapter structure in `.vibe/docs/architecture.md`. Mark chapters
-          with no content as "No information" rather than fabricating content.
-          Chapter 10 (Quality Requirements) is an exception: synthesize it
-          from the answered Q4 quality scenarios plus the Q4.9 ranking —
-          reuse evidence already cited in Q3.8 (security scenarios cite STRIDE
-          T-IDs, maintainability scenarios the test concept). Only the
-          quality-goal ranking stays as a gap if Q4.9 was deferred.
+          to synthesize all 12 arc42 chapters from the Q3 branch. Mark
+          chapters with no content as "No information" rather than fabricating
+          content. Chapter 10 (Quality Requirements) is an exception:
+          synthesize it from the answered Q4 quality scenarios plus the Q4.9
+          ranking — reuse evidence already cited in Q3.8 (security scenarios
+          cite STRIDE T-IDs, maintainability scenarios the test concept). Only
+          the quality-goal ranking stays as a gap if Q4.9 was deferred.
 
         - Agent for `docs/specs/adrs/<context-name>-adr-NNN-*.md`: ask it
           specifically to synthesize one ADR file per significant design
