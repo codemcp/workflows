@@ -14,10 +14,13 @@
     "format:check": "prettier --check .",
     "format": "prettier --write ."
   },
-  "dependencies": {},
+  "dependencies": {
+    "js-yaml": "4.1.1"
+  },
   "devDependencies": {
     "@codemcp/workflows-core": "workspace:*",
     "@codemcp/workflows-server": "workspace:*",
+    "@types/js-yaml": "4.0.9",
     "@types/node": "^22.0.0",
     "rimraf": "^5.0.10",
     "tsup": "^8.0.0",

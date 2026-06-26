@@ -200,6 +200,82 @@ describe('InstructionGenerator', () => {
     });
   });
 
+  describe('capability hint integration', () => {
+    it('embeds the thinking capability hint when requiredCapability is set', async () => {
+      const baseInstructions = 'Work on design tasks using $DESIGN_DOC.';
+      const context = {
+        ...mockInstructionContext,
+        requiredCapability: 'thinking',
+      };
+
+      const result = await instructionGenerator.generateInstructions(
+        baseInstructions,
+        context
+      );
+
+      expect(result.instructions).toContain(
+        'Capability hint: This phase requires thinking capability (deep reasoning, complex planning).'
+      );
+    });
+
+    it('embeds the coding capability hint without a parenthetical', async () => {
+      const baseInstructions = 'Work on tasks.';
+      const context = {
+        ...mockInstructionContext,
+        requiredCapability: 'coding',
+      };
+
+      const result = await instructionGenerator.generateInstructions(
+        baseInstructions,
+        context
+      );
+
+      const hint = 'Capability hint: This phase requires coding capability.';
+      expect(result.instructions).toContain(hint);
+      // No parenthetical immediately after "capability" in the hint line.
+      expect(result.instructions).not.toContain('capability (');
+    });
+
+    it('omits capability hint when requiredCapability is absent (regression guard)', async () => {
+      const baseInstructions = 'Work on tasks.';
+      const context = {
+        ...mockInstructionContext,
+        requiredCapability: undefined,
+      };
+
+      const result = await instructionGenerator.generateInstructions(
+        baseInstructions,
+        context
+      );
+
+      expect(result.instructions).not.toContain('Capability hint');
+    });
+
+    it('embeds the agent+model clause when capabilityConfig is supplied', async () => {
+      const baseInstructions = 'Work on design tasks using $DESIGN_DOC.';
+      const context = {
+        ...mockInstructionContext,
+        requiredCapability: 'thinking',
+        capabilityConfig: {
+          agent: 'general_thinking',
+          model: 'anthropic/claude-opus-4-7',
+        },
+      };
+
+      const result = await instructionGenerator.generateInstructions(
+        baseInstructions,
+        context
+      );
+
+      expect(result.instructions).toContain(
+        'use agent: general_thinking (model: anthropic/claude-opus-4-7)'
+      );
+      expect(result.instructions).toContain(
+        'Capability hint: This phase requires thinking capability (deep reasoning, complex planning).'
+      );
+    });
+  });
+
   describe('variable substitution edge cases', () => {
     it('should handle empty substitutions', async () => {
       mockProjectDocsManager.getVariableSubstitutions.mockReturnValue({});

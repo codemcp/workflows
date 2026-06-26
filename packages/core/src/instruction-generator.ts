@@ -12,6 +12,7 @@ import type { YamlStateMachine } from './state-machine-types.js';
 import type { ILogger } from './logger.js';
 import { createLogger } from './logger.js';
 import { capitalizePhase } from './string-utils.js';
+import { formatCapabilityHint } from './capability-hint.js';
 import type {
   IInstructionGenerator,
   InstructionContext,
@@ -103,7 +104,13 @@ export class InstructionGenerator implements IInstructionGenerator {
     baseInstructions: string,
     context: InstructionContext
   ): Promise<string> {
-    const { phase, conversationContext, allowedFilePatterns } = context;
+    const {
+      phase,
+      conversationContext,
+      allowedFilePatterns,
+      requiredCapability,
+      capabilityConfig,
+    } = context;
 
     const phaseName = capitalizePhase(phase);
 
@@ -127,6 +134,15 @@ export class InstructionGenerator implements IInstructionGenerator {
       !allowedFilePatterns.includes('*')
     ) {
       workflowSection += `\n- Files allowed: \`${allowedFilePatterns.join('`, `')}\``;
+    }
+
+    // Append optional capability hint. Opt-in: empty hint ⇒ skip entirely.
+    const capabilityHint = formatCapabilityHint(
+      requiredCapability,
+      capabilityConfig
+    );
+    if (capabilityHint) {
+      workflowSection += `\n\n${capabilityHint}`;
     }
 
     workflowSection += '\n\nCall `whats_next()` after user messages.';

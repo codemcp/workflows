@@ -47,6 +47,11 @@ if (isLocal) {
 import { startVisualizationTool } from './visualization-launcher.js';
 import { generateConfig, GeneratorRegistry } from './config-generator.js';
 import { generateSkill, SkillGeneratorRegistry } from './skill-generator.js';
+import {
+  generateCapabilities,
+  CapabilityGeneratorRegistry,
+  type CapabilityGeneratorOptions,
+} from './capability-generator.js';
 
 /**
  * Parse a named flag from an args array, supporting both space-separated and
@@ -77,8 +82,9 @@ export function parseFlag(args: string[], flag: string): string | undefined {
 async function parseCliArgs(): Promise<{ shouldExit: boolean }> {
   const args = process.argv.slice(2);
 
-  // Handle help flag
-  if (args.includes('--help') || args.includes('-h')) {
+  // Handle help flag. Only fire on the first arg so that subcommands can
+  // own their own `--help` (e.g. `setup capabilities --help`).
+  if (args[0] === '--help' || args[0] === '-h') {
     showHelp();
     return { shouldExit: true };
   }
@@ -92,6 +98,9 @@ async function parseCliArgs(): Promise<{ shouldExit: boolean }> {
     if (subcommand === 'list') {
       handleSetupList();
       return { shouldExit: true };
+    } else if (subcommand === 'capabilities') {
+      await handleSetupCapabilities(args.slice(2));
+      return { shouldExit: true };
     } else if (subcommand) {
       const mode = parseFlag(args, '--mode') ?? 'config';
       if (mode !== 'skill' && mode !== 'config') {
@@ -104,6 +113,9 @@ async function parseCliArgs(): Promise<{ shouldExit: boolean }> {
       console.error('❌ Error: setup requires a target');
       console.error('Usage: setup <target> [--mode config|skill]');
       console.error('       setup list');
+      console.error(
+        '       setup capabilities <target> [--model-thinking M] [--model-coding M] [--model-research M] [--force]'
+      );
       process.exit(1);
     }
   }
@@ -434,6 +446,127 @@ async function handleSetup(
 }
 
 /**
+ * Print the `setup capabilities` help text: synopsis, model flags,
+ * `Targets:` list (with status indicators from the registry), and a usage
+ * example. Invoked when the user passes `--help`/`-h` to the
+ * `setup capabilities` subcommand.
+ */
+function printSetupCapabilitiesHelp(): void {
+  console.log(`
+setup capabilities <target> [flags]
+
+Wire up capability-routed subagents for a target IDE/CLI and merge the
+matching \`capability_models\` entries into \`.vibe/config.yaml\`.
+
+FLAGS:
+  --model-thinking <model>   Set the model for the thinking agent
+  --model-coding <model>     Set the model for the coding agent
+  --model-research <model>   Set the model for the research agent
+  --force                    Overwrite existing per-target agent files
+  --help, -h                 Show this help message
+
+TARGETS:
+${CapabilityGeneratorRegistry.getHelpText()
+  .split('\n')
+  .map(line => `  ${line}`)
+  .join('\n')}
+
+USAGE:
+  setup capabilities opencode --model-thinking anthropic/claude-opus-4-7 --model-coding anthropic/claude-sonnet-4-5 --model-research anthropic/claude-haiku-4-5
+
+Only 'opencode' is currently implemented. Other targets listed above will
+throw a "not yet supported" error and exit non-zero.
+`);
+}
+
+/**
+ * Handle `setup capabilities <target> [flags]` — generate per-capability
+ * agent files for the chosen target and merge the matching
+ * `capability_models` entries into `.vibe/config.yaml`.
+ *
+ * `args[0]` is the target positional (e.g. `opencode`, `kiro`, ...); the
+ * remaining entries are flags. The target is required; if it's `--help` /
+ * `-h` the help text is printed and the command exits cleanly.
+ */
+async function handleSetupCapabilities(args: string[]): Promise<void> {
+  // Explicit help flag ⇒ show help and exit 0.
+  if (args[0] === '--help' || args[0] === '-h') {
+    printSetupCapabilitiesHelp();
+    return;
+  }
+
+  // No target at all (or target looks like a flag) ⇒ "target required" usage.
+  if (args.length === 0 || args[0].startsWith('--')) {
+    console.error('❌ Error: setup capabilities requires a <target>');
+    console.error(
+      'Usage: setup capabilities <target> [--model-thinking M] [--model-coding M] [--model-research M] [--force]'
+    );
+    console.error(
+      `Supported targets: ${CapabilityGeneratorRegistry.getSupportedNames().join(', ')}`
+    );
+    console.error('Run `setup capabilities --help` for the full target list.');
+    process.exit(1);
+  }
+
+  const target = args[0];
+  const flagArgs = args.slice(1);
+
+  const thinking = parseFlag(flagArgs, '--model-thinking');
+  const coding = parseFlag(flagArgs, '--model-coding');
+  const research = parseFlag(flagArgs, '--model-research');
+  const force = flagArgs.includes('--force');
+
+  const models: CapabilityGeneratorOptions['models'] = {};
+  if (thinking !== undefined) models.thinking = thinking;
+  if (coding !== undefined) models.coding = coding;
+  if (research !== undefined) models.research = research;
+
+  if (Object.keys(models).length === 0) {
+    console.error(
+      '❌ Error: setup capabilities requires at least one --model-* flag'
+    );
+    console.error(
+      'Usage: setup capabilities <target> [--model-thinking M] [--model-coding M] [--model-research M] [--force]'
+    );
+    process.exit(1);
+  }
+
+  for (const [capability, value] of Object.entries(models)) {
+    if (value.trim() === '') {
+      console.error(
+        `❌ Error: --model-${capability} must be a non-empty string`
+      );
+      process.exit(1);
+    }
+  }
+
+  try {
+    const result = await generateCapabilities(target, {
+      projectPath: process.cwd(),
+      models,
+      force,
+    });
+
+    for (const file of result.generatedFiles) {
+      console.log(`✅ Generated: ${file}`);
+    }
+    for (const file of result.skippedFiles) {
+      console.log(
+        `⏭️  Skipped: ${file} (already exists; re-run with --force to overwrite)`
+      );
+    }
+    if (result.configUpdated) {
+      console.log(`✅ Config updated: ${result.configPath}`);
+    } else {
+      console.log(`ℹ️  Config unchanged: ${result.configPath}`);
+    }
+  } catch (error) {
+    console.error(`❌ Failed: ${(error as Error).message}`);
+    process.exit(1);
+  }
+}
+
+/**
  * Handle setup list command - shows all available targets
  */
 function handleSetupList(): void {
@@ -616,6 +749,7 @@ SETUP COMMANDS:
   setup <target> --mode config  Generate full agent configuration
   setup <target> --mode skill   Generate skill files only
   setup list                    List available targets
+  setup capabilities <target>   Wire up capability-routed agents (see --help)
 
 WORKFLOW COMMANDS:
   workflow list                 List available workflows

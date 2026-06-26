@@ -26,6 +26,7 @@ metadata:
 states:
   reproduce:
     description: 'Reproduce and understand the bug'
+    required_capability: 'research'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -48,6 +49,7 @@ states:
 
   analyze:
     description: 'Analyze the bug and identify root cause'
+    required_capability: 'thinking'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -76,6 +78,7 @@ states:
 
   fix:
     description: 'Implement the bug fix'
+    required_capability: 'coding'
     allowed_file_patterns:
       - '**/*'
     default_instructions: |
@@ -112,6 +115,7 @@ states:
 
   verify:
     description: 'Verify the fix and ensure no regressions'
+    required_capability: 'thinking'
     allowed_file_patterns:
       - '**/*'
     default_instructions: Test the fix thoroughly to ensure the original bug is resolved and no new issues were introduced. Run existing tests, create new ones if needed, and verify the solution is robust.

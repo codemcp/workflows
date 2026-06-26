@@ -27,6 +27,7 @@ export default defineConfig({
           { text: 'Overview', link: '/' },
           { text: 'How It Works', link: '/user/how-it-works' },
           { text: 'Agent Setup', link: '/user/agent-setup' },
+          { text: 'Capability Routing', link: '/user/capability-routing' },
           { text: 'Vibe Engineering', link: '/user/advanced-engineering' },
           { text: 'Long-Term Memory', link: '/user/long-term-memory' },
           { text: 'Beads-Integration', link: '/user/beads-integration' },
