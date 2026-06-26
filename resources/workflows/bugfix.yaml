@@ -30,6 +30,8 @@ states:
       - '**/*.md'
       - '**/*.txt'
       - '**/*.adoc'
+      - '**/*test*'
+      - '**/*spec*'
     default_instructions: |
       Gather specific information to reliably reproduce the reported bug:
       - What are the exact OS, browser/runtime versions, and hardware specs?
