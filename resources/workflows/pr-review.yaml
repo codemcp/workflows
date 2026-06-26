@@ -57,6 +57,7 @@ states:
 
   review_architecture:
     description: 'Review whether the change is in the right place and respects existing structure'
+    required_capability: 'thinking'
     default_instructions: |
       Evaluate the structural decisions in the change against the confirmed intent:
 
@@ -93,6 +94,7 @@ states:
 
   review_correctness:
     description: 'Review whether the logic correctly achieves the confirmed intent'
+    required_capability: 'thinking'
     default_instructions: |
       Evaluate the logic of the change against the confirmed intent:
 

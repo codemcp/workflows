@@ -7,7 +7,10 @@
 
 import { ConversationRequiredToolHandler } from './base-tool-handler.js';
 import { validateRequiredArgs } from '../server-helpers.js';
-import type { ConversationContext } from '@codemcp/workflows-core';
+import {
+  ConfigManager,
+  type ConversationContext,
+} from '@codemcp/workflows-core';
 import { ServerContext } from '../types.js';
 
 /**
@@ -152,6 +155,15 @@ export class ProceedToPhaseHandler extends ConversationRequiredToolHandler<
     const phaseState = stateMachine.states[transitionResult.newPhase];
     const allowedFilePatterns = phaseState?.allowed_file_patterns ?? ['**/*'];
 
+    // Null project config ⇒ no capabilityConfig ⇒ label-only hint.
+    const requiredCapability = phaseState?.required_capability;
+    const projectConfig = ConfigManager.loadProjectConfig(
+      conversationContext.projectPath
+    );
+    const capabilityConfig = requiredCapability
+      ? projectConfig?.capability_models?.[requiredCapability]
+      : undefined;
+
     // Generate enhanced instructions (includes file restriction info)
     const instructions =
       await context.instructionGenerator.generateInstructions(
@@ -166,6 +178,8 @@ export class ProceedToPhaseHandler extends ConversationRequiredToolHandler<
           isModeled: transitionResult.isModeled,
           instructionSource: 'proceed_to_phase',
           allowedFilePatterns,
+          requiredCapability,
+          capabilityConfig,
         }
       );
 

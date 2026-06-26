@@ -68,6 +68,10 @@ importers:
         version: 4.0.18(@types/node@22.19.8)(jsdom@27.4.0)(tsx@4.21.0)(yaml@2.8.3)
 
   packages/cli:
+    dependencies:
+      js-yaml:
+        specifier: 4.1.1
+        version: 4.1.1
     devDependencies:
       '@codemcp/workflows-core':
         specifier: workspace:*
@@ -75,6 +79,9 @@ importers:
       '@codemcp/workflows-server':
         specifier: workspace:*
         version: link:../mcp-server
+      '@types/js-yaml':
+        specifier: 4.0.9
+        version: 4.0.9
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.8

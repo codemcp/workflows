@@ -13,6 +13,22 @@ const logger = createLogger('ConfigManager');
 
 export interface ProjectConfig {
   enabled_workflows?: string[];
+  /**
+   * Optional capability→model/agent routing map.
+   *
+   * Keys are capability strings declared on workflow phases via
+   * `required_capability` (e.g. `thinking`, `research`, `coding`, or any
+   * custom term). Each value is an object with optional `model` and `agent`
+   * fields used to enrich the capability hint instruction. Absent ⇒ no
+   * model/agent clause (opt-in). An empty entry object `{}` is allowed and
+   * is a no-op (no model, no agent).
+   * @example
+   * capability_models:
+   *   thinking:
+   *     model: anthropic/claude-opus-4-7
+   *     agent: general_thinking
+   */
+  capability_models?: Record<string, { model?: string; agent?: string }>;
 }
 
 /**
@@ -44,6 +60,9 @@ export class ConfigManager {
       logger.info('Loaded project configuration', {
         configPath,
         enabledWorkflows: config.enabled_workflows?.length || 0,
+        capabilityModels: config.capability_models
+          ? Object.keys(config.capability_models).length
+          : 0,
       });
 
       return config;
@@ -88,6 +107,48 @@ export class ConfigManager {
         if (typeof workflow !== 'string' || workflow.trim() === '') {
           throw new Error(
             `Invalid config file ${configPath}: all workflow names must be non-empty strings`
+          );
+        }
+      }
+    }
+
+    if (config.capability_models !== undefined) {
+      if (
+        typeof config.capability_models !== 'object' ||
+        config.capability_models === null ||
+        Array.isArray(config.capability_models)
+      ) {
+        throw new Error(
+          `Invalid config file ${configPath}: capability_models must be an object`
+        );
+      }
+
+      for (const [key, entry] of Object.entries(config.capability_models)) {
+        if (
+          entry === null ||
+          typeof entry !== 'object' ||
+          Array.isArray(entry)
+        ) {
+          throw new Error(
+            `Invalid config file ${configPath}: capability_models entry '${key}' must be an object`
+          );
+        }
+
+        const { model, agent } = entry;
+        if (
+          model !== undefined &&
+          (typeof model !== 'string' || model.trim() === '')
+        ) {
+          throw new Error(
+            `Invalid config file ${configPath}: capability_models entry '${key}' model must be a non-empty string`
+          );
+        }
+        if (
+          agent !== undefined &&
+          (typeof agent !== 'string' || agent.trim() === '')
+        ) {
+          throw new Error(
+            `Invalid config file ${configPath}: capability_models entry '${key}' agent must be a non-empty string`
           );
         }
       }

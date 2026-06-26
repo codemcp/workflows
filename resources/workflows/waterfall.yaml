@@ -27,6 +27,7 @@ metadata:
 states:
   requirements:
     description: 'Gathering and analyzing requirements'
+    required_capability: 'research'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -53,6 +54,7 @@ states:
 
   design:
     description: 'Technical design and architecture planning'
+    required_capability: 'thinking'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -80,6 +82,7 @@ states:
 
   implementation:
     description: 'Building the solution according to design'
+    required_capability: 'coding'
     allowed_file_patterns:
       - '**/*'
     default_instructions: |

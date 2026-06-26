@@ -82,6 +82,10 @@
           },
           "description": "Glob patterns for files that can be edited in this state. Use '**/*' to allow all files."
         },
+        "required_capability": {
+          "type": "string",
+          "description": "Optional capability hint for this phase. If absent, no capability routing is applied. Free-form string; conventional values are `thinking`, `research`, `coding`. See `.vibe/config.yaml` `capability_models` for optional model/agent mapping."
+        },
         "default_instructions": {
           "type": "string",
           "description": "Default instructions when entering this state"
