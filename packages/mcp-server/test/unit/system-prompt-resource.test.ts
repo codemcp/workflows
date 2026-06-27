@@ -30,18 +30,15 @@ describe('System Prompt Resource', () => {
     expect(data.text).toBeDefined();
     expect(typeof data.text).toBe('string');
 
-    // Verify content contains expected system prompt elements (streamlined version)
-    expect(data.text).toContain(
-      'You are an AI assistant that helps users develop software features'
-    );
-    expect(data.text).toContain('workflows server');
+    // Verify content contains expected system prompt elements
+    expect(data.text).toContain('You are a structured, workflow-driven agent');
     expect(data.text).toContain('whats_next()');
     expect(data.text).toContain('instructions');
-    expect(data.text).toContain('development plan');
+    expect(data.text).toContain('plan_file_path');
 
-    // Verify it's concise but not empty (streamlined prompt is ~400 chars)
-    expect(data.text.length).toBeGreaterThan(200);
-    expect(data.text.length).toBeLessThan(1000);
+    // Prompt is more comprehensive now — verify it's substantive but not unbounded
+    expect(data.text.length).toBeGreaterThan(500);
+    expect(data.text.length).toBeLessThan(5000);
   });
 
   it('should be workflow-independent and consistent', async () => {
@@ -70,14 +67,15 @@ describe('System Prompt Resource', () => {
     expect(result1.data!.text).toBe(result2.data!.text);
     expect(result2.data!.text).toBe(result3.data!.text);
 
-    // Verify the prompt contains standard elements (streamlined version)
-    expect(result1.data!.text).toContain('You are an AI assistant');
+    // Verify the prompt contains standard elements
+    expect(result1.data!.text).toContain(
+      'You are a structured, workflow-driven agent'
+    );
     expect(result1.data!.text).toContain('whats_next()');
-    expect(result1.data!.text).toContain('development');
     expect(result1.data!.text).toContain('instructions');
   });
 
-  it('should use streamlined system prompt', async () => {
+  it('should contain all major sections of the meta-level agent prompt', async () => {
     const handler = new SystemPromptResourceHandler();
 
     const result = await handler.handle(
@@ -87,16 +85,28 @@ describe('System Prompt Resource', () => {
 
     expect(result.success).toBe(true);
 
-    // The streamlined system prompt should be concise and focused
-    // It relies on tool responses for detailed phase instructions
-    expect(result.data!.text).toContain(
-      'You are an AI assistant that helps users develop software features'
-    );
-    expect(result.data!.text).toContain('whats_next()');
-    expect(result.data!.text).toContain('instructions');
-    expect(result.data!.text).toContain('development plan');
+    const text = result.data!.text;
 
-    // Streamlined prompt should be concise (~400 chars vs old 2000+)
-    expect(result.data!.text.length).toBeLessThan(1000);
+    // Core loop section
+    expect(text).toContain('## Core loop');
+    expect(text).toContain('whats_next()');
+    expect(text).toContain('plan_file_path');
+
+    // Before acting section
+    expect(text).toContain('## Before acting');
+    expect(text).toContain('clarifying question');
+
+    // Scope discipline section
+    expect(text).toContain('## Scope discipline');
+    expect(text).toContain('proceed_to_phase');
+
+    // Subagent delegation section
+    expect(text).toContain('## Subagent delegation');
+    expect(text).toContain('Capability hint');
+    expect(text).toContain('thinking-specialized subagent');
+
+    // Task management section
+    expect(text).toContain('## Task management');
+    expect(text).toContain('Do not use your own task management tools.');
   });
 });
