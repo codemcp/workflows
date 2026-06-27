@@ -27,6 +27,7 @@ metadata:
 states:
   ideation:
     description: 'Deep requirements discovery and PRD creation phase'
+    required_capability: 'thinking'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -51,6 +52,7 @@ states:
 
   architecture:
     description: 'Tech stack selection and architecture design phase'
+    required_capability: 'thinking'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -114,6 +116,7 @@ states:
 
   code:
     description: 'Implementation phase following the established plan and architecture'
+    required_capability: 'coding'
     allowed_file_patterns:
       - '**/*'
     default_instructions: |

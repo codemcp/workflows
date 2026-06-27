@@ -178,11 +178,13 @@ class KiroConfigGenerator extends ConfigGenerator {
         'knowledge',
         'thinking',
         'use_aws',
+        'subagent',
         '@workflows',
       ],
       allowedTools: [
         'fs_read',
         'fs_write',
+        'subagent',
         '@workflows/whats_next',
         '@workflows/conduct_review',
         '@workflows/list_workflows',
@@ -204,7 +206,11 @@ class KiroConfigGenerator extends ConfigGenerator {
           ],
         },
       },
-      resources: ['file://README.md', 'file://.kiro/rules/**/*.md'],
+      resources: [
+        'file://README.md',
+        'file://.kiro/rules/**/*.md',
+        'skill://.kiro/skills/**/SKILL.md',
+      ],
       hooks: {},
     };
 

@@ -26,6 +26,7 @@ metadata:
 states:
   explore:
     description: 'Research and exploration phase - understanding the problem space'
+    required_capability: 'research'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -48,6 +49,7 @@ states:
 
   plan:
     description: 'Planning phase - creating a detailed implementation strategy'
+    required_capability: 'thinking'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -84,6 +86,7 @@ states:
 
   code:
     description: 'Implementation phase - writing and building the solution'
+    required_capability: 'coding'
     allowed_file_patterns:
       - '**/*'
     default_instructions: |

@@ -49,6 +49,7 @@ states:
 
   research:
     description: 'Gather facts without forming conclusions or proposing solutions'
+    required_capability: 'research'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -71,6 +72,7 @@ states:
 
   design:
     description: 'Explore options and reach consensus on WHAT and high-level HOW'
+    required_capability: 'thinking'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -99,6 +101,7 @@ states:
 
   structure:
     description: 'Decompose the approved design into end-to-end vertical slices'
+    required_capability: 'thinking'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -123,6 +126,7 @@ states:
 
   plan:
     description: 'Create a detailed implementation plan per vertical slice'
+    required_capability: 'thinking'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -157,6 +161,7 @@ states:
 
   implement:
     description: 'Build the solution slice by slice'
+    required_capability: 'coding'
     allowed_file_patterns:
       - '**/*'
     default_instructions: |

@@ -7,6 +7,7 @@
 
 import type { ConversationContext } from '../types.js';
 import type { YamlStateMachine } from '../state-machine-types.js';
+import type { CapabilityConfig } from '../capability-hint.js';
 
 export interface InstructionContext {
   phase: string;
@@ -17,6 +18,19 @@ export interface InstructionContext {
   instructionSource: 'proceed_to_phase' | 'whats_next' | 'start_development';
   /** Glob patterns for files allowed to be edited in this phase (optional) */
   allowedFilePatterns?: string[];
+  /**
+   * Optional capability hint declared on the phase (`required_capability` in
+   * the YAML state machine). When set, the instruction generator embeds a
+   * "Capability hint:" sentence into the phase instructions so the LLM picks
+   * a suitable model/agent for subagent work. Absent ⇒ no hint (opt-in).
+   */
+  requiredCapability?: string;
+  /**
+   * Optional model/agent routing configuration for the capability hint's
+   * subagent clause. Populated from `.vibe/config.yaml` `capability_models`
+   * when present.
+   */
+  capabilityConfig?: CapabilityConfig;
 }
 
 export interface GeneratedInstructions {

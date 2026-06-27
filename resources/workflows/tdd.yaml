@@ -26,6 +26,7 @@ metadata:
 states:
   explore:
     description: 'Research and exploration phase - understanding the problem space and codebase'
+    required_capability: 'research'
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -50,6 +51,7 @@ states:
 
   red:
     description: 'RED phase - Write a failing test that defines the expected behavior'
+    required_capability: 'thinking'
     allowed_file_patterns:
       - '**/*'
     default_instructions: |
@@ -82,6 +84,7 @@ states:
 
   green:
     description: 'GREEN phase - Write only the necessary code to make the test pass'
+    required_capability: 'coding'
     allowed_file_patterns:
       - '**/*'
     default_instructions: |

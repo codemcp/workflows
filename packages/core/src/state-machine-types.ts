@@ -54,6 +54,14 @@ export interface YamlState {
    * @example ["*"] // Allow all files (same as omitting)
    */
   allowed_file_patterns?: string[];
+
+  /**
+   * Optional capability hint for this phase.
+   * If absent, no capability routing is applied.
+   * Free-form string; conventional values are `thinking`, `research`, `coding`.
+   * See `.vibe/config.yaml` `capability_models` for optional model/agent mapping.
+   */
+  required_capability?: string;
 }
 
 /**
