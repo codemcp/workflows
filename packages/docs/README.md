@@ -1,6 +1,6 @@
 # Workflows
 
-*fka. "Responsible Vibe MCP"*
+fka. "Responsible Vibe MCP"
 
 Transform any AI coding agent into a structured development partner with battle-tested engineering workflows.
 
