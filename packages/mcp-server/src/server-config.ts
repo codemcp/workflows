@@ -20,6 +20,10 @@ import { InteractionLogger } from '@codemcp/workflows-core';
 import { WorkflowManager } from '@codemcp/workflows-core';
 import { TemplateManager } from '@codemcp/workflows-core';
 import {
+  DOMAIN_DESCRIPTIONS,
+  KNOWN_DOMAIN_NAMES,
+} from '@codemcp/workflows-core';
+import {
   createLogger,
   setLoggingLevelFromString,
 } from '@codemcp/workflows-core';
@@ -469,6 +473,30 @@ export async function registerMcpTools(
     createToolHandler('list_workflows', toolRegistry, responseRenderer, context)
   );
 
+  // Register load_workflows tool — allows LLM to dynamically load domains
+  mcpServer.registerTool(
+    'load_workflows',
+    {
+      description:
+        'Load workflows from one or more domains. Replaces the current domain set with the specified domains. Use this tool when you need to access workflows from a domain that is not currently loaded. The tool will reload all workflows for the specified domains. Use the domain:// resource to discover available domains and their descriptions.',
+      inputSchema: {
+        domains: z
+          .array(z.enum(KNOWN_DOMAIN_NAMES))
+          .describe(
+            'Domain names to load. Use domain:// resource to discover available domains.'
+          ),
+      },
+      annotations: {
+        title: 'Workflow Domain Loader',
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    createToolHandler('load_workflows', toolRegistry, responseRenderer, context)
+  );
+
   // Register get_tool_info tool
   mcpServer.registerTool(
     'get_tool_info',
@@ -670,6 +698,35 @@ export function registerMcpResources(
 
       const result = await handler.handle(new URL(uri.href), context);
       return responseRenderer.renderResourceResponse(result);
+    }
+  );
+
+  // Domain info resource — exposes all available domains with descriptions
+  mcpServer.resource(
+    'Available Domains',
+    'domain://',
+    {
+      description:
+        'List of all available workflow domains with descriptions. Use this resource before calling load_workflows to discover which domains are available and what each domain is suitable for.',
+      mimeType: 'application/json',
+    },
+    async () => {
+      const domains = Object.entries(DOMAIN_DESCRIPTIONS).map(
+        ([domain, description]) => ({
+          domain,
+          description,
+        })
+      );
+
+      return {
+        contents: [
+          {
+            uri: 'domain://',
+            mimeType: 'application/json',
+            text: JSON.stringify(domains, null, 2),
+          },
+        ],
+      };
     }
   );
 

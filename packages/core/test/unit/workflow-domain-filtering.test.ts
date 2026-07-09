@@ -16,13 +16,13 @@ describe('Workflow Domain Filtering', () => {
     }
   });
 
-  it('should load only code workflows when no domain filter is set', () => {
+  it('should load only code workflows when no domain filter is set (default: code)', () => {
     delete process.env.WORKFLOW_DOMAINS;
 
     const manager = new WorkflowManager();
     const workflows = manager.getAvailableWorkflows();
 
-    // Should only include code domain workflows and workflows without domain
+    // Default is 'code' — should only include code domain workflows
     const codeWorkflows = workflows.filter(
       w => !w.metadata?.domain || w.metadata.domain === 'code'
     );
