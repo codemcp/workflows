@@ -23,6 +23,7 @@ export const workflowList = [
   'skilled-epcc',
   'skilled-greenfield',
   'slides',
+  'socratic-recovery',
   'tdd',
   'waterfall',
 ];
