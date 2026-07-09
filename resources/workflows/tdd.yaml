@@ -82,11 +82,6 @@ states:
         to: 'explore'
         transition_reason: 'Test writing revealed need for more exploration'
 
-      - trigger: 'abandon_feature'
-        to: 'explore'
-        additional_instructions: 'Clean up any test artifacts and prepare for new tasks.'
-        transition_reason: 'User decided to abandon feature during test phase'
-
   green:
     description: 'GREEN phase - Write only the necessary code to make the test pass'
     required_capability: 'coding'
@@ -123,11 +118,6 @@ states:
       - trigger: 'need_more_exploration'
         to: 'explore'
         transition_reason: 'Implementation work revealed need for more exploration'
-
-      - trigger: 'abandon_feature'
-        to: 'explore'
-        additional_instructions: 'Clean up any incomplete code and prepare for new tasks.'
-        transition_reason: 'User decided to abandon feature during implementation'
 
   refactor:
     description: 'REFACTOR phase - Improve code quality while keeping tests green (cleanup phase)'
@@ -166,11 +156,6 @@ states:
         to: 'done'
         additional_instructions: 'Update task progress to reflect feature completion.'
         transition_reason: 'Feature fully implemented and cleaned up, ready to exit TDD cycle'
-
-      - trigger: 'abandon_feature'
-        to: 'explore'
-        additional_instructions: 'Clean up any refactoring work and prepare for new tasks.'
-        transition_reason: 'User decided to abandon feature during refactoring'
 
   done:
     description: 'TDD cycle complete - feature fully implemented and cleaned up'

@@ -601,8 +601,3 @@ states:
 
 # Global transitions
 global_transitions:
-  - trigger: 'abandon_bugfix'
-    to: 'reproduce'
-    transition_reason: 'Bug fix abandoned, restart from beginning'
-    additional_instructions: |
-      Bug fix abandoned. If you want to restart, begin again with reproducing and understanding the bug.

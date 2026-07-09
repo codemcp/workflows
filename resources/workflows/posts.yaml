@@ -75,14 +75,6 @@ states:
         additional_instructions: 'Resolve gaps in research or format clarity by focusing on foundational aspects.'
         transition_reason: 'Story work revealed need for additional discovery or research'
 
-      - trigger: abandon_post
-        to: discovery
-        instructions: |
-          Abandon post development during story phase. Clean up story work and return to discovery.
-          The `$PLAN_FILE` and any completed work will remain for future reference.
-        additional_instructions: 'Clean up and prepare for new topics.'
-        transition_reason: 'User decided to abandon post during story phase'
-
   writing:
     description: 'Create the actual post content following story outline'
     default_instructions: |
@@ -115,14 +107,6 @@ states:
         additional_instructions: 'Refine the story foundation to address issues with structure or narrative flow.'
         transition_reason: 'Content creation revealed need for story structure refinement'
 
-      - trigger: abandon_post
-        to: discovery
-        instructions: |
-          Abandon post development during writing. Clean up writing work and return to discovery.
-          The `$PLAN_FILE` and any completed work will remain for future reference.
-        additional_instructions: 'Clean up and prepare for new topics.'
-        transition_reason: 'User decided to abandon post during writing phase'
-
   illustration:
     description: 'Create and integrate visual elements'
     default_instructions: |
@@ -152,14 +136,6 @@ states:
         to: writing
         additional_instructions: 'Complete the content foundation to address gaps revealed during visual work.'
         transition_reason: 'Visual work revealed need for additional written content'
-
-      - trigger: abandon_post
-        to: discovery
-        instructions: |
-          Abandon post development during illustration. Clean up illustration work and return to discovery.
-          The `$PLAN_FILE` and any completed work will remain for future reference.
-        additional_instructions: 'Clean up and prepare for new topics.'
-        transition_reason: 'User decided to abandon post during illustration phase'
 
   distribution:
     description: 'Optimize for SEO and publish across platforms'

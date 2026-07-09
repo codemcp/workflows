@@ -84,14 +84,6 @@ states:
           - perspective: 'security_expert'
             prompt: 'Assess security considerations and potential risks in the planned implementation approach. Review data handling, authentication, and potential vulnerabilities.'
 
-      - trigger: 'abandon_feature'
-        to: 'explore'
-        instructions: >
-          Feature development abandoned during planning. Return to exploration state for new tasks.
-          Task history will remain for future reference.
-        additional_instructions: 'Feature development abandoned during planning. Clean up any planning work and prepare for new tasks.'
-        transition_reason: 'User decided to abandon feature during planning phase'
-
   code:
     description: 'Implementation phase - writing and building the solution'
     required_capability: 'coding'
@@ -127,14 +119,6 @@ states:
             prompt: 'Review code quality, best practices, testing coverage, and readiness for production deployment. Ensure the implementation follows coding standards and is maintainable.'
           - perspective: 'performance_engineer'
             prompt: 'Evaluate performance impact, resource efficiency, and scalability of the implemented solution. Check for potential bottlenecks or optimization opportunities.'
-
-      - trigger: 'abandon_feature'
-        to: 'explore'
-        instructions: >
-          Feature development abandoned during implementation. Clean up any incomplete code and return to exploration.
-          Task history and any completed work will remain for future reference.
-        additional_instructions: 'Clean up any incomplete code and prepare for new tasks.'
-        transition_reason: 'User decided to abandon feature during implementation'
 
   commit:
     description: 'Code cleanup and documentation finalization'

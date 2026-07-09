@@ -329,8 +329,3 @@ states:
 
 # Global transitions
 global_transitions:
-  - trigger: 'abandon_project'
-    to: 'constitution'
-    transition_reason: 'Project abandoned, restart from beginning'
-    additional_instructions: |
-      Project abandoned. If you want to restart, begin again with establishing the constitutional framework.

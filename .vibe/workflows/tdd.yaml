@@ -39,14 +39,6 @@ states:
         additional_instructions: 'Mark completed exploration tasks.'
         transition_reason: 'Sufficient understanding gained, ready to start TDD cycle with failing test'
 
-      - trigger: 'abandon_feature'
-        to: 'explore'
-        instructions: >
-          Feature development abandoned. Return to exploration state for new tasks.
-          The plan file will remain for future reference if needed.
-        additional_instructions: 'Clean up any work in progress and prepare for new tasks.'
-        transition_reason: 'User decided to abandon current feature development'
-
   red:
     description: 'RED phase - Write a failing test that defines the expected behavior'
     default_instructions: |
@@ -72,11 +64,6 @@ states:
       - trigger: 'need_more_exploration'
         to: 'explore'
         transition_reason: 'Test writing revealed need for more exploration'
-
-      - trigger: 'abandon_feature'
-        to: 'explore'
-        additional_instructions: 'Clean up any test artifacts and prepare for new tasks.'
-        transition_reason: 'User decided to abandon feature during test phase'
 
   green:
     description: 'GREEN phase - Write only the necessary code to make the test pass'
@@ -110,11 +97,6 @@ states:
       - trigger: 'need_more_exploration'
         to: 'explore'
         transition_reason: 'Implementation work revealed need for more exploration'
-
-      - trigger: 'abandon_feature'
-        to: 'explore'
-        additional_instructions: 'Clean up any incomplete code and prepare for new tasks.'
-        transition_reason: 'User decided to abandon feature during implementation'
 
   refactor:
     description: 'REFACTOR phase - Improve code quality while keeping tests green (cleanup phase)'
@@ -150,8 +132,3 @@ states:
         to: 'explore'
         additional_instructions: 'Mark feature as complete in plan file.'
         transition_reason: 'Feature fully implemented and cleaned up, ready for new tasks'
-
-      - trigger: 'abandon_feature'
-        to: 'explore'
-        additional_instructions: 'Clean up any refactoring work and prepare for new tasks.'
-        transition_reason: 'User decided to abandon feature during refactoring'

@@ -374,8 +374,3 @@ states:
 
 # Global transitions available from any state
 global_transitions:
-  - trigger: 'abandon_bugfix'
-    to: 'reproduce'
-    instructions: >
-      If you want to restart, you'll begin again with reproducing and understanding the bug.
-    transition_reason: 'Bug fix abandoned, restart from beginning'

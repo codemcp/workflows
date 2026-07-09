@@ -75,14 +75,6 @@ states:
           - perspective: 'security_expert'
             prompt: 'Evaluate security architecture, data protection strategies, and potential vulnerabilities. Ensure security is built into the foundation of the greenfield project from the start.'
 
-      - trigger: 'abandon_project'
-        to: 'ideation'
-        instructions: >
-          Project development abandoned during architecture phase. Return to ideation state for new projects.
-          Task history and PRD will remain for future reference.
-        additional_instructions: 'Project development abandoned during architecture phase. Clean up any architecture work and prepare for new projects.'
-        transition_reason: 'User decided to abandon project during architecture phase'
-
   plan:
     description: 'Implementation planning phase based on established architecture'
     default_instructions: |
@@ -114,14 +106,6 @@ states:
         additional_instructions: "Implementation plan is complete! ✅ Now transition to coding phase. Read specific documentation before using the chosen libraries and frameworks. Follow the architectural patterns and tech stack decisions you've made. Modularize your code according to best practices. Stay focused on the current project scope defined in your PRD. Update task progress as you complete planning work."
         transition_reason: 'Implementation plan is complete and ready for coding'
 
-      - trigger: 'abandon_project'
-        to: 'ideation'
-        instructions: >
-          Project development abandoned during planning. Return to ideation state for new projects.
-          Task history, PRD, and architecture documentation will remain for future reference.
-        additional_instructions: 'Project development abandoned during planning. Clean up any planning work and prepare for new projects.'
-        transition_reason: 'User decided to abandon project during planning phase'
-
   code:
     description: 'Implementation phase following the established plan and architecture'
     default_instructions: |
@@ -149,14 +133,6 @@ states:
       - trigger: 'code_complete'
         to: 'finalize'
         transition_reason: 'Core implementation is complete, ready for comprehensive documentation'
-
-      - trigger: 'abandon_project'
-        to: 'ideation'
-        instructions: >
-          Project development abandoned during implementation. Clean up any incomplete code and return to ideation.
-          Task history, PRD, architecture documentation, and any completed work will remain for future reference.
-        additional_instructions: 'Project development abandoned during implementation. Clean up any incomplete code and prepare for new projects.'
-        transition_reason: 'User decided to abandon project during implementation'
 
   finalize:
     description: 'Code cleanup and documentation finalization'

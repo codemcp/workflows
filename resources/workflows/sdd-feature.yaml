@@ -463,9 +463,3 @@ states:
 
 # Global transitions available from any state
 global_transitions:
-  - trigger: 'abandon_feature'
-    to: 'analyze'
-    instructions: >
-      Feature development abandoned. If you want to restart, you'll begin again with
-      analyzing the requirements and current state.
-    transition_reason: 'Feature abandoned, restart from beginning'
