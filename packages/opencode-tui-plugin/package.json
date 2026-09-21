@@ -12,6 +12,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",

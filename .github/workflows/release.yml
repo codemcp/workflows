@@ -23,16 +23,12 @@ on:
       - 'examples/**'
       - 'packages/docs/**'
 
-permissions:
-  contents: write
-  packages: write
-
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -42,7 +38,7 @@ jobs:
           version: 10.32.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'pnpm'
@@ -55,7 +51,6 @@ jobs:
 
       - name: Install platform-specific dependencies
         run: |
-          # Install platform dependencies for Linux (temporary, not saved to package.json)
           pnpm add @oxlint/linux-x64-gnu --save-dev || echo "Failed to install oxlint platform dependency, continuing..."
 
       - name: Check formatting
@@ -78,6 +73,12 @@ jobs:
   release:
     needs: test
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
     steps:
       - name: Generate GitHub App Token
         id: generate_token
@@ -87,7 +88,7 @@ jobs:
           private_key: ${{ secrets.VERSION_BUMPER_SECRET }}
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ steps.generate_token.outputs.token }}
@@ -98,7 +99,7 @@ jobs:
           version: 10.32.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'pnpm'
@@ -112,62 +113,14 @@ jobs:
 
       - name: Install platform-specific dependencies
         run: |
-          # Install platform dependencies for Linux CI environment (temporary, not saved to package.json)
           pnpm add @oxlint/linux-x64-gnu --save-dev || echo "Failed to install oxlint platform dependency"
 
       - name: Build project
-        run: pnpm run build
-
-      - name: Bump version and create tag
-        id: version
-        uses: mathieudutour/github-tag-action@v6.2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          default_bump: patch
-          tag_prefix: v
-
-      - name: Update package.json version
-        if: steps.version.outputs.new_tag
         run: |
-          NEW_VERSION=${{ steps.version.outputs.new_version }}
+          pnpm add @rollup/rollup-linux-x64-gnu --save-dev || echo "Failed to install Rollup platform dependency"
+          pnpm run build
 
-          # Update root package.json
-          pnpm version $NEW_VERSION --no-git-tag-version
-
-          # Update all workspace package versions
-          pnpm -r exec pnpm version $NEW_VERSION --no-git-tag-version
-
-          # Ensure no platform-specific dependencies were accidentally saved
-          pnpm remove @rollup/rollup-linux-x64-gnu @oxlint/linux-x64-gnu 2>/dev/null || true
-
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add package.json packages/*/package.json pnpm-lock.yaml
-          git commit -m "chore: bump version to $NEW_VERSION [skip ci]" || exit 0
-          git push
+      - name: Release
+        run: pnpm exec semantic-release
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
-
-      - name: Create GitHub Release
-        if: steps.version.outputs.new_tag
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.new_tag }}
-          name: Release ${{ steps.version.outputs.new_tag }}
-          body: ${{ steps.version.outputs.changelog }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to npm
-        if: steps.version.outputs.new_tag
-        run: |
-          # Publish only public packages (those without "private": true)
-          # Using pnpm publish with --filter to exclude private packages
-          pnpm --filter '@codemcp/workflows-server' publish --access public --no-git-checks
-          pnpm --filter '@codemcp/workflows' publish --access public --no-git-checks
-          pnpm --filter '@codemcp/workflows-opencode' publish --access public --no-git-checks
-          pnpm --filter '@codemcp/workflows-opencode-tui' publish --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
