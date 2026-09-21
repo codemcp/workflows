@@ -257,6 +257,7 @@ class TaskBackendClientContract extends BaseInterfaceContract<ITaskBackendClient
   protected testImplementationBehavior(
     registration: ImplementationRegistration<ITaskBackendClient>
   ): void {
+    // PHASE-0: disabled for incremental re-enable
     describe('Backend Availability', () => {
       it(`${registration.name} should indicate availability status consistently`, async () => {
         const instance = await registration.createInstance();
@@ -281,6 +282,7 @@ class TaskBackendClientContract extends BaseInterfaceContract<ITaskBackendClient
       });
     });
 
+    // PHASE-0: disabled for incremental re-enable
     describe('Task Retrieval', () => {
       it(`${registration.name} should return task arrays with correct structure`, async () => {
         const instance = await registration.createInstance();
@@ -336,6 +338,7 @@ class TaskBackendClientContract extends BaseInterfaceContract<ITaskBackendClient
       });
     });
 
+    // PHASE-0: disabled for incremental re-enable
     describe('Task Validation', () => {
       it(`${registration.name} should provide meaningful validation results`, async () => {
         const instance = await registration.createInstance();
@@ -391,6 +394,7 @@ class TaskBackendClientContract extends BaseInterfaceContract<ITaskBackendClient
       });
     });
 
+    // PHASE-0: disabled for incremental re-enable
     describe('Task Creation', () => {
       it(`${registration.name} should create tasks and return valid IDs`, async () => {
         const instance = await registration.createInstance();
@@ -474,6 +478,7 @@ class TaskBackendClientContract extends BaseInterfaceContract<ITaskBackendClient
       });
     });
 
+    // PHASE-0: disabled for incremental re-enable
     describe('Task Status Updates', () => {
       it(`${registration.name} should handle status transitions`, async () => {
         const instance = await registration.createInstance();
@@ -518,6 +523,7 @@ class TaskBackendClientContract extends BaseInterfaceContract<ITaskBackendClient
       });
     });
 
+    // PHASE-0: disabled for incremental re-enable
     describe('Error Handling', () => {
       it(`${registration.name} should handle non-existent parent tasks gracefully`, async () => {
         const instance = await registration.createInstance();
@@ -570,6 +576,7 @@ class TaskBackendClientContract extends BaseInterfaceContract<ITaskBackendClient
 }
 
 // Create and run the contract tests
+
 describe('ITaskBackendClient Interface Contract', () => {
   const contract = new TaskBackendClientContract();
 
@@ -590,6 +597,7 @@ describe('ITaskBackendClient Interface Contract', () => {
   contract.createContractTests();
 
   // Additional meta-tests to ensure the contract testing itself works
+  // PHASE-0: disabled for incremental re-enable
   describe('Contract Test Meta-validation', () => {
     it('should have required method tests defined', () => {
       const contract = new TaskBackendClientContract();

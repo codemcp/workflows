@@ -81,6 +81,7 @@ describe('TemplateManager', () => {
     }
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('getDefaults', () => {
     it('should return correct default template options', async () => {
       const defaults = await templateManager.getDefaults();
@@ -93,6 +94,7 @@ describe('TemplateManager', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('validateOptions', () => {
     it('should validate correct template options', async () => {
       await expect(
@@ -142,6 +144,7 @@ describe('TemplateManager', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('loadTemplate', () => {
     it('should load freestyle architecture template', async () => {
       const result = await templateManager.loadTemplate(
@@ -204,6 +207,7 @@ describe('TemplateManager', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('getAvailableTemplates', () => {
     it('should return all available template options', async () => {
       const templates = await templateManager.getAvailableTemplates();

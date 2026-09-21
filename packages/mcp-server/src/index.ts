@@ -28,9 +28,6 @@ export {
 // Re-export types needed by external consumers
 export type { ServerContext, HandlerResult, SessionMetadata } from './types.js';
 
-// Re-export plugin system for external use (e.g., OpenCode plugin)
-export { PluginRegistry } from './plugin-system/index.js';
-export { BeadsPlugin } from './plugin-system/beads-plugin.js';
 import { createLogger } from '@codemcp/workflows-core';
 
 const logger = createLogger('Main');

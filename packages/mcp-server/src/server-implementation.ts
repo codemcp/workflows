@@ -10,11 +10,9 @@ import { ServerConfig } from './types.js';
 import {
   initializeServerComponents,
   registerMcpTools,
-  registerMcpResources,
   ServerComponents,
 } from './server-config.js';
 import { createToolRegistry } from './tool-handlers/index.js';
-import { createResourceRegistry } from './resource-handlers/index.js';
 import { createResponseRenderer } from './response-renderer.js';
 import { createMcpLogSink } from './mcp-log-sink.js';
 import type {
@@ -68,12 +66,10 @@ export class ResponsibleVibeMCPServer {
 
       // Create registries and renderer
       const toolRegistry = createToolRegistry();
-      const resourceRegistry = createResourceRegistry();
       const responseRenderer = createResponseRenderer();
 
       // Update components with registries and renderer
       this.components.toolRegistry = toolRegistry;
-      this.components.resourceRegistry = resourceRegistry;
       this.components.responseRenderer = responseRenderer;
 
       // Register MCP log sink for log notifications
@@ -83,13 +79,6 @@ export class ResponsibleVibeMCPServer {
       await registerMcpTools(
         this.components.mcpServer,
         toolRegistry,
-        responseRenderer,
-        this.components.context
-      );
-
-      registerMcpResources(
-        this.components.mcpServer,
-        resourceRegistry,
         responseRenderer,
         this.components.context
       );
@@ -144,16 +133,16 @@ export class ResponsibleVibeMCPServer {
   }
 
   /**
-   * Direct access to tool handlers for testing
+   * Generic tool handler for test access — parameterised on tool name and return type
    */
-  public async handleWhatsNext(args: unknown): Promise<unknown> {
+  public async handleTool<T>(toolName: string, args: unknown): Promise<T> {
     if (!this.components) {
       throw new Error('Server not initialized. Call initialize() first.');
     }
 
-    const handler = this.components.toolRegistry.get('whats_next');
+    const handler = this.components.toolRegistry?.get(toolName);
     if (!handler) {
-      throw new Error('whats_next handler not found');
+      throw new Error(`${toolName} handler not found`);
     }
 
     const result = await handler.handle(args, this.components.context);
@@ -161,7 +150,14 @@ export class ResponsibleVibeMCPServer {
       throw new Error(result.error || 'Handler execution failed');
     }
 
-    return result.data;
+    return result.data as T;
+  }
+
+  /**
+   * Direct access to tool handlers for testing
+   */
+  public async handleWhatsNext(args: unknown): Promise<unknown> {
+    return this.handleTool<unknown>('whats_next', args);
   }
 
   /**
@@ -170,21 +166,7 @@ export class ResponsibleVibeMCPServer {
   public async handleProceedToPhase(
     args: ProceedToPhaseArgs
   ): Promise<ProceedToPhaseResult> {
-    if (!this.components) {
-      throw new Error('Server not initialized. Call initialize() first.');
-    }
-
-    const handler = this.components.toolRegistry.get('proceed_to_phase');
-    if (!handler) {
-      throw new Error('proceed_to_phase handler not found');
-    }
-
-    const result = await handler.handle(args, this.components.context);
-    if (!result.success) {
-      throw new Error(result.error || 'Handler execution failed');
-    }
-
-    return result.data as ProceedToPhaseResult;
+    return this.handleTool<ProceedToPhaseResult>('proceed_to_phase', args);
   }
 
   /**
@@ -193,21 +175,7 @@ export class ResponsibleVibeMCPServer {
   public async handleStartDevelopment(
     args: StartDevelopmentArgs
   ): Promise<StartDevelopmentResult> {
-    if (!this.components) {
-      throw new Error('Server not initialized. Call initialize() first.');
-    }
-
-    const handler = this.components.toolRegistry.get('start_development');
-    if (!handler) {
-      throw new Error('start_development handler not found');
-    }
-
-    const result = await handler.handle(args, this.components.context);
-    if (!result.success) {
-      throw new Error(result.error || 'Handler execution failed');
-    }
-
-    return result.data as StartDevelopmentResult;
+    return this.handleTool<StartDevelopmentResult>('start_development', args);
   }
 
   /**
@@ -216,21 +184,7 @@ export class ResponsibleVibeMCPServer {
   public async handleResumeWorkflow(
     args: ResumeWorkflowArgs
   ): Promise<ResumeWorkflowResult> {
-    if (!this.components) {
-      throw new Error('Server not initialized. Call initialize() first.');
-    }
-
-    const handler = this.components.toolRegistry.get('resume_workflow');
-    if (!handler) {
-      throw new Error('resume_workflow handler not found');
-    }
-
-    const result = await handler.handle(args, this.components.context);
-    if (!result.success) {
-      throw new Error(result.error || 'Handler execution failed');
-    }
-
-    return result.data as ResumeWorkflowResult;
+    return this.handleTool<ResumeWorkflowResult>('resume_workflow', args);
   }
 
   /**
@@ -239,21 +193,7 @@ export class ResponsibleVibeMCPServer {
   public async handleResetDevelopment(
     args: ResetDevelopmentArgs
   ): Promise<ResetDevelopmentResult> {
-    if (!this.components) {
-      throw new Error('Server not initialized. Call initialize() first.');
-    }
-
-    const handler = this.components.toolRegistry.get('reset_development');
-    if (!handler) {
-      throw new Error('reset_development handler not found');
-    }
-
-    const result = await handler.handle(args, this.components.context);
-    if (!result.success) {
-      throw new Error(result.error || 'Handler execution failed');
-    }
-
-    return result.data as ResetDevelopmentResult;
+    return this.handleTool<ResetDevelopmentResult>('reset_development', args);
   }
 
   /**
@@ -275,4 +215,3 @@ export * from './types.js';
 export * from './server-helpers.js';
 export * from './response-renderer.js';
 export * from './tool-handlers/index.js';
-export * from './resource-handlers/index.js';

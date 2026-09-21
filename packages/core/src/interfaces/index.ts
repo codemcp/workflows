@@ -7,4 +7,3 @@
 
 export * from './plan-manager.interface.js';
 export * from './instruction-generator.interface.js';
-export * from './task-backend-client.interface.js';

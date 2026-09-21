@@ -14,7 +14,6 @@ import { getPathBasename } from './path-validation-utils.js';
 import { capitalizePhase } from './string-utils.js';
 
 import type { YamlStateMachine } from './state-machine-types.js';
-import type { TaskBackendConfig } from './task-backend.js';
 import type {
   IPlanManager,
   PlanFileInfo,
@@ -33,18 +32,6 @@ export class PlanManager implements IPlanManager {
     logger.debug('State machine set for plan manager', {
       name: stateMachine.name,
       phases: Object.keys(stateMachine.states),
-    });
-  }
-
-  /**
-   * Set the task backend configuration
-   */
-  setTaskBackend(taskBackend: TaskBackendConfig): void {
-    // PlanManager only handles the markdown backend. BeadsPlanManager overrides
-    // this method to use the beads-specific task backend configuration.
-    logger.debug('Task backend set for plan manager (markdown mode)', {
-      backend: taskBackend.backend,
-      available: taskBackend.isAvailable,
     });
   }
 
@@ -329,9 +316,7 @@ export class PlanManager implements IPlanManager {
    * Generate workflow documentation URL for predefined workflows
    * Returns undefined for custom workflows
    */
-  private generateWorkflowDocumentationUrl(
-    workflowName: string
-  ): string | undefined {
+  generateWorkflowDocumentationUrl(workflowName: string): string | undefined {
     // Don't generate URL for custom workflows
     if (workflowName === 'custom') {
       return undefined;

@@ -333,10 +333,93 @@ describe('ProjectDocsManager', () => {
         $DESIGN_DOC: join(testProjectPath, '.vibe', 'docs', 'design.md'),
         $BRANCH_NAME: 'main',
         $VIBE_DIR: join(testProjectPath, '.vibe'),
-        $VIBE_ROLE: '', // Added for collaborative workflow support
         $DONE_DEFAULT:
           'Feature work is complete. Do NOT transition to any other state — this is a terminal state. If this is a GitHub repository: create a PR. Always: present the final result to the user.',
       });
+    });
+  });
+
+  describe('getConditionalVariableSubstitutions', () => {
+    it('should return Read instructions when all three doc files exist', async () => {
+      const docsPath = join(testProjectPath, '.vibe', 'docs');
+      await mkdir(docsPath, { recursive: true });
+      await writeFile(join(docsPath, 'architecture.md'), '# Architecture');
+      await writeFile(join(docsPath, 'requirements.md'), '# Requirements');
+      await writeFile(join(docsPath, 'design.md'), '# Design');
+
+      const subs = await projectDocsManager.getConditionalVariableSubstitutions(
+        testProjectPath,
+        'main'
+      );
+
+      const archPath = join(
+        testProjectPath,
+        '.vibe',
+        'docs',
+        'architecture.md'
+      );
+      const reqPath = join(testProjectPath, '.vibe', 'docs', 'requirements.md');
+      const designPath = join(testProjectPath, '.vibe', 'docs', 'design.md');
+
+      expect(subs.$ARCHITECTURE_DOC).toBe(
+        `Read \`${archPath}\` for the current architecture context.`
+      );
+      expect(subs.$REQUIREMENTS_DOC).toBe(
+        `Read \`${reqPath}\` for the current requirements context.`
+      );
+      expect(subs.$DESIGN_DOC).toBe(
+        `Read \`${designPath}\` for the current design context.`
+      );
+    });
+
+    it('should return empty string for all doc variables when no doc files exist', async () => {
+      const subs = await projectDocsManager.getConditionalVariableSubstitutions(
+        testProjectPath,
+        'main'
+      );
+
+      expect(subs.$ARCHITECTURE_DOC).toBe('');
+      expect(subs.$REQUIREMENTS_DOC).toBe('');
+      expect(subs.$DESIGN_DOC).toBe('');
+    });
+
+    it('should handle mixed case: architecture exists, requirements missing, design exists', async () => {
+      const docsPath = join(testProjectPath, '.vibe', 'docs');
+      await mkdir(docsPath, { recursive: true });
+      await writeFile(join(docsPath, 'architecture.md'), '# Architecture');
+      await writeFile(join(docsPath, 'design.md'), '# Design');
+
+      const subs = await projectDocsManager.getConditionalVariableSubstitutions(
+        testProjectPath,
+        'main'
+      );
+
+      const archPath = join(
+        testProjectPath,
+        '.vibe',
+        'docs',
+        'architecture.md'
+      );
+      const designPath = join(testProjectPath, '.vibe', 'docs', 'design.md');
+
+      expect(subs.$ARCHITECTURE_DOC).toBe(
+        `Read \`${archPath}\` for the current architecture context.`
+      );
+      expect(subs.$REQUIREMENTS_DOC).toBe('');
+      expect(subs.$DESIGN_DOC).toBe(
+        `Read \`${designPath}\` for the current design context.`
+      );
+    });
+
+    it('should include $VIBE_DIR, $BRANCH_NAME, $DONE_DEFAULT as plain values', async () => {
+      const subs = await projectDocsManager.getConditionalVariableSubstitutions(
+        testProjectPath,
+        'feature-branch'
+      );
+
+      expect(subs.$VIBE_DIR).toBe(join(testProjectPath, '.vibe'));
+      expect(subs.$BRANCH_NAME).toBe('feature-branch');
+      expect(subs.$DONE_DEFAULT).toContain('Feature work is complete');
     });
   });
 

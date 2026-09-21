@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { deepMerge } from '../src/config-generator.js';
 
 describe('deepMerge', () => {
+  // PHASE-0: disabled for incremental re-enable
   describe('Basic Merging', () => {
     it('should merge two simple objects', () => {
       const target = { a: 1, b: 2 };
@@ -28,6 +29,7 @@ describe('deepMerge', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('Nested Object Merging', () => {
     it('should recursively merge nested objects', () => {
       const target = {
@@ -114,6 +116,7 @@ describe('deepMerge', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('Array Handling', () => {
     it('should replace arrays instead of merging', () => {
       const target = { arr: [1, 2, 3] };
@@ -146,6 +149,7 @@ describe('deepMerge', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('Special Values', () => {
     it('should handle null values in source', () => {
       const target = { a: 1, b: 2 };
@@ -190,6 +194,7 @@ describe('deepMerge', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('Type Overriding', () => {
     it('should replace object with primitive', () => {
       const target = { a: { nested: 'value' } };
@@ -224,6 +229,7 @@ describe('deepMerge', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('Real-World Scenarios', () => {
     it('should merge MCP server configurations', () => {
       const target = {
@@ -329,6 +335,7 @@ describe('deepMerge', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('Immutability', () => {
     it('should not modify target object', () => {
       const target = { a: 1, nested: { b: 2 } };

@@ -4,20 +4,13 @@
 
 import { ConversationManager } from '@codemcp/workflows-core';
 import { TransitionEngine } from '@codemcp/workflows-core';
-import { IPlanManager } from '@codemcp/workflows-core';
-import { IInstructionGenerator } from '@codemcp/workflows-core';
+import { PlanManager } from '@codemcp/workflows-core';
+import { InstructionGenerator } from '@codemcp/workflows-core';
 import { WorkflowManager } from '@codemcp/workflows-core';
 import { InteractionLogger } from '@codemcp/workflows-core';
-import type { TaskBackendConfig, LoggerFactory } from '@codemcp/workflows-core';
-import type { IPluginRegistry } from './plugin-system/plugin-interfaces.js';
+import type { LoggerFactory, SessionMetadata } from '@codemcp/workflows-core';
 
-/**
- * Session metadata linking workflow state to an external session/context
- */
-export interface SessionMetadata {
-  referenceId: string;
-  createdAt: string;
-}
+export type { SessionMetadata } from '@codemcp/workflows-core';
 
 /**
  * Server context shared across all handlers
@@ -26,12 +19,11 @@ export interface SessionMetadata {
 export interface ServerContext {
   conversationManager: ConversationManager;
   transitionEngine: TransitionEngine;
-  planManager: IPlanManager;
-  instructionGenerator: IInstructionGenerator;
+  planManager: PlanManager;
+  instructionGenerator: InstructionGenerator;
   workflowManager: WorkflowManager;
   interactionLogger?: InteractionLogger;
   projectPath: string;
-  pluginRegistry?: IPluginRegistry;
   /** Logger factory for creating component loggers - if not provided, handlers use global createLogger */
   loggerFactory?: LoggerFactory;
   /** Session metadata linking workflow state to external session context */
@@ -91,17 +83,6 @@ export interface ToolHandler<TArgs = unknown, TResult = unknown> {
 }
 
 /**
- * Resource handler interface
- * All resource handlers must implement this interface
- */
-export interface ResourceHandler {
-  handle(
-    uri: URL,
-    context: ServerContext
-  ): Promise<HandlerResult<ResourceContent>>;
-}
-
-/**
  * Response renderer interface
  * Handles translation between domain results and MCP protocol responses
  */
@@ -124,15 +105,6 @@ export interface ToolRegistry {
 }
 
 /**
- * Resource registry interface
- * Manages registration and lookup of resource handlers
- */
-export interface ResourceRegistry {
-  register(pattern: string, handler: ResourceHandler): void;
-  resolve(uri: string): ResourceHandler | undefined;
-}
-
-/**
  * Server configuration options
  */
 export interface ServerConfig {
@@ -142,6 +114,4 @@ export interface ServerConfig {
   databasePath?: string;
   /** Enable interaction logging */
   enableLogging?: boolean;
-  /** Task backend configuration override (for testing) */
-  taskBackend?: TaskBackendConfig;
 }

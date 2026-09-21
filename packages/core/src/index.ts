@@ -19,12 +19,8 @@ export * from './conversation-manager.js';
 export * from './plan-manager.js';
 export * from './template-manager.js';
 export * from './project-docs-manager.js';
-export * from './file-detection-manager.js';
 export * from './config-manager.js';
 export * from './git-manager.js';
-export * from './task-backend.js';
-export * from './beads-integration.js';
-export * from './beads-state-manager.js';
 
 // Utilities and generators
 export * from './capability-hint.js';

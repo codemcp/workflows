@@ -19,7 +19,6 @@
     "packages/*/dist/**/*",
     "packages/*/package.json",
     "packages/*/resources/**/*",
-    "packages/docs/.vitepress/dist/**/*",
     "resources/**/*",
     "README.md",
     "LOGGING.md",
@@ -33,7 +32,8 @@
   },
   "scripts": {
     "build": "turbo run build && node scripts/generate-skill.js",
-    "build:visualizer": "cd packages/visualizer && pnpm install && pnpm run build",
+    "docs:build": "turbo run build --filter=@codemcp/workflows-docs",
+    "docs:dev": "turbo run dev --filter=@codemcp/workflows-docs",
     "pack:dist": "pnpm pack",
     "inspector": "npx @modelcontextprotocol/inspector",
     "dev": "turbo run dev --filter=@codemcp/workflows-core --filter=@codemcp/workflows-server",
@@ -73,7 +73,6 @@
     "tsx": "4.21.0",
     "turbo": "^2.7.6",
     "typescript": "^5.9.3",
-    "vitepress": "^1.6.4",
     "vitest": "4.0.18"
   },
   "lint-staged": {
@@ -81,8 +80,12 @@
       "prettier --write",
       "oxlint --fix"
     ],
-    "*.{json,md,yml,yaml,vue}": [
+    "*.{json,md,yml,yaml}": [
       "prettier --write"
+    ],
+    "*.vue": [
+      "prettier --write",
+      "oxlint --fix"
     ]
   },
   "keywords": [

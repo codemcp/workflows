@@ -25,21 +25,6 @@ export interface InteractionLog {
   resetAt?: string;
 }
 
-/**
- * Interface for conversation state
- */
-/**
- * Git commit configuration options
- */
-export interface GitCommitConfig {
-  enabled: boolean;
-  commitOnStep: boolean; // Commit after each step (before whats_next)
-  commitOnPhase: boolean; // Commit after each phase (before phase transition)
-  commitOnComplete: boolean; // Final commit at development end with rebase+squash
-  initialMessage: string; // Initial user message for commit context
-  startCommitHash?: string; // Hash of commit when development started (for squashing)
-}
-
 export interface ConversationState {
   conversationId: string;
   projectPath: string;

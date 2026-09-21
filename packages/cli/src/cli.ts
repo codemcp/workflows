@@ -6,13 +6,7 @@
 
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import {
-  existsSync,
-  mkdirSync,
-  writeFileSync,
-  readFileSync,
-  readdirSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { WorkflowManager } from '@codemcp/workflows-core';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -44,7 +38,6 @@ if (isLocal) {
   StateMachineLoader = coreModule.StateMachineLoader as new () => unknown;
 }
 
-import { startVisualizationTool } from './visualization-launcher.js';
 import { generateConfig, GeneratorRegistry } from './config-generator.js';
 import { generateSkill, SkillGeneratorRegistry } from './skill-generator.js';
 import {
@@ -145,29 +138,6 @@ async function parseCliArgs(): Promise<{ shouldExit: boolean }> {
     }
   }
 
-  // Handle crowd commands (renamed from agents)
-  if (command === 'crowd') {
-    const subcommand = args[1];
-    if (subcommand === 'list') {
-      handleCrowdList();
-      return { shouldExit: true };
-    } else if (subcommand === 'copy') {
-      const outputDir = parseFlag(args, '--output-dir');
-      handleCrowdCopy(outputDir);
-      return { shouldExit: true };
-    } else {
-      console.error('❌ Unknown crowd subcommand:', subcommand);
-      console.error('Available: crowd list, crowd copy [--output-dir DIR]');
-      process.exit(1);
-    }
-  }
-
-  // Handle visualize subcommand (also default with no args)
-  if (command === 'visualize' || args.length === 0) {
-    startVisualizationTool();
-    return { shouldExit: true };
-  }
-
   // Handle validate subcommand
   if (command === 'validate') {
     const workflowPath = args[1];
@@ -222,14 +192,6 @@ async function parseCliArgs(): Promise<{ shouldExit: boolean }> {
     console.warn('⚠️  DEPRECATED: --visualize/--viz is deprecated.');
     console.warn('   Use instead: visualize');
     console.warn('   Or simply run with no arguments (default behavior).');
-    return { shouldExit: true };
-  }
-
-  // Handle deprecated 'agents' subcommand (renamed to 'crowd')
-  if (command === 'agents') {
-    const subcommand = args[1] || '';
-    console.warn('⚠️  DEPRECATED: "agents" subcommand is renamed to "crowd".');
-    console.warn(`   Use instead: crowd ${subcommand}`);
     return { shouldExit: true };
   }
 
@@ -596,140 +558,6 @@ function handleSetupList(): void {
 }
 
 /**
- * Handle crowd list command (renamed from agents list)
- */
-function handleCrowdList(): void {
-  try {
-    // Find agents directory
-    const possibleAgentsPaths = [
-      join(__dirname, '..', '..', '..', 'resources', 'agents'),
-      join(__dirname, '..', '..', 'core', 'resources', 'agents'),
-    ];
-
-    let agentsDir: string | null = null;
-    for (const path of possibleAgentsPaths) {
-      if (existsSync(path)) {
-        agentsDir = path;
-        break;
-      }
-    }
-
-    if (!agentsDir) {
-      console.error('❌ Could not find agents directory');
-      process.exit(1);
-    }
-
-    const files = readdirSync(agentsDir).filter(
-      (f: string) => f.endsWith('.yaml') || f.endsWith('.yml')
-    );
-
-    if (files.length === 0) {
-      console.log('📋 No crowd agent configurations found');
-      return;
-    }
-
-    console.log('📋 Available crowd agent configurations:\n');
-    for (const file of files) {
-      const agentPath = join(agentsDir, file);
-      const content = readFileSync(agentPath, 'utf8');
-
-      // Extract name and displayName from YAML
-      const nameMatch = content.match(/^name:\s*(.+)$/m);
-      const displayNameMatch = content.match(/^displayName:\s*(.+)$/m);
-      const name = nameMatch
-        ? (nameMatch[1]?.trim() ?? file.replace(/\.ya?ml$/, ''))
-        : file.replace(/\.ya?ml$/, '');
-      const displayName = displayNameMatch?.[1]?.trim() ?? name;
-
-      console.log(`  ${name.padEnd(18)} ${displayName}`);
-    }
-
-    console.log(
-      '\n💡 Use "crowd copy" to copy these configurations to your project'
-    );
-  } catch (error) {
-    console.error('Error listing crowd agents:', error);
-    process.exit(1);
-  }
-}
-
-/**
- * Handle crowd copy command (renamed from agents copy)
- */
-function handleCrowdCopy(outputDir?: string): void {
-  try {
-    // Find source agents directory
-    const possibleAgentsPaths = [
-      join(__dirname, '..', '..', '..', 'resources', 'agents'),
-      join(__dirname, '..', '..', 'core', 'resources', 'agents'),
-    ];
-
-    let sourceAgentsDir: string | null = null;
-    for (const path of possibleAgentsPaths) {
-      if (existsSync(path)) {
-        sourceAgentsDir = path;
-        break;
-      }
-    }
-
-    if (!sourceAgentsDir) {
-      console.error('❌ Could not find source agents directory');
-      process.exit(1);
-    }
-
-    // Determine target directory
-    const targetDir = outputDir || join(process.cwd(), '.crowd', 'agents');
-
-    // Create target directory if it doesn't exist
-    if (!existsSync(targetDir)) {
-      mkdirSync(targetDir, { recursive: true });
-    }
-
-    // Read all agent files
-    const files = readdirSync(sourceAgentsDir).filter(
-      (f: string) => f.endsWith('.yaml') || f.endsWith('.yml')
-    );
-
-    if (files.length === 0) {
-      console.error('❌ No crowd agent configurations found to copy');
-      process.exit(1);
-    }
-
-    console.log(
-      `📋 Copying ${files.length} crowd agent configuration(s) to ${targetDir}\n`
-    );
-
-    // Copy each file
-    let copiedCount = 0;
-    let skippedCount = 0;
-
-    for (const file of files) {
-      const sourcePath = join(sourceAgentsDir, file);
-      const targetPath = join(targetDir, file);
-
-      if (existsSync(targetPath)) {
-        console.log(`⏭️  ${file} (already exists, skipping)`);
-        skippedCount++;
-      } else {
-        const content = readFileSync(sourcePath, 'utf8');
-        writeFileSync(targetPath, content);
-        console.log(`✅ ${file}`);
-        copiedCount++;
-      }
-    }
-
-    console.log(
-      `\n🎉 Copied ${copiedCount} crowd agent configuration(s)${skippedCount > 0 ? ` (skipped ${skippedCount} existing)` : ''}`
-    );
-    console.log(`\n💡 Crowd agent configurations are now in: ${targetDir}`);
-    console.log('💡 Configure these agents in your crowd-mcp setup');
-  } catch (error) {
-    console.error('Error copying crowd agents:', error);
-    process.exit(1);
-  }
-}
-
-/**
  * Show help information
  */
 function showHelp(): void {
@@ -742,7 +570,6 @@ Responsible Vibe CLI Tools
 
 USAGE:
   npx @codemcp/workflows [COMMAND]
-  npx @codemcp/workflows             Start the interactive visualizer (default)
 
 SETUP COMMANDS:
   setup <target>                Generate full agent configuration (default mode)
@@ -755,12 +582,7 @@ WORKFLOW COMMANDS:
   workflow list                 List available workflows
   workflow copy <source> <name> Copy a workflow with custom name
 
-CROWD AGENT COMMANDS:
-  crowd list                    List available crowd agent configurations
-  crowd copy [--output-dir DIR] Copy crowd agent configs to project
-
 UTILITY COMMANDS:
-  visualize                     Start the interactive workflow visualizer
   validate <workflow.yaml>      Validate a workflow file
   system-prompt                 Show the system prompt for LLM integration
 
@@ -772,7 +594,6 @@ AVAILABLE TARGETS:
 
 DESCRIPTION:
   CLI tools for the responsible-vibe development workflow system.
-  By default, starts the interactive workflow visualizer.
 
 MORE INFO:
   GitHub: https://github.com/codemcp/workflows

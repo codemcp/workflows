@@ -19,6 +19,7 @@ vi.unmock('fs/promises');
  * - Basic conversation management
  * - Error handling and graceful failures
  */
+
 describe('Core Functionality', () => {
   let client: DirectServerInterface;
   let cleanup: () => Promise<void>;

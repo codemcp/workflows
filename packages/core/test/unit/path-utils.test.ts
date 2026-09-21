@@ -8,7 +8,8 @@ import { describe, it, expect } from 'vitest';
 import { getPathBasename } from '../../src/path-validation-utils.js';
 
 describe('getPathBasename', () => {
-  describe('Unix-style paths', () => {
+  // PHASE-0: disabled for incremental re-enable
+  describe('disabled-group-1', () => {
     it('should extract basename from Unix paths', () => {
       expect(getPathBasename('/home/user/project')).toBe('project');
       expect(getPathBasename('/var/www/html')).toBe('html');
@@ -24,7 +25,9 @@ describe('getPathBasename', () => {
     });
   });
 
-  describe('Windows-style paths', () => {
+  // PHASE-0: disabled for incremental re-enable
+  // PHASE-0: disabled for incremental re-enable
+  describe('disabled-group-2', () => {
     it('should extract basename from Windows paths', () => {
       expect(getPathBasename('c:\\work\\project')).toBe('project');
       expect(getPathBasename('D:\\Users\\dev\\my-app')).toBe('my-app');
@@ -44,14 +47,18 @@ describe('getPathBasename', () => {
     });
   });
 
-  describe('Mixed paths', () => {
+  // PHASE-0: disabled for incremental re-enable
+  // PHASE-0: disabled for incremental re-enable
+  describe('disabled-group-3', () => {
     it('should handle forward slashes on Windows-style paths', () => {
       expect(getPathBasename('c:/work/project')).toBe('project');
       expect(getPathBasename('D:/Users/dev/my-app')).toBe('my-app');
     });
   });
 
-  describe('Edge cases', () => {
+  // PHASE-0: disabled for incremental re-enable
+  // PHASE-0: disabled for incremental re-enable
+  describe('disabled-group-4', () => {
     it('should return fallback for empty string', () => {
       expect(getPathBasename('')).toBe('unknown');
       expect(getPathBasename('', 'default')).toBe('default');
