@@ -29,7 +29,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mrsimpson/vibe-feature-mcp.git"
+    "url": "git+https://github.com/codemcp/workflows.git"
   },
   "scripts": {
     "build": "turbo run build && node scripts/generate-skill.js",
