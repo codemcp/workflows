@@ -8,7 +8,8 @@
     "ade-workflows": "packages/cli/dist/index.js"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "engines": {
     "node": ">=20.0.0",
@@ -59,6 +60,12 @@
   "devDependencies": {
     "@codemcp/workflows-core": "workspace:*",
     "@modelcontextprotocol/inspector": "0.19.0",
+    "@semantic-release/changelog": "7.0.0",
+    "@semantic-release/exec": "7.1.0",
+    "@semantic-release/git": "10.0.1",
+    "@semantic-release/github": "12.0.9",
+    "@semantic-release/npm": "13.1.5",
+    "semantic-release": "25.0.9",
     "@oxlint/linux-x64-gnu": "^1.43.0",
     "@tsconfig/node24": "24.0.4",
     "@tsconfig/strictest": "2.0.8",

@@ -1,0 +1,56 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "node -e \"const fs=require('fs');const v='${nextRelease.version}';['package.json','packages/mcp-server/package.json','packages/opencode-plugin/package.json','packages/opencode-tui-plugin/package.json'].forEach(f=>{const p=JSON.parse(fs.readFileSync(f,'utf8'));p.version=v;fs.writeFileSync(f,JSON.stringify(p,null,2)+'\\n');})\""
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "pkgRoot": ".",
+        "npmPublish": true
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "pkgRoot": "packages/mcp-server",
+        "npmPublish": true
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "pkgRoot": "packages/opencode-plugin",
+        "npmPublish": true
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "pkgRoot": "packages/opencode-tui-plugin",
+        "npmPublish": true
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "CHANGELOG.md",
+          "package.json",
+          "packages/mcp-server/package.json",
+          "packages/opencode-plugin/package.json",
+          "packages/opencode-tui-plugin/package.json"
+        ],
+        "message": "chore: release ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    ["@semantic-release/github", { "failComment": false, "failTitle": false }]
+  ]
+}

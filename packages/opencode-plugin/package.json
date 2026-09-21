@@ -10,7 +10,8 @@
     "resources/**/*"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "build": "tsup && pnpm copy-resources",
