@@ -371,11 +371,3 @@ states:
           Return to specification to better define the requirements.
           The fix doesn't fully address the original problem or reveals incomplete specification.
         transition_reason: 'Fix insufficient, need to revise specification'
-
-# Global transitions available from any state
-global_transitions:
-  - trigger: 'abandon_bugfix'
-    to: 'reproduce'
-    instructions: >
-      If you want to restart, you'll begin again with reproducing and understanding the bug.
-    transition_reason: 'Bug fix abandoned, restart from beginning'
