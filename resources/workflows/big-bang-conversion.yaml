@@ -26,12 +26,13 @@ metadata:
 states:
   conversion_planning:
     description: 'Plan the complete system replacement strategy and approach'
+    referred_docs:
+      - architecture
     default_instructions: >
       **STEP 1: Reference Architecture Documentation**
-      - Check if `$ARCHITECTURE_DOC` exists
-      - Review current system understanding from documentation
-      - If unavailable, search for architecture docs (README.md, docs/, ARCHITECTURE.md)
-      - Enhance `$ARCHITECTURE_DOC` with your findings
+      Review the existing architecture documentation for current system understanding.
+      If unavailable, search for architecture docs (README.md, docs/, ARCHITECTURE.md)
+      and update the architecture document with your findings.
 
       **STEP 2: Analyze Current System**
       - Examine codebase to understand system architecture
@@ -73,14 +74,15 @@ states:
 
   target_architecture_design:
     description: 'Design the architecture for the new system in target technology'
+    referred_docs:
+      - architecture
+      - design
     default_instructions: >
       **STEP 1: Reference Architecture Documentation**
-      - If `$ARCHITECTURE_DOC` exists: Review current system understanding from it
-      - Otherwise: Elaborate architectural options and present them to the user
+      Review the current system understanding from the established architecture.
 
       **STEP 2: Create/Update Design Documentation**
-      - If `$DESIGN_DOC` exists: Reference it for existing design decisions
-      - Otherwise: Document design decisions in the plan file
+      Reference the existing design decisions.
 
       **STEP 3: Analyze Current Architecture**
       - Examine existing system architecture and patterns
@@ -188,11 +190,12 @@ states:
 
   implementation_strategy:
     description: 'Plan detailed implementation approach for the new system'
+    referred_docs:
+      - design
     default_instructions: >
       **STEP 1: Reference Design Documentation**
-      - If `$DESIGN_DOC` exists: Check it for target architecture and design decisions
-      - Otherwise: Elaborate design options and present them to the user
-      - Review implementation constraints and requirements
+      Review the established design for target architecture and design decisions.
+      Review implementation constraints and requirements.
 
       **STEP 2: Break Down Implementation**
       - Break implementation into manageable phases
@@ -251,10 +254,11 @@ states:
 
   parallel_implementation:
     description: 'Build new system while maintaining test compatibility and validation'
+    referred_docs:
+      - design
     default_instructions: >
       **STEP 1: Reference Design Documentation**
-      - If `$DESIGN_DOC` exists: Check it for implementation guidance and architectural decisions
-      - Otherwise: Elaborate implementation options and present them to the user
+      Review the existing design for implementation guidance and architectural decisions.
 
       **STEP 2: Build System Components**
       - Build new system components according to implementation strategy

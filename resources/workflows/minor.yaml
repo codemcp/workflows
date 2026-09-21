@@ -26,6 +26,9 @@ metadata:
 states:
   explore:
     description: 'Analysis and design phase - understanding and planning without implementation'
+    referred_docs:
+      - requirements
+      - design
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -35,12 +38,10 @@ states:
       Consider the scope and impact of the change.
 
       **STEP 1: Analyze Requirements**
-      - If `$REQUIREMENTS_DOC` exists: Use it to understand the required changes
-      - Otherwise: Document requirements in your task management system
+      Review the required changes.
 
       **STEP 2: Review Design Approach**
-      - If `$DESIGN_DOC` exists: Respect the design approach documented in `$DESIGN_DOC`
-      - Otherwise: Design your approach based on the problem analysis
+      Respect the existing application design.
 
       **STEP 3: Document Decisions**
       - Document your analysis and design decisions
@@ -53,16 +54,17 @@ states:
 
   implement:
     description: 'Combined implementation phase - code, test, and commit'
+    referred_docs:
+      - requirements
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: >
       Write clean, focused code for the minor enhancement, test your changes, and prepare for commit.
 
       **STEP 1: Review Design and Requirements**
-      - If `$DESIGN_DOC` exists: Follow your design from `$DESIGN_DOC`
-      - Otherwise: Elaborate design options and present them to the user
-      - If `$REQUIREMENTS_DOC` exists: Ensure the relevant requirements from `$REQUIREMENTS_DOC` are met
-      - Otherwise: Ensure existing requirements are met based on your task context
+      Adhere to the existing application design.
+      Ensure all relevant requirements are met.
 
       **STEP 2: Implement Changes**
       - Write clean, focused code for the minor enhancement
@@ -91,6 +93,9 @@ states:
 
   finalize:
     description: 'Code cleanup and documentation finalization'
+    referred_docs:
+      - requirements
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: >
@@ -117,8 +122,8 @@ states:
       Review and update documentation to reflect final implementation:
 
       - **Update Long-Term Memory Documents**: Based on what was actually implemented:
-        - If `$REQUIREMENTS_DOC` exists: Update `$REQUIREMENTS_DOC` if requirements changed during development
-        - If `$DESIGN_DOC` exists: Update `$DESIGN_DOC` if design details were refined or changed
+        - Update the requirements document if requirements changed during development
+        - Update the design document if design details were refined or changed
       - **Compare Against Implementation**: Review documentation against actual implemented functionality
       - **Update Changed Sections**: Only modify documentation sections that have functional changes
       - **Remove Development Progress**: Remove references to development iterations, progress notes, and temporary decisions

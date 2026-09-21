@@ -39,7 +39,7 @@ states:
       - How will you measure product success?
       - Have you validated this need with potential users?
 
-      Don't discuss technical implementation yet - focus purely on understanding the problem space and requirements. Document all findings in `$REQUIREMENTS_DOC` and create tasks as needed.
+      Don't discuss technical implementation yet - focus purely on understanding the problem space and requirements. Document all findings and create tasks as needed.
     transitions:
       - trigger: 'ideation_complete'
         to: 'architecture'
@@ -53,19 +53,21 @@ states:
   architecture:
     description: 'Tech stack selection and architecture design phase'
     required_capability: 'thinking'
+    referred_docs:
+      - requirements
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
       - '**/*.adoc'
     default_instructions: |
-      Design the technical solution based on requirements from `$REQUIREMENTS_DOC`.
+      Design the technical solution based on the established requirements.
 
       - Ask about the user's technical preferences and experience
       - Challenge their choices by presenting alternatives
       - Evaluate pros and cons of different tech stacks, frameworks, and architectural patterns
       - Consider non-functional requirements like scalability, performance, maintainability, and deployment
 
-      Create a comprehensive architecture document in `$ARCHITECTURE_DOC`. Don't start coding yet - focus on technical design decisions.
+      Create a comprehensive architecture document. Don't start coding yet - focus on technical design decisions.
     transitions:
       - trigger: 'need_more_ideation'
         to: 'ideation'
@@ -92,12 +94,15 @@ states:
 
   plan:
     description: 'Implementation planning phase based on established architecture'
+    referred_docs:
+      - requirements
+      - architecture
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
       - '**/*.adoc'
     default_instructions: |
-      Create a detailed implementation strategy based on your completed architecture in `$ARCHITECTURE_DOC` and requirements from `$REQUIREMENTS_DOC`.
+      Create a detailed implementation strategy based on your completed architecture and requirements.
 
       **STEP 1: Break Down Work**
       - Break down the work into specific, actionable tasks
@@ -106,7 +111,7 @@ states:
 
       **STEP 2: Assess Risks**
       - Consider potential risks and mitigation strategies
-      - Document the detailed design in `$DESIGN_DOC`
+      - Document the detailed design
 
       **STEP 3: Create Tasks**
       - Create tasks thoroughly with clear milestones for implementation work
@@ -133,12 +138,16 @@ states:
   code:
     description: 'Implementation phase following the established plan and architecture'
     required_capability: 'coding'
+    referred_docs:
+      - requirements
+      - architecture
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: |
-      Build the solution following your plan and detailed design from `$DESIGN_DOC` using the architecture from `$ARCHITECTURE_DOC`.
+      Build the solution following your plan and detailed design using the established architecture.
 
-      - Ensure all requirements from `$REQUIREMENTS_DOC` you are currently working on are met
+      - Ensure all requirements you are currently working on are met
       - Write clean, well-structured code with proper error handling
       - Prevent regression by building, linting, and executing existing tests
       - Stay flexible and adapt the plan as you learn more during implementation, but maintain alignment with your architecture decisions
@@ -168,6 +177,10 @@ states:
 
   finalize:
     description: 'Code cleanup and documentation finalization'
+    referred_docs:
+      - requirements
+      - architecture
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: |
@@ -186,10 +199,10 @@ states:
       **STEP 2: Documentation Review**
       Update documentation to reflect final implementation:
 
-      1. Update long-term memory documents based on what was actually implemented:
-         - Update `$REQUIREMENTS_DOC` if requirements changed during development
-         - Update `$ARCHITECTURE_DOC` if architectural decisions evolved
-         - Update `$DESIGN_DOC` if design details were refined or changed
+       1. Update long-term memory documents based on what was actually implemented:
+         - Update the requirements document if requirements changed during development
+         - Update the architecture document if architectural decisions evolved
+         - Update the design document if design details were refined or changed
       2. Review documentation against actual implemented functionality
       3. Only modify documentation sections that have functional changes
       4. Remove references to development iterations, progress notes, and temporary decisions

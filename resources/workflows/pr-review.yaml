@@ -58,6 +58,8 @@ states:
   review_architecture:
     description: 'Review whether the change is in the right place and respects existing structure'
     required_capability: 'thinking'
+    referred_docs:
+      - architecture
     default_instructions: |
       Evaluate the structural decisions in the change against the confirmed intent:
 
@@ -65,7 +67,7 @@ states:
       - Does it respect the existing boundaries and separation of responsibilities?
       - Does it introduce the right abstraction, or does it over- or under-abstract?
       - Does it follow the patterns already established in the codebase?
-      - If an architecture document exists ($ARCHITECTURE_DOC), verify the change is consistent with it.
+      - Verify the change is consistent with the established architecture.
 
       For each finding, classify it immediately:
       - **Bug**: incorrect behavior or data loss
@@ -95,6 +97,8 @@ states:
   review_correctness:
     description: 'Review whether the logic correctly achieves the confirmed intent'
     required_capability: 'thinking'
+    referred_docs:
+      - design
     default_instructions: |
       Evaluate the logic of the change against the confirmed intent:
 
@@ -103,7 +107,7 @@ states:
       - Are things that must stay consistent changed together? Can partial updates occur?
       - Are error paths handled, or silently swallowed?
       - Do resources that grow over time have a defined cleanup strategy?
-      - If a design document or specification exists ($DESIGN_DOC), verify the change is consistent with it.
+      - Verify the change is consistent with the existing design.
 
       For each finding, classify it immediately (same scale as review_architecture).
 

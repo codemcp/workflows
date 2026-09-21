@@ -27,6 +27,8 @@ states:
   explore:
     description: 'Research and exploration phase - understanding the problem space'
     required_capability: 'research'
+    referred_docs:
+      - requirements
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -37,8 +39,7 @@ states:
 
       - If uncertain about conventions or rules, ask the user about them
       - Read relevant files and documentation
-      - If `$REQUIREMENTS_DOC` exists: Understand and document requirements there
-      - Otherwise: Document requirements in your task management system
+      - Understand and document requirements
 
       Focus on understanding without writing code yet. Document your findings and create tasks as needed.
     transitions:
@@ -50,6 +51,10 @@ states:
   plan:
     description: 'Planning phase - creating a detailed implementation strategy'
     required_capability: 'thinking'
+    referred_docs:
+      - requirements
+      - architecture
+      - design
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -57,16 +62,11 @@ states:
     default_instructions: |
       Create a detailed implementation strategy based on your exploration:
 
-      - If `$REQUIREMENTS_DOC` exists: Base your strategy on requirements from it
-      - Otherwise: Use existing task context
-
+      Base your strategy on requirements.
       Break down the work into specific, actionable tasks. Consider edge cases, dependencies, and potential challenges.
 
-      - If architectural changes needed and `$ARCHITECTURE_DOC` exists: Document in `$ARCHITECTURE_DOC`
-      - Otherwise: Create tasks to track architectural decisions
-
-      - If `$DESIGN_DOC` exists: Adhere to the design in it
-      - Otherwise: Elaborate design options and present them to the user
+      Follow the established architecture if relevant.
+      Adhere to the existing application design.
 
       Document the planning work thoroughly and create implementation tasks as part of the code phase as needed.
     transitions:
@@ -95,17 +95,18 @@ states:
   code:
     description: 'Implementation phase - writing and building the solution'
     required_capability: 'coding'
+    referred_docs:
+      - requirements
+      - architecture
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: |
       Follow your plan to build the solution:
 
-      - If `$DESIGN_DOC` exists: Follow the design from it
-      - Otherwise: Elaborate design options and present them to the user
-      - If `$ARCHITECTURE_DOC` exists: Build according to the architecture from it
-      - Otherwise: Elaborate architectural options and present them to the user
-      - If `$REQUIREMENTS_DOC` exists: Ensure requirements from it are met
-      - Otherwise: Ensure existing requirements are met based on your task context
+      Adhere to the existing application design.
+      Follow the established architecture.
+      Ensure all requirements are met.
 
       Write clean, well-structured code with proper error handling. Prevent regression by building, linting, and executing existing tests. Stay flexible and adapt the plan as you learn more during implementation. Update task progress and create new tasks as needed.
     transitions:
@@ -138,6 +139,10 @@ states:
 
   commit:
     description: 'Code cleanup and documentation finalization'
+    referred_docs:
+      - requirements
+      - architecture
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: >
@@ -165,10 +170,10 @@ states:
 
       Review and update documentation to reflect final implementation:
 
-      1. **Update Long-Term Memory Documents**: Based on what was actually implemented:
-         - If `$REQUIREMENTS_DOC` exists: Update it if requirements changed during development
-         - If `$ARCHITECTURE_DOC` exists: Update it if architectural impacts were identified
-         - If `$DESIGN_DOC` exists: Update it if design details were refined or changed
+       1. **Update Long-Term Memory Documents**: Based on what was actually implemented:
+         - Update the requirements document if requirements changed during development
+         - Update the architecture document if architectural impacts were identified
+         - Update the design document if design details were refined or changed
          - Otherwise: Document any changes in the plan file
       2. **Compare Against Implementation**: Review documentation against actual implemented functionality
       3. **Update Changed Sections**: Only modify documentation sections that have functional changes
