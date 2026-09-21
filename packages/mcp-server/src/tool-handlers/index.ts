@@ -15,6 +15,7 @@ import { ResetDevelopmentHandler } from './reset-development.js';
 
 import { ListWorkflowsHandler } from './list-workflows.js';
 import { SetupProjectDocsHandler } from './setup-project-docs.js';
+import { LoadWorkflowsHandler } from './load-workflows.js';
 import { ToolHandler, ToolRegistry } from '../types.js';
 
 const logger = createLogger('ToolRegistry');
@@ -57,6 +58,7 @@ export function createToolRegistry(): ToolRegistry {
   registry.register('reset_development', new ResetDevelopmentHandler());
   registry.register('list_workflows', new ListWorkflowsHandler());
   registry.register('setup_project_docs', new SetupProjectDocsHandler());
+  registry.register('load_workflows', new LoadWorkflowsHandler());
 
   logger.info('Tool registry created with handlers', {
     handlers: registry.list(),
@@ -74,6 +76,7 @@ export { ResumeWorkflowHandler } from './resume-workflow.js';
 export { ResetDevelopmentHandler } from './reset-development.js';
 export { ListWorkflowsHandler } from './list-workflows.js';
 export { SetupProjectDocsHandler } from './setup-project-docs.js';
+export { LoadWorkflowsHandler } from './load-workflows.js';
 export {
   BaseToolHandler,
   ConversationRequiredToolHandler,
