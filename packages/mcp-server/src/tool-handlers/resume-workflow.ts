@@ -9,6 +9,7 @@
 import { ConversationRequiredToolHandler } from './base-tool-handler.js';
 import { generateSystemPrompt } from '@codemcp/workflows-core';
 import type { YamlStateMachine, YamlState } from '@codemcp/workflows-core';
+import type { ConversationContext } from '@codemcp/workflows-core';
 import { ServerContext } from '../types.js';
 
 /**
@@ -16,6 +17,11 @@ import { ServerContext } from '../types.js';
  */
 export interface ResumeWorkflowArgs {
   include_system_prompt?: boolean;
+  /**
+   * Optional project path override. When provided, overrides the server's
+   * default project path for this call.
+   */
+  project_path?: string;
 }
 
 /**
@@ -29,22 +35,6 @@ interface PlanAnalysis {
   recent_updates: string[];
   active_tasks?: string[];
   completed_tasks?: string[];
-}
-
-/**
- * Conversation context for resume workflow
- */
-interface ConversationContext {
-  conversationId: string;
-  currentPhase: string;
-  projectPath: string;
-  workflowName: string;
-  gitBranch: string;
-  planFilePath: string;
-  current_phase?: string;
-  workflow_name?: string;
-  project_context?: string;
-  recent_activity?: string[];
 }
 
 /**
@@ -88,6 +78,12 @@ export class ResumeWorkflowHandler extends ConversationRequiredToolHandler<
   ResumeWorkflowArgs,
   ResumeWorkflowResult
 > {
+  protected override getProjectPathOverride(
+    args: ResumeWorkflowArgs
+  ): string | undefined {
+    return args.project_path;
+  }
+
   protected async executeWithConversation(
     args: ResumeWorkflowArgs,
     context: ServerContext,

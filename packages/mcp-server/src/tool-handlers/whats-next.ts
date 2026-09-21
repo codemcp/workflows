@@ -9,8 +9,8 @@ import { ConversationRequiredToolHandler } from './base-tool-handler.js';
 import {
   ConfigManager,
   type ConversationContext,
+  type InstructionContext,
 } from '@codemcp/workflows-core';
-// TaskBackendManager and BeadsIntegration functionality now handled by injected components
 import { ServerContext } from '../types.js';
 
 /**
@@ -24,6 +24,17 @@ export interface WhatsNextArgs {
     role: 'user' | 'assistant';
     content: string;
   }>;
+  /**
+   * Optional override for the instruction source. Defaults to 'whats_next'.
+   * Pass 'plugin_hook' when calling from a plugin context to suppress
+   * the whats_next() call reminder from generated instructions.
+   */
+  _instructionSource?: InstructionContext['instructionSource'];
+  /**
+   * Optional project path override. When provided, overrides the server's
+   * default project path for this call.
+   */
+  project_path?: string;
 }
 
 /**
@@ -47,20 +58,10 @@ export class WhatsNextHandler extends ConversationRequiredToolHandler<
   WhatsNextArgs,
   WhatsNextResult
 > {
-  protected override async executeHandler(
-    args: WhatsNextArgs,
-    context: ServerContext
-  ): Promise<WhatsNextResult> {
-    let conversationContext;
-
-    try {
-      conversationContext = await this.getConversationContext(context);
-    } catch (_error) {
-      // Use standard CONVERSATION_NOT_FOUND error
-      throw new Error('CONVERSATION_NOT_FOUND');
-    }
-
-    return this.executeWithConversation(args, context, conversationContext);
+  protected override getProjectPathOverride(
+    args: WhatsNextArgs
+  ): string | undefined {
+    return args.project_path;
   }
 
   protected async executeWithConversation(
@@ -73,6 +74,7 @@ export class WhatsNextHandler extends ConversationRequiredToolHandler<
       user_input = '',
       conversation_summary = '',
       recent_messages = [],
+      _instructionSource,
     } = args;
 
     const conversationId = conversationContext.conversationId;
@@ -113,19 +115,10 @@ export class WhatsNextHandler extends ConversationRequiredToolHandler<
 
     // Update conversation state if phase changed
     if (transitionResult.newPhase !== currentPhase) {
-      const shouldUpdateState = await this.shouldUpdateConversationState(
-        currentPhase,
-        transitionResult.newPhase,
-        conversationContext,
-        context
+      await context.conversationManager.updateConversationState(
+        conversationId,
+        { currentPhase: transitionResult.newPhase }
       );
-
-      if (shouldUpdateState) {
-        await context.conversationManager.updateConversationState(
-          conversationId,
-          { currentPhase: transitionResult.newPhase }
-        );
-      }
 
       // If this was a first-call auto-transition, regenerate the plan file
       if (
@@ -156,11 +149,6 @@ export class WhatsNextHandler extends ConversationRequiredToolHandler<
       });
     }
 
-    // Check if plan file exists
-    const planInfo = await context.planManager.getPlanFileInfo(
-      conversationContext.planFilePath
-    );
-
     // Get allowed file patterns for the new phase
     const stateMachine = context.workflowManager.loadWorkflowForProject(
       conversationContext.projectPath,
@@ -178,6 +166,8 @@ export class WhatsNextHandler extends ConversationRequiredToolHandler<
       ? projectConfig?.capability_models?.[requiredCapability]
       : undefined;
 
+    const referredDocs = phaseState?.referred_docs;
+
     // Generate enhanced instructions (includes file restriction info)
     const instructions =
       await context.instructionGenerator.generateInstructions(
@@ -190,48 +180,18 @@ export class WhatsNextHandler extends ConversationRequiredToolHandler<
           },
           transitionReason: transitionResult.transitionReason,
           isModeled: transitionResult.isModeled,
-          instructionSource: 'whats_next',
+          instructionSource: _instructionSource ?? 'whats_next',
           allowedFilePatterns,
           requiredCapability,
           capabilityConfig,
+          referredDocs,
         }
       );
-
-    // Execute afterInstructionsGenerated hook for plugin enrichment
-    let finalInstructions = instructions.instructions;
-    if (context.pluginRegistry?.hasHook('afterInstructionsGenerated')) {
-      const hookContext = {
-        conversationId,
-        planFilePath: conversationContext.planFilePath,
-        currentPhase: transitionResult.newPhase,
-        workflow: conversationContext.workflowName,
-        projectPath: conversationContext.projectPath,
-        gitBranch: conversationContext.gitBranch,
-        planFileExists: planInfo.exists,
-      };
-      const enriched = await context.pluginRegistry.executeHook(
-        'afterInstructionsGenerated',
-        hookContext,
-        {
-          instructions: instructions.instructions,
-          planFilePath: conversationContext.planFilePath,
-          phase: transitionResult.newPhase,
-          instructionSource: 'whats_next',
-        }
-      );
-      if (
-        enriched &&
-        typeof enriched === 'object' &&
-        'instructions' in enriched
-      ) {
-        finalInstructions = (enriched as { instructions: string }).instructions;
-      }
-    }
 
     // Prepare response
     const response: WhatsNextResult = {
       phase: transitionResult.newPhase,
-      instructions: finalInstructions,
+      instructions: instructions.instructions,
       plan_file_path: conversationContext.planFilePath,
       allowed_file_patterns: allowedFilePatterns,
     };
@@ -247,52 +207,5 @@ export class WhatsNextHandler extends ConversationRequiredToolHandler<
     );
 
     return response;
-  }
-
-  /**
-   * Determines whether conversation state should be updated for a phase transition
-   */
-  private async shouldUpdateConversationState(
-    currentPhase: string,
-    newPhase: string,
-    conversationContext: ConversationContext,
-    context: ServerContext
-  ): Promise<boolean> {
-    if (!conversationContext.requireReviewsBeforePhaseTransition) {
-      return true;
-    }
-
-    const stateMachine = context.workflowManager.loadWorkflowForProject(
-      conversationContext.projectPath,
-      conversationContext.workflowName
-    );
-
-    const currentState = stateMachine.states[currentPhase];
-    if (!currentState) {
-      return true;
-    }
-
-    const transition = currentState.transitions.find(t => t.to === newPhase);
-    if (!transition) {
-      return true;
-    }
-
-    const hasReviewPerspectives =
-      transition.review_perspectives &&
-      transition.review_perspectives.length > 0;
-
-    if (hasReviewPerspectives) {
-      this.logger.debug(
-        'Preventing state update - review required for transition',
-        {
-          from: currentPhase,
-          to: newPhase,
-          reviewPerspectives: transition.review_perspectives?.length || 0,
-        }
-      );
-      return false;
-    }
-
-    return true;
   }
 }
