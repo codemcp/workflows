@@ -1,3 +1,10 @@
+## [6.24.1](https://github.com/codemcp/workflows/compare/v6.24.0...v6.24.1) (2026-09-21)
+
+### Bug Fixes
+
+- run release job on workflow_dispatch too ([1c96805](https://github.com/codemcp/workflows/commit/1c9680558bb46641ad20a58d4a9a5fd5e5babc37))
+- trigger first release with semantic-release ([1ec6aeb](https://github.com/codemcp/workflows/commit/1ec6aeb7f4aa61e90a2c8a2a8aec0bde0c95d8b6))
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
