@@ -44,6 +44,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/codemcp/workflows"
+    "url": "git+https://github.com/codemcp/workflows.git",
+    "directory": "packages/opencode-tui-plugin"
   }
 }

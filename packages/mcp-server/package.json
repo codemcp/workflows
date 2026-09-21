@@ -13,7 +13,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/codemcp/workflows.git"
+    "url": "git+https://github.com/codemcp/workflows.git",
+    "directory": "packages/mcp-server"
   },
   "files": [
     "dist/**/*",
