@@ -73,10 +73,13 @@ export class ConversationManager {
    * Detects the current project path and git branch, then retrieves an existing
    * conversation state for this context. Does NOT create a new conversation.
    *
+   * @param projectPathOverride - Optional project path override (takes precedence over server default)
    * @throws Error if no conversation exists for this context
    */
-  async getConversationContext(): Promise<ConversationContext> {
-    const projectPath = this.getProjectPath();
+  async getConversationContext(
+    projectPathOverride?: string
+  ): Promise<ConversationContext> {
+    const projectPath = projectPathOverride || this.getProjectPath();
     const gitBranch = this.getGitBranch(projectPath);
 
     logger.debug('Getting conversation context', { projectPath, gitBranch });
@@ -408,7 +411,8 @@ export class ConversationManager {
    */
   async resetConversation(
     confirm: boolean,
-    reason?: string
+    reason?: string,
+    projectPathOverride?: string
   ): Promise<{
     success: boolean;
     resetItems: string[];
@@ -420,7 +424,7 @@ export class ConversationManager {
     // Validate reset request
     this.validateResetRequest(confirm);
 
-    const context = await this.getConversationContext();
+    const context = await this.getConversationContext(projectPathOverride);
     const resetItems: string[] = [];
 
     try {

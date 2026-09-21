@@ -17,6 +17,11 @@ import { ServerContext } from '../types.js';
  */
 export interface ConductReviewArgs {
   target_phase: string;
+  /**
+   * Optional project path override. When provided, overrides the server's
+   * default project path for this call.
+   */
+  project_path?: string;
 }
 
 /**
@@ -37,6 +42,12 @@ export class ConductReviewHandler extends ConversationRequiredToolHandler<
   ConductReviewArgs,
   ConductReviewResult
 > {
+  protected override getProjectPathOverride(
+    args: ConductReviewArgs
+  ): string | undefined {
+    return args.project_path;
+  }
+
   protected async executeWithConversation(
     args: ConductReviewArgs,
     context: ServerContext,
@@ -75,23 +86,12 @@ export class ConductReviewHandler extends ConversationRequiredToolHandler<
       );
     }
 
-    // Check if MCP environment supports sampling (LLM interaction tools)
-    const hasSamplingCapability = await this.checkSamplingCapability(context);
-
-    if (hasSamplingCapability) {
-      // Conduct automated review using available LLM tools
-      return await this.conductAutomatedReview(
-        transition.review_perspectives,
-        conversationContext
-      );
-    } else {
-      // Generate instructions for LLM to conduct review
-      return await this.generateReviewInstructions(
-        transition.review_perspectives,
-        currentPhase,
-        target_phase
-      );
-    }
+    // Generate instructions for LLM to conduct review
+    return await this.generateReviewInstructions(
+      transition.review_perspectives,
+      currentPhase,
+      target_phase
+    );
   }
 
   /**
@@ -123,32 +123,6 @@ export class ConductReviewHandler extends ConversationRequiredToolHandler<
     }
 
     return transition;
-  }
-
-  /**
-   * Check if MCP environment supports sampling capabilities
-   */
-  private async checkSamplingCapability(
-    _context: ServerContext
-  ): Promise<boolean> {
-    // For now, assume non-sampling (most common case)
-    // In the future, this could check for specific LLM interaction tools
-    return false;
-  }
-
-  /**
-   * Conduct automated review using LLM tools (when sampling is available)
-   */
-  private async conductAutomatedReview(
-    perspectives: Array<{ perspective: string; prompt: string }>,
-    conversationContext: ConversationContext
-  ): Promise<ConductReviewResult> {
-    // Falls back to guided instructions until automated review is implemented
-    return this.generateReviewInstructions(
-      perspectives,
-      conversationContext.currentPhase,
-      'target'
-    );
   }
 
   /**

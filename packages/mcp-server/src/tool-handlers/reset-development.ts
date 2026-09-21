@@ -16,6 +16,11 @@ import { ServerContext } from '../types.js';
 export interface ResetDevelopmentArgs {
   confirm: boolean;
   reason?: string;
+  /**
+   * Optional project path override. When provided, overrides the server's
+   * default project path for this call.
+   */
+  project_path?: string;
 }
 
 /**
@@ -42,10 +47,16 @@ export class ResetDevelopmentHandler extends BaseToolHandler<
     validateRequiredArgs(args, ['confirm']);
 
     const { confirm, reason } = args;
+    const projectPathOverride = args.project_path
+      ? args.project_path.endsWith('/.vibe')
+        ? args.project_path.slice(0, -6)
+        : args.project_path
+      : undefined;
 
     this.logger.debug('Processing reset_development request', {
       confirm,
       hasReason: !!reason,
+      projectPathOverride,
     });
 
     // Validate parameters
@@ -60,12 +71,16 @@ export class ResetDevelopmentHandler extends BaseToolHandler<
     }
 
     // Ensure state machine is loaded for current project
-    this.ensureStateMachineForProject(context, context.projectPath);
+    this.ensureStateMachineForProject(
+      context,
+      projectPathOverride ?? context.projectPath
+    );
 
     // Perform the reset
     const resetResult = await context.conversationManager.resetConversation(
       confirm,
-      reason
+      reason,
+      projectPathOverride
     );
 
     // Transform to match our interface

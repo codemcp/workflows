@@ -75,9 +75,14 @@ export abstract class BaseToolHandler<
   /**
    * Helper method to get conversation context with proper error handling
    */
-  protected async getConversationContext(context: ServerContext) {
+  protected async getConversationContext(
+    context: ServerContext,
+    projectPathOverride?: string
+  ) {
     try {
-      return await context.conversationManager.getConversationContext();
+      return await context.conversationManager.getConversationContext(
+        projectPathOverride
+      );
     } catch (error) {
       this.logger.info('Conversation not found', { error });
       throw new Error('CONVERSATION_NOT_FOUND');
@@ -97,7 +102,6 @@ export abstract class BaseToolHandler<
       workflowName
     );
     context.planManager.setStateMachine(stateMachine);
-    context.instructionGenerator.setStateMachine(stateMachine);
   }
 
   /**
@@ -131,6 +135,14 @@ export abstract class ConversationRequiredToolHandler<
   TArgs = unknown,
   TResult = unknown,
 > extends BaseToolHandler<TArgs, TResult> {
+  /**
+   * Override in subclasses that accept a project_path argument to return it.
+   * Defaults to undefined (uses server default project path).
+   */
+  protected getProjectPathOverride(_args: TArgs): string | undefined {
+    return undefined;
+  }
+
   protected async executeHandler(
     args: TArgs,
     context: ServerContext
@@ -138,7 +150,10 @@ export abstract class ConversationRequiredToolHandler<
     let conversationContext;
 
     try {
-      conversationContext = await this.getConversationContext(context);
+      conversationContext = await this.getConversationContext(
+        context,
+        this.getProjectPathOverride(args)
+      );
     } catch (_error) {
       // Return a special error result that the response renderer can handle
       throw new Error('CONVERSATION_NOT_FOUND');
