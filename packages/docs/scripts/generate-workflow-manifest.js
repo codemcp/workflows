@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readdir, writeFile } from 'node:fs/promises';
+import { readdir, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,6 +15,10 @@ async function generateWorkflowManifest() {
     const workflows = files
       .filter(file => file.endsWith('.yaml'))
       .map(file => file.replace('.yaml', ''));
+
+    // Ensure the .vitepress directory exists
+    const vitepressDir = join(__dirname, '../.vitepress');
+    await mkdir(vitepressDir, { recursive: true });
 
     const manifestContent = `// Auto-generated workflow manifest
 export const AVAILABLE_WORKFLOWS = ${JSON.stringify(workflows, null, 2)};

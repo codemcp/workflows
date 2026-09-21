@@ -14,6 +14,7 @@ export default defineConfig({
     nav: [
       { text: 'Documentation', link: '/' },
       { text: 'Workflows', link: '/workflows' },
+      { text: 'Visualizer', link: '/workflows/visualizer' },
       {
         text: 'Github',
         link: 'https://github.com/codemcp/workflows',
@@ -29,8 +30,6 @@ export default defineConfig({
           { text: 'Agent Setup', link: '/user/agent-setup' },
           { text: 'Capability Routing', link: '/user/capability-routing' },
           { text: 'Vibe Engineering', link: '/user/advanced-engineering' },
-          { text: 'Long-Term Memory', link: '/user/long-term-memory' },
-          { text: 'Beads-Integration', link: '/user/beads-integration' },
           { text: 'Tutorial', link: '/user/tutorial' },
         ],
       },
@@ -41,10 +40,7 @@ export default defineConfig({
           { text: 'Packaged Workflows', link: '/user/packaged-workflows' },
           { text: 'Custom Workflows', link: '/user/custom-workflows' },
           { text: 'Explore All Workflows', link: '/workflows' },
-          {
-            text: 'Crowd MCP Integration',
-            link: '/user/crowd-mcp-integration',
-          },
+          { text: 'Workflow Visualizer', link: '/workflows/visualizer' },
         ],
       },
     ],

@@ -2,7 +2,7 @@
 
 Responsible Vibe includes more and more workflows for different purposes.
 
-In order to now consume more and more space in your agent's context (their descriptions are always exposed, so that the agent knows which one to pick), not all of them are loaded by default.
+In order to not consume more and more space in your agent's context (their descriptions are always exposed, so that the agent knows which one to pick), not all of them are loaded by default.
 
 Instead, they are organized into multiple domains and you can decide which ones you'd like to use.
 
