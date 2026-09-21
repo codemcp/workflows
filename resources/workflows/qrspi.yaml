@@ -28,6 +28,8 @@ metadata:
 states:
   questions:
     description: 'Clarify intent, scope, and success criteria before any exploration'
+    referred_docs:
+      - requirements
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -39,7 +41,7 @@ states:
       - Ask about the context
       - follow up on explanations
       - Ask about rejected alternatives or workarounds
-      Document in the development plan: the problem being solved, success criteria, constraints, and any clarifying questions asked. Use `$REQUIREMENTS_DOC` as context only — do not modify it.
+      Document in the development plan: the problem being solved, success criteria, constraints, and any clarifying questions asked. Use the requirements document as context only — do not modify it.
 
       Do not research, design, plan, or write code.
     transitions:
@@ -55,6 +57,8 @@ states:
   research:
     description: 'Gather facts without forming conclusions or proposing solutions'
     required_capability: 'research'
+    referred_docs:
+      - requirements
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -62,7 +66,7 @@ states:
     default_instructions: |
       **Principle**: Gather facts before forming opinions.
 
-      Explore the codebase, patterns, and relevant documentation. Document findings as facts (not opinions) in the development plan. Highlight what requires design decisions. Use `$REQUIREMENTS_DOC` as context only — do not modify it.
+      Explore the codebase, patterns, and relevant documentation. Document findings as facts (not opinions) in the development plan. Highlight what requires design decisions. Use the requirements document as context only — do not modify it.
 
       Do not propose solutions, make design decisions, or write code.
     transitions:
@@ -83,6 +87,9 @@ states:
   design:
     description: 'Explore options and reach consensus on WHAT and high-level HOW'
     required_capability: 'thinking'
+    referred_docs:
+      - architecture
+      - design
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -90,7 +97,7 @@ states:
     default_instructions: |
       **Principle**: Align on WHAT and WHY before deciding detailed HOW.
       This is the phase when the we imagening a suitable solution given the boundary conditions.
-      Propose 2-3 viable high-level approaches with trade-offs. Reference `$DESIGN_DOC` and `$ARCHITECTURE_DOC` if they exist. Reach consensus with the user on the direction. On loop-back from `need_design_changes`, update those docs if they exist.
+      Propose 2-3 viable high-level approaches with trade-offs. Reference the existing design and architecture. Reach consensus with the user on the direction. On loop-back from `need_design_changes`, update those docs if they exist.
       It's crucial that the user gets actively involved to take an educated decision.
 
       Document the agreed direction in the development plan.
@@ -117,6 +124,8 @@ states:
   structure:
     description: 'Decompose the approved design into end-to-end vertical slices'
     required_capability: 'thinking'
+    referred_docs:
+      - architecture
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -124,7 +133,7 @@ states:
     default_instructions: |
       **Principle**: Decompose into end-to-end, testable units before planning implementation details.
 
-      Define 1-5 vertical slices that each deliver user-visible behavior independently. Describe what each slice delivers, which components it touches, and how it will be tested end-to-end. Reference `$ARCHITECTURE_DOC` if it exists.
+      Define 1-5 vertical slices that each deliver user-visible behavior independently. Describe what each slice delivers, which components it touches, and how it will be tested end-to-end. Follow the established architecture.
 
       Document slice definitions in the development plan.
 
@@ -187,12 +196,16 @@ states:
   implement:
     description: 'Build the solution slice by slice'
     required_capability: 'coding'
+    referred_docs:
+      - requirements
+      - architecture
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: |
       **Principle**: Execute the plan one slice at a time; delegate each slice to a fresh context.
 
-      Build each vertical slice end-to-end before moving to the next. Delegate each slice to a fresh agent session with focused context. Reference `$DESIGN_DOC`, `$ARCHITECTURE_DOC`, and `$REQUIREMENTS_DOC` if they exist. Prevent regressions via build, lint, and tests.
+      Build each vertical slice end-to-end before moving to the next. Delegate each slice to a fresh agent session with focused context. Follow the established architecture and design, adhere to all requirements. Prevent regressions via build, lint, and tests.
 
       Adapt tactics within slices. Loop back via `need_design_changes` only if the high-level approach is fundamentally flawed.
 
@@ -229,6 +242,10 @@ states:
 
   commit:
     description: 'Cleanup, documentation finalization, and delivery'
+    referred_docs:
+      - requirements
+      - architecture
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: |
@@ -236,7 +253,7 @@ states:
 
       **Cleanup**: Remove debug output, temporary code, test code blocks, and completed TODOs. Address or document any remaining FIXMEs.
 
-      **Documentation**: Update `$REQUIREMENTS_DOC`, `$ARCHITECTURE_DOC`, and `$DESIGN_DOC` if they exist and changed during implementation. Otherwise, document changes in the development plan. Ensure docs reflect the final implemented state, not the development process.
+      **Documentation**: Update the requirements, architecture, and design documents if they changed during implementation. Otherwise, document changes in the development plan. Ensure docs reflect the final implemented state, not the development process.
 
       **Validation**: Run tests to ensure no regressions. Verify the development plan is accurate.
 

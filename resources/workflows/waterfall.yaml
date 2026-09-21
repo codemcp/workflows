@@ -41,7 +41,7 @@ states:
       - What are your time, budget, technical, or regulatory constraints?
       - What existing systems must this integrate with?
 
-      Document all requirements in `$REQUIREMENTS_DOC`. Create actionable tasks referencing those requirements.
+      Document all requirements. Create actionable tasks referencing those requirements.
     transitions:
       - trigger: 'requirements_complete'
         to: 'design'
@@ -55,16 +55,18 @@ states:
   design:
     description: 'Technical design and architecture planning'
     required_capability: 'thinking'
+    referred_docs:
+      - requirements
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
       - '**/*.adoc'
     default_instructions: |
-      Review requirements from `$REQUIREMENTS_DOC` and design the technical solution.
+      Review the established requirements and design the technical solution.
 
       Focus on HOW to implement what's needed including architecture, technologies, data models, API design, and quality goals. Clarify performance expectations and technology preferences if not already obvious from the current analysis.
 
-      Document architectural decisions in `$ARCHITECTURE_DOC` and detailed design in `$DESIGN_DOC`. Create tasks and ensure the approach is solid before implementation.
+      Document architectural decisions and detailed design. Create tasks and ensure the approach is solid before implementation.
     transitions:
       - trigger: 'need_more_requirements'
         to: 'requirements'
@@ -83,16 +85,20 @@ states:
   implementation:
     description: 'Building the solution according to design'
     required_capability: 'coding'
+    referred_docs:
+      - requirements
+      - architecture
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: |
-      Follow the architecture from `$ARCHITECTURE_DOC` and detailed design from `$DESIGN_DOC` to build the solution.
+      Follow the established architecture and detailed design to build the solution.
 
       Before starting, clarify the approach:
       - Should this be implemented incrementally or all at once? Any specific order of implementation?
       - Are there high-risk parts that need extra validation or careful implementation?
 
-      Ensure requirements from `$REQUIREMENTS_DOC` are met. Focus on code structure, error handling, security, and maintainability. Write clean, well-documented code and include basic testing. Update task progress during implementation work.
+      Ensure all requirements are met. Focus on code structure, error handling, security, and maintainability. Write clean, well-documented code and include basic testing. Update task progress during implementation work.
     transitions:
       - trigger: 'need_design_changes'
         to: 'design'
@@ -115,6 +121,9 @@ states:
 
   qa:
     description: 'Quality assurance and code review'
+    referred_docs:
+      - requirements
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: |
@@ -127,7 +136,7 @@ states:
       - Run existing tests to verify functionality
 
       **STEP 2: Multi-Perspective Code Review**
-      Conduct code review from security, performance, UX, maintainability, and requirement compliance perspectives. Verify implementation matches `$DESIGN_DOC` specifications and fulfills targeted requirements from `$REQUIREMENTS_DOC`.
+      Conduct code review from security, performance, UX, maintainability, and requirement compliance perspectives. Verify implementation matches the design specifications and fulfills targeted requirements.
 
       Update task progress and mark completed work during QA review.
     transitions:
@@ -177,6 +186,10 @@ states:
 
   finalize:
     description: 'Code cleanup and documentation finalization'
+    referred_docs:
+      - requirements
+      - architecture
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: |
@@ -201,9 +214,9 @@ states:
       **STEP 2: Documentation Review**
 
       Review and update documentation to reflect final implementation:
-      - Update `$REQUIREMENTS_DOC` if requirements changed during development
-      - Update `$ARCHITECTURE_DOC` if architectural decisions evolved
-      - Update `$DESIGN_DOC` if design details were refined or changed
+      - Update the requirements document if requirements changed during development
+      - Update the architecture document if architectural decisions evolved
+      - Update the design document if design details were refined or changed
       - Compare documentation against actual implemented functionality
       - Only modify documentation sections that have functional changes
       - Remove references to development iterations, progress notes, and temporary decisions

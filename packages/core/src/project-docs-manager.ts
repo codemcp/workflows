@@ -452,16 +452,12 @@ export class ProjectDocsManager {
     const branchDirName = gitBranch || 'main';
     const vibeDir = join(projectPath, '.vibe');
 
-    // Get agent role from environment variable for crowd workflows
-    const agentRole = process.env['VIBE_ROLE'] || '';
-
     return {
       $ARCHITECTURE_DOC: paths.architecture,
       $REQUIREMENTS_DOC: paths.requirements,
       $DESIGN_DOC: paths.design,
       $VIBE_DIR: vibeDir,
       $BRANCH_NAME: branchDirName,
-      $VIBE_ROLE: agentRole,
       $DONE_DEFAULT:
         'Feature work is complete. Do NOT transition to any other state — this is a terminal state. If this is a GitHub repository: create a PR. Always: present the final result to the user.',
     };
@@ -488,6 +484,65 @@ export class ProjectDocsManager {
       $REQUIREMENTS_DOC: paths.requirements,
       $DESIGN_DOC: paths.design,
     };
+  }
+
+  /**
+   * Get variable substitutions with conditional doc injection.
+   * For each doc variable, checks if the file exists on disk.
+   * - Exists: value = `Read \`{path}\` for the current {docType} context.`
+   * - Missing: value = '' (empty string, so the variable is removed from instructions)
+   * Non-doc variables ($VIBE_DIR, $BRANCH_NAME, $DONE_DEFAULT) are returned as-is.
+   */
+  async getConditionalVariableSubstitutions(
+    projectPath: string,
+    gitBranch?: string
+  ): Promise<Record<string, string>> {
+    const paths = this.getDocumentPaths(projectPath);
+    const branchDirName = gitBranch || 'main';
+    const vibeDir = join(projectPath, '.vibe');
+
+    const checkExists = async (filePath: string): Promise<boolean> => {
+      try {
+        await access(filePath);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const docEntries: Array<{
+      variable: string;
+      path: string;
+      docType: string;
+    }> = [
+      {
+        variable: '$ARCHITECTURE_DOC',
+        path: paths.architecture,
+        docType: 'architecture',
+      },
+      {
+        variable: '$REQUIREMENTS_DOC',
+        path: paths.requirements,
+        docType: 'requirements',
+      },
+      { variable: '$DESIGN_DOC', path: paths.design, docType: 'design' },
+    ];
+
+    const result: Record<string, string> = {
+      $VIBE_DIR: vibeDir,
+      $BRANCH_NAME: branchDirName,
+      $DONE_DEFAULT:
+        'Feature work is complete. Do NOT transition to any other state — this is a terminal state. If this is a GitHub repository: create a PR. Always: present the final result to the user.',
+    };
+
+    for (const { variable, path: docPath, docType } of docEntries) {
+      const exists = await checkExists(docPath);
+      result[variable] = exists
+        ? `Read \`${docPath}\` for the current ${docType} context.`
+        : '';
+    }
+
+    return result;
   }
 
   /**

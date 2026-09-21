@@ -79,13 +79,14 @@ states:
   fix:
     description: 'Implement the bug fix'
     required_capability: 'coding'
+    referred_docs:
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: |
       Implement the solution based on your analysis:
 
-      - If `$DESIGN_DOC` exists: Follow the design from it
-      - Otherwise: Elaborate design options and present them to the user
+      Adhere to the existing application design.
 
       Before implementing, assess the approach:
       - How critical is this system? What is the blast radius if the fix causes issues?
@@ -141,6 +142,8 @@ states:
 
   finalize:
     description: 'Code cleanup and documentation finalization'
+    referred_docs:
+      - design
     allowed_file_patterns:
       - '**/*'
     default_instructions: |
@@ -156,7 +159,7 @@ states:
 
       **STEP 2: Documentation Review**
       Review and update documentation to reflect the bug fix:
-      - If `$DESIGN_DOC` exists, update it if design details were refined or changed during the fix
+      - Update the design document if design details were refined or changed during the fix
       - Compare documentation against the actual bug fix implementation
       - Update only the documentation sections that have functional changes
       - Remove references to investigation iterations, progress notes, and temporary decisions

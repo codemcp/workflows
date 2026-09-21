@@ -26,20 +26,20 @@ metadata:
 states:
   architecture_analysis:
     description: 'Analyze existing system architecture and identify system boundaries'
+    referred_docs:
+      - architecture
     default_instructions: >
       **STEP 1: Reference Architecture Documentation**
-      Check if `$ARCHITECTURE_DOC` exists and reference it for system understanding.
+      Review the existing architecture documentation to understand the system.
+      If not available, search the project for architecture documentation (README.md, docs/, ARCHITECTURE.md, etc.) and update the architecture document with your findings.
 
-      **STEP 2: Search for Architecture**
-      If `$ARCHITECTURE_DOC` is not available, search the project for architecture documentation (README.md, docs/, ARCHITECTURE.md, etc.). Enhance the existing `$ARCHITECTURE_DOC` with your findings.
-
-      **STEP 3: Analyze Codebase**
+      **STEP 2: Analyze Codebase**
       Examine the codebase to understand system structure, technology stack, and architectural patterns.
 
-      **STEP 4: Identify System Boundaries**
+      **STEP 3: Identify System Boundaries**
       Map external interfaces, APIs, and integration points.
 
-      **STEP 5: Document Findings**
+      **STEP 4: Document Findings**
       Update the plan file with architecture analysis findings.
 
       **Interview the User (External Factors Only):**

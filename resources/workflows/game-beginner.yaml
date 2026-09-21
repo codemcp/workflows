@@ -97,6 +97,8 @@ states:
 
   imagine:
     description: 'Dream phase - describe the game you want to create'
+    referred_docs:
+      - requirements
     default_instructions: |
       **STEP 1: Gather Game Ideas**
 
@@ -115,7 +117,7 @@ states:
 
       **STEP 3: Document the Game Idea**
 
-      Update `$REQUIREMENTS_DOC` with:
+      Update the requirements document with:
       - Game concept and type
       - Main goal
       - What makes it fun
@@ -144,10 +146,12 @@ states:
 
   architecture:
     description: 'Choose platform and design the technical structure'
+    referred_docs:
+      - requirements
     default_instructions: |
       **STEP 1: Understand Game Concept**
 
-      Read `$REQUIREMENTS_DOC` to understand the game concept and features.
+      Read the requirements document to understand the game concept and features.
 
       **STEP 2: Choose the Platform**
 
@@ -161,7 +165,7 @@ states:
 
       **STEP 3: Update Architecture Documentation**
 
-      Document in `$ARCHITECTURE_DOC`:
+      Document in the architecture document:
       - Platform decision and why
       - Main game components (Player, Enemy, Game Manager, etc.)
       - Simple ASCII diagram showing component connections
@@ -211,22 +215,25 @@ states:
 
   design:
     description: 'Plan features and implementation strategy'
+    referred_docs:
+      - requirements
+      - architecture
     default_instructions: |
       **STEP 1: Review Requirements and Architecture**
 
-      Read `$REQUIREMENTS_DOC` and `$ARCHITECTURE_DOC` to understand what we're building and the technical foundation.
+      Read the requirements and architecture documents to understand what we're building and the technical foundation.
 
       **STEP 2: Select Libraries and Dependencies**
 
       Choose appropriate libraries based on requirements (e.g., physics engines, platformer frameworks).
 
-      Document in `$DESIGN_DOC`:
+      Document in the design document:
       - Which libraries will be used
       - Why each library was chosen
 
       **STEP 3: Design Major Features**
 
-      Update `$DESIGN_DOC` with detailed designs for each major feature:
+      Update the design document with detailed designs for each major feature:
       - What it does (from player perspective)
       - How it works (technical implementation)
       - State/Mechanics/Presentation separation
@@ -256,10 +263,13 @@ states:
 
   code:
     description: 'Build the game incrementally with frequent reviews'
+    referred_docs:
+      - architecture
+      - design
     default_instructions: |
       **STEP 1: Follow Implementation Plan**
 
-      Use `$DESIGN_DOC` for implementation order and `$ARCHITECTURE_DOC` for code structure.
+      Use the design document for implementation order and the architecture document for code structure.
 
       **STEP 2: Build One Feature at a Time**
 
@@ -376,6 +386,8 @@ states:
 
   celebrate:
     description: 'Celebrate the completed game and reflect on learning'
+    referred_docs:
+      - requirements
     default_instructions: |
       **STEP 1: Play the Complete Game**
 
@@ -409,7 +421,7 @@ states:
 
       Ask: "Now that you've built Version 1, what would you want to add next?"
 
-      Review the "Future Ideas" list from `$REQUIREMENTS_DOC`.
+      Review the "Future Ideas" list from the requirements document.
 
       **STEP 5: Document the Achievement**
 

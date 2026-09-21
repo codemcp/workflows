@@ -22,10 +22,11 @@ metadata:
 states:
   context:
     description: 'Define the architectural problem or decision that needs to be made'
+    referred_docs:
+      - architecture
     default_instructions: |
       **STEP 1:** Determine ADR storage location
-      - If `$ARCHITECTURE_DOC` exists: Use it to determine ADR storage location
-      - Otherwise: Document ADR decisions in the plan file
+      Use the architecture document to determine ADR storage location if it exists, otherwise document ADR decisions in the plan file.
 
       **STEP 2:** Look for existing ADRs to understand current format and numbering
 
@@ -147,7 +148,7 @@ states:
 
       **STEP 7:** Update ADR status to final state (Accepted or Approved)
 
-      **STEP 8:** Save and integrate ADR into `$ARCHITECTURE_DOC` or appropriate location
+      **STEP 8:** Save and integrate ADR into the architecture document or appropriate location
 
       Complete final validation and cleanup before the ADR is finalized.
 

@@ -28,9 +28,6 @@ export interface YamlTransition {
     perspective: string;
     prompt: string;
   }>;
-
-  /** Optional role targeting for crowd workflows (e.g., 'business-analyst', 'architect', 'developer') */
-  role?: string;
 }
 
 /**
@@ -62,6 +59,15 @@ export interface YamlState {
    * See `.vibe/config.yaml` `capability_models` for optional model/agent mapping.
    */
   required_capability?: string;
+
+  /**
+   * Optional list of project documentation files to inject into the phase instructions.
+   * When a listed file exists on disk, a contextual read-prompt is prepended to instructions.
+   * When the file does not exist, the entry is silently ignored.
+   *
+   * Replaces the old pattern of `If \`$ARCHITECTURE_DOC\` exists: read it` in YAML bodies.
+   */
+  referred_docs?: ('requirements' | 'architecture' | 'design')[];
 }
 
 /**
@@ -88,9 +94,5 @@ export interface YamlStateMachine {
     useCases?: string[];
     examples?: string[];
     requiresDocumentation?: boolean;
-    /** Indicates this workflow supports multi-agent collaboration */
-    collaboration?: boolean;
-    /** Required agent roles for this collaborative workflow */
-    requiredRoles?: string[];
   };
 }

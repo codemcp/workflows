@@ -27,6 +27,8 @@ states:
   explore:
     description: 'Research and exploration phase - understanding the problem space and codebase'
     required_capability: 'research'
+    referred_docs:
+      - requirements
     allowed_file_patterns:
       - '**/*.md'
       - '**/*.txt'
@@ -37,7 +39,7 @@ states:
       **STEP 2:** Research the codebase and understand existing patterns.
       - Ask the user about conventions or rules if uncertain
       - Read relevant files and documentation
-      - If `$REQUIREMENTS_DOC` exists, understand and document requirements there, otherwise document in your task management system
+      - Understand and document requirements
 
       **STEP 3:** Document your findings and create tasks as needed.
       - Don't write code or tests yet

@@ -277,7 +277,7 @@ states:
           - Execute: `setup_project_docs({ architecture: "c4", requirements: "none", design: "comprehensive" })`
 
           **STEP 2:** Review created documentation files
-          - Read `$ARCHITECTURE_DOC` and `$DESIGN_DOC` to understand their structure
+          - Read the architecture and design documents to understand their structure
 
           **STEP 3:** Begin context analysis preparation
           - Review `$DISCOVERY_FILE` findings
@@ -287,6 +287,9 @@ states:
 
   context_analysis:
     description: 'System context analysis (C4 Level 1) - boundaries and external interfaces'
+    referred_docs:
+      - architecture
+      - design
     default_instructions: >
       Analyze system context and external interfaces (C4 Level 1). Reference `$DISCOVERY_FILE` for long-term memory.
 
@@ -303,8 +306,8 @@ states:
       - Map data flows between system and external entities
 
       **STEP 3:** Enhance living documentation
-      - Update `$ARCHITECTURE_DOC` with context findings
-      - Update `$DESIGN_DOC` with external interface details
+      - Update the architecture document with context findings
+      - Update the design document with external interface details
       - Update `$DISCOVERY_FILE` with all context analysis findings
       - Record progress in plan file
     transitions:
@@ -332,6 +335,9 @@ states:
 
   container_analysis:
     description: 'Container analysis (C4 Level 2) - high-level system architecture'
+    referred_docs:
+      - architecture
+      - design
     default_instructions: >
       Analyze containers and services (C4 Level 2). Reference `$DISCOVERY_FILE` for container sketch and long-term memory.
 
@@ -348,8 +354,8 @@ states:
       - Record data exchange patterns
 
       **STEP 3:** Enhance living documentation
-      - Update `$ARCHITECTURE_DOC` with C4 Level 2 findings
-      - Update `$DESIGN_DOC` with container interaction details
+      - Update the architecture document with C4 Level 2 findings
+      - Update the design document with container interaction details
       - Update `$DISCOVERY_FILE` with container analysis findings
       - Add component analysis tasks to plan file
     transitions:
@@ -377,6 +383,9 @@ states:
 
   component_analysis:
     description: 'Component analysis (C4 Level 3) - detailed component-by-component analysis'
+    referred_docs:
+      - architecture
+      - design
     default_instructions: >
       Analyze components in detail (C4 Level 3). Reference `$DISCOVERY_FILE` for component information and long-term memory.
 
@@ -393,8 +402,8 @@ states:
       - Capture key implementation insights
 
       **STEP 3:** Enhance living documentation and track progress
-      - Update `$DESIGN_DOC` with detailed component analysis
-      - Update `$ARCHITECTURE_DOC` with C4 Level 3 details
+      - Update the design document with detailed component analysis
+      - Update the architecture document with C4 Level 3 details
       - Update `$DISCOVERY_FILE` with component findings
       - Mark component as complete in plan file
       - Ask user which component to analyze next
@@ -417,16 +426,19 @@ states:
 
   documentation_consolidation:
     description: 'Consolidate findings into comprehensive documentation'
+    referred_docs:
+      - architecture
+      - design
     default_instructions: >
-      Finalize documentation and prepare recommendations. The `$ARCHITECTURE_DOC` and `$DESIGN_DOC` have been enhanced throughout analysis phases.
+      Finalize documentation and prepare recommendations. The architecture and design documents have been enhanced throughout analysis phases.
 
       **STEP 1:** Review analysis findings
       - Review `$DISCOVERY_FILE` for all findings and insights
       - Verify completeness of C4 levels (Context, Container, Component)
 
       **STEP 2:** Polish living documentation
-      - Final review and polish of `$ARCHITECTURE_DOC`
-      - Final review and polish of `$DESIGN_DOC`
+      - Final review and polish of the architecture document
+      - Final review and polish of the design document
       - Ensure all C4 levels are comprehensively documented
 
       **STEP 3:** Prepare recommendations
