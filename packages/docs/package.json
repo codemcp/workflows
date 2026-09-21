@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "prebuild": "mkdir -p public/workflows && cp ../../resources/workflows/*.yaml public/workflows/ && node scripts/generate-workflow-manifest.js",
-    "dev": "npm run prebuild && concurrently \"cd ../visualizer && npm run dev\" \"vitepress dev\"",
-    "build": "cd ../visualizer && npm run build && cd ../docs && npm run prebuild && vitepress build",
+    "dev": "npm run prebuild && vitepress dev",
+    "build": "npm run prebuild && vitepress build",
     "preview": "vitepress preview",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
@@ -14,18 +14,14 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@codemcp/workflows-visualizer": "workspace:*",
-    "d3": "^7.9.0",
     "js-yaml": "^4.1.0",
     "pako": "2.1.0",
     "vue": "^3.5.22"
   },
   "devDependencies": {
-    "@types/d3": "^7.4.3",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.19.23",
     "@types/pako": "2.0.4",
-    "concurrently": "^8.2.2",
     "typescript": "^5.9.3",
     "vitepress": "^1.6.4"
   }

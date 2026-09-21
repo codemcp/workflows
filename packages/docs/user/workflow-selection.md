@@ -6,40 +6,24 @@ Your AI agent automatically picks the right development methodology based on wha
 
 When you ask your AI to help with development, it analyzes your request and selects the appropriate workflow:
 
-**"Build a todo app"** → **Greenfield workflow**  
+**"Build a todo app"** → **Greenfield workflow**
 _Full planning cycle for new projects_
 
-**"Add user authentication"** → **EPCC workflow**  
+**"Add user authentication"** → **EPCC workflow**
 _Iterative approach for feature additions_
 
-**"The login is broken"** → **Bugfix workflow**  
+**"The login is broken"** → **Bugfix workflow**
 _Systematic debugging process_
 
-**"I want to use TDD"** → **TDD workflow**  
+**"I want to use TDD"** → **TDD workflow**
 _Test-driven development cycle_
-
-## The Selection Logic
-
-Your AI reads the MCP tool descriptions and learns the patterns:
-
-```json
-{
-  "name": "start_development",
-  "description": "Choose from different development approaches (waterfall, bugfix, epcc) or use a custom workflow",
-  "parameters": {
-    "workflow": "waterfall, epcc, tdd, bugfix, greenfield, minor, or custom workflow name"
-  }
-}
-```
-
-Based on context clues in your request, it picks the most appropriate methodology.
 
 ## Manual Override
 
 Want to use a specific workflow? Just ask:
 
-**"Build a todo app using TDD"** → TDD workflow  
-**"Add authentication with the waterfall approach"** → Waterfall workflow  
+**"Build a todo app using TDD"** → TDD workflow
+**"Add authentication with the waterfall approach"** → Waterfall workflow
 **"Use EPCC to implement search"** → EPCC workflow
 
 ## Explore All Workflows
@@ -55,22 +39,12 @@ You can explore:
 - **Greenfield**: Comprehensive planning for new projects
 - **Minor**: Streamlined approach for small changes
 
-### Collaborative Workflows (Multi-Agent)
-
-Work with teams of specialized AI agents using [crowd-mcp](https://github.com/mrsimpson/crowd-mcp):
-
-- **sdd-feature-crowd**: Collaborative feature development (business-analyst, architect, developer)
-- **sdd-bugfix-crowd**: Team-based bug fixing with systematic approach
-- **sdd-greenfield-crowd**: Collaborative new project development
-
-See **[Crowd MCP Integration Guide](./crowd-mcp-integration.md)** for multi-agent setup and usage.
-
 ## Why This Matters
 
 Most development tools force you into one approach. Responsible Vibe recognizes that **different problems need different methodologies**.
 
-Building something from scratch? You need comprehensive planning.  
-Adding a feature? Iterative development works better.  
+Building something from scratch? You need comprehensive planning.
+Adding a feature? Iterative development works better.
 Fixing a bug? Systematic debugging is key.
 
 Your AI knows the difference and adapts accordingly.
