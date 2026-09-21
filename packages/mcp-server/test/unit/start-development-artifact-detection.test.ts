@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-// DISABLED: tests deleted modules
-=======
->>>>>>> cecbedb (fix: restore requiresDocumentation artifact check in start_development)
 /**
  * Unit tests for StartDevelopmentHandler dynamic artifact detection
  *
@@ -12,11 +8,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestAccess } from '../utils/test-access.js';
 import { StartDevelopmentHandler } from '../../src/tool-handlers/start-development.js';
-<<<<<<< HEAD
-import type { YamlStateMachine } from './../../src/state-machine-types';
-=======
 import type { YamlStateMachine } from '@codemcp/workflows-core';
->>>>>>> cecbedb (fix: restore requiresDocumentation artifact check in start_development)
 import { join } from 'node:path';
 import {
   MockContextFactory,
@@ -24,22 +16,6 @@ import {
   TestAssertions,
 } from '../utils/test-helpers.js';
 
-<<<<<<< HEAD
-// Mock ProjectDocsManager
-vi.mock('../../src/project-docs-manager.js');
-
-// Mock other dependencies
-vi.mock('../../src/git-manager.js', () => ({
-  GitManager: {
-    isGitRepository: vi.fn().mockReturnValue(true),
-    getCurrentCommitHash: vi.fn().mockReturnValue('abc123'),
-  },
-}));
-
-// DISABLED: artifact-check code removed
-
-describe.skip('StartDevelopmentHandler - Dynamic Artifact Detection', () => {
-=======
 // Mock ProjectDocsManager (lives in @codemcp/workflows-core)
 vi.mock('@codemcp/workflows-core', async () => {
   const actual = await vi.importActual('@codemcp/workflows-core');
@@ -50,7 +26,6 @@ vi.mock('@codemcp/workflows-core', async () => {
 });
 
 describe('StartDevelopmentHandler - Dynamic Artifact Detection', () => {
->>>>>>> cecbedb (fix: restore requiresDocumentation artifact check in start_development)
   let handler: StartDevelopmentHandler;
   let mockProjectDocsManager: ReturnType<
     typeof MockContextFactory.createProjectDocsManagerMock
@@ -84,12 +59,7 @@ describe('StartDevelopmentHandler - Dynamic Artifact Detection', () => {
     }));
   });
 
-<<<<<<< HEAD
-  // DISABLED: artifact-check code removed
-  describe.skip('dynamic workflow analysis', () => {
-=======
   describe('dynamic workflow analysis', () => {
->>>>>>> cecbedb (fix: restore requiresDocumentation artifact check in start_development)
     it('should proceed normally when workflow contains no document variables', async () => {
       mockContext.workflowManager.loadWorkflowForProject.mockReturnValue(
         TEST_WORKFLOWS.simple
@@ -139,13 +109,8 @@ describe('StartDevelopmentHandler - Dynamic Artifact Detection', () => {
       );
 
       TestAssertions.expectArtifactSetupPhase(result);
-<<<<<<< HEAD
-      expect(result.instructions).toContain('Missing docs');
-      expect(result.instructions).toContain('architecture');
-=======
       expect(result.instructions).toContain('arch-focused');
       expect(result.instructions).toContain('architecture.md');
->>>>>>> cecbedb (fix: restore requiresDocumentation artifact check in start_development)
     });
 
     it('should detect multiple document variables in workflow', async () => {
@@ -183,16 +148,9 @@ describe('StartDevelopmentHandler - Dynamic Artifact Detection', () => {
       );
 
       TestAssertions.expectArtifactSetupPhase(result);
-<<<<<<< HEAD
-      expect(result.instructions).toContain('Missing docs');
-      expect(result.instructions).toContain('architecture');
-      expect(result.instructions).toContain('requirements');
-      expect(result.instructions).toContain('design');
-=======
       expect(result.instructions).toContain('architecture.md');
       expect(result.instructions).toContain('requirements.md');
       expect(result.instructions).toContain('design.md');
->>>>>>> cecbedb (fix: restore requiresDocumentation artifact check in start_development)
     });
 
     it('should proceed normally when all referenced documents exist', async () => {
@@ -293,12 +251,7 @@ describe('StartDevelopmentHandler - Dynamic Artifact Detection', () => {
       );
 
       TestAssertions.expectArtifactSetupPhase(result);
-<<<<<<< HEAD
-      expect(result.instructions).toContain('Missing docs');
-      expect(result.instructions).toContain('design'); // Only missing doc
-=======
       expect(result.instructions).toContain('design.md'); // only missing doc
->>>>>>> cecbedb (fix: restore requiresDocumentation artifact check in start_development)
     });
 
     it('should handle workflow loading errors gracefully', async () => {
@@ -360,13 +313,8 @@ describe('StartDevelopmentHandler - Dynamic Artifact Detection', () => {
         mockContext
       );
 
-<<<<<<< HEAD
-      expect(result.instructions).toContain('Missing docs');
-      expect(result.instructions).toContain('setup_project_docs');
-=======
       expect(result.instructions).toContain('arch-only');
       expect(result.instructions).toContain('architecture.md');
->>>>>>> cecbedb (fix: restore requiresDocumentation artifact check in start_development)
     });
 
     it('should proceed normally for optional workflows with missing documents', async () => {
