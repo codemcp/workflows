@@ -1,3 +1,11 @@
+## [6.24.2](https://github.com/codemcp/workflows/compare/v6.24.1...v6.24.2) (2026-09-21)
+
+### Bug Fixes
+
+- add directory field to repository in all sub-packages and fix root repo url ([b35e996](https://github.com/codemcp/workflows/commit/b35e9961f7d99216516e01ae8eaf44c989822aa4))
+- add repository field to mcp-server package.json for provenance validation ([c0ee514](https://github.com/codemcp/workflows/commit/c0ee514151cb8aaf4f780e09bbe85a6a87a8ffdd))
+- remove unnecessary directory field from repository in mcp-server ([4ef195f](https://github.com/codemcp/workflows/commit/4ef195f5f63fc3f0b9b16478831b6c7180c85ae7))
+
 ## [6.24.1](https://github.com/codemcp/workflows/compare/v6.24.0...v6.24.1) (2026-09-21)
 
 ### Bug Fixes
