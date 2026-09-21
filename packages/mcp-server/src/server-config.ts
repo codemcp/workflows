@@ -20,6 +20,8 @@ import { TemplateManager } from '@codemcp/workflows-core';
 import {
   createLogger,
   setLoggingLevelFromString,
+  DOMAIN_DESCRIPTIONS,
+  KNOWN_DOMAIN_NAMES,
 } from '@codemcp/workflows-core';
 
 import {
@@ -445,6 +447,31 @@ export async function registerMcpTools(
       },
     },
     createToolHandler('list_workflows', toolRegistry, responseRenderer, context)
+  );
+
+  // Register load_workflows tool — allows LLM to dynamically switch domains
+  const domainList = Object.entries(DOMAIN_DESCRIPTIONS)
+    .map(([d, desc]) => `${d}: ${desc}`)
+    .join(' | ');
+
+  mcpServer.registerTool(
+    'load_workflows',
+    {
+      description: `Load workflows from one or more domains. Replaces the current domain set. Available domains — ${domainList}`,
+      inputSchema: {
+        domains: z
+          .array(z.enum(KNOWN_DOMAIN_NAMES))
+          .describe('Domain names to load.'),
+      },
+      annotations: {
+        title: 'Workflow Domain Loader',
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    createToolHandler('load_workflows', toolRegistry, responseRenderer, context)
   );
 
   // Register setup_project_docs tool with enhanced file linking support
