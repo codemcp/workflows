@@ -6,7 +6,6 @@
  */
 
 import type { YamlStateMachine } from '../state-machine-types.js';
-import type { TaskBackendConfig } from '../task-backend.js';
 
 export interface PlanFileInfo {
   path: string;
@@ -23,11 +22,6 @@ export interface IPlanManager {
    * Set the state machine definition for dynamic plan generation
    */
   setStateMachine(stateMachine: YamlStateMachine): void;
-
-  /**
-   * Set the task backend configuration
-   */
-  setTaskBackend(taskBackend: TaskBackendConfig): void;
 
   /**
    * Get plan file information

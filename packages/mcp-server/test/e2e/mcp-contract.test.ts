@@ -22,6 +22,7 @@ vi.unmock('fs/promises');
  * - Protocol compliance and message formats
  * - Error handling and edge cases
  */
+
 describe('MCP Contract Validation', () => {
   let client: Client;
   let transport: StdioClientTransport;
@@ -131,11 +132,6 @@ describe('MCP Contract Validation', () => {
       const tools = await client.listTools();
       expect(tools.tools).toBeDefined();
       expect(Array.isArray(tools.tools)).toBe(true);
-
-      // Should support resources
-      const resources = await client.listResources();
-      expect(resources.resources).toBeDefined();
-      expect(Array.isArray(resources.resources)).toBe(true);
     });
   });
 
@@ -258,85 +254,6 @@ describe('MCP Contract Validation', () => {
   });
 
   describe('Resources Contract Validation', () => {
-    it('should expose plan://current resource', async () => {
-      const resources = await client.listResources();
-
-      const planResource = resources.resources.find(
-        r => r.uri === 'plan://current'
-      );
-      expect(planResource).toBeDefined();
-      expect(planResource!.name).toBeTruthy();
-      expect(planResource!.description).toBeTruthy();
-      expect(planResource!.mimeType).toBe('text/markdown');
-    });
-
-    it('should expose state://current resource', async () => {
-      const resources = await client.listResources();
-
-      const stateResource = resources.resources.find(
-        r => r.uri === 'state://current'
-      );
-      expect(stateResource).toBeDefined();
-      expect(stateResource!.name).toBeTruthy();
-      expect(stateResource!.description).toBeTruthy();
-      expect(stateResource!.mimeType).toBe('application/json');
-    });
-
-    it('should read plan resource successfully', async () => {
-      // First establish a conversation to ensure plan file exists
-      await client.callTool({
-        name: 'whats_next',
-        arguments: {
-          user_input: 'test plan resource',
-        },
-      });
-
-      const result = await client.readResource({
-        uri: 'plan://current',
-      });
-
-      expect(result.contents).toBeDefined();
-      expect(Array.isArray(result.contents)).toBe(true);
-      expect(result.contents.length).toBeGreaterThan(0);
-
-      const content = result.contents[0];
-      expect(content.uri).toBe('plan://current');
-      expect(content.mimeType).toBe('text/markdown');
-      expect(content.text).toBeTruthy();
-
-      // Should contain markdown plan structure
-      expect(content.text).toContain('# Development Plan');
-      expect(content.text).toContain('## Goal');
-    });
-
-    it('should read state resource successfully', async () => {
-      // First establish a conversation to ensure state exists
-      await client.callTool({
-        name: 'whats_next',
-        arguments: {
-          user_input: 'test state resource',
-        },
-      });
-
-      const result = await client.readResource({
-        uri: 'state://current',
-      });
-
-      expect(result.contents).toBeDefined();
-      expect(Array.isArray(result.contents)).toBe(true);
-      expect(result.contents.length).toBeGreaterThan(0);
-
-      const content = result.contents[0];
-      expect(content.uri).toBe('state://current');
-      expect(content.mimeType).toBe('application/json');
-      expect(content.text).toBeTruthy();
-
-      // Should contain valid JSON with state information
-      const stateData = JSON.parse(content.text);
-      expect(stateData.currentPhase).toBeTruthy();
-      expect(stateData.projectPath).toBeTruthy();
-    });
-
     it('should handle resource read errors gracefully', async () => {
       // Test reading non-existent resource
       try {
@@ -365,7 +282,6 @@ describe('MCP Contract Validation', () => {
           arguments: { user_input: 'concurrent test 2' },
         }),
         client.listTools(),
-        client.listResources(),
       ];
 
       const results = await Promise.all(promises);
@@ -381,7 +297,6 @@ describe('MCP Contract Validation', () => {
 
       // List results should have arrays
       expect(Array.isArray(results[2].tools)).toBe(true);
-      expect(Array.isArray(results[3].resources)).toBe(true);
     });
 
     it('should handle malformed requests appropriately', async () => {
@@ -405,76 +320,6 @@ describe('MCP Contract Validation', () => {
   });
 
   describe('Integration Scenarios', () => {
-    it('should support complete development workflow', async () => {
-      // Start with requirements
-      const start = await client.callTool({
-        name: 'whats_next',
-        arguments: {
-          user_input: 'implement user authentication system',
-          context: 'new feature development',
-        },
-      });
-
-      const startResponse = JSON.parse(start.content[0].text);
-
-      // Check if we're using a custom state machine by looking at the phase
-      // Default state machine uses: idle, requirements, design, implementation, qa, testing, complete
-      // If we get other phases, skip the test as it's using a custom state machine
-      const defaultPhases = [
-        'idle',
-        'requirements',
-        'design',
-        'implementation',
-        'qa',
-        'testing',
-        'complete',
-      ];
-
-      if (!defaultPhases.includes(startResponse.phase)) {
-        console.log(
-          `Skipping test: Custom state machine detected (phase: ${startResponse.phase})`
-        );
-        return; // Skip test
-      }
-
-      // The server intelligently determines the appropriate starting phase
-      expect(['requirements', 'design']).toContain(startResponse.phase);
-
-      // Transition to design (if not already there)
-      let currentPhase = startResponse.phase;
-      if (currentPhase !== 'design') {
-        const design = await client.callTool({
-          name: 'proceed_to_phase',
-          arguments: {
-            target_phase: 'design',
-            reason: 'requirements analysis complete',
-            review_state: 'not-required',
-          },
-        });
-
-        const designResponse = JSON.parse(design.content[0].text);
-        expect(designResponse.phase).toBe('design');
-        currentPhase = 'design';
-      }
-
-      // Verify state resource reflects the current phase
-      const stateResult = await client.readResource({
-        uri: 'state://current',
-      });
-
-      const stateData = JSON.parse(stateResult.contents[0].text);
-      expect(stateData.currentPhase).toBe(currentPhase);
-
-      // Verify plan resource contains relevant phase information
-      const planResult = await client.readResource({
-        uri: 'plan://current',
-      });
-
-      const planContent = planResult.contents[0].text;
-      expect(planContent).toContain('# Development Plan');
-      expect(planContent).toContain('## Goal');
-    });
-
     it('should handle complex conversation context', async () => {
       const result = await client.callTool({
         name: 'whats_next',

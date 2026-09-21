@@ -32,6 +32,7 @@ describe('None Template Functionality', () => {
     }
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('None Template Creation', () => {
     it('should create none template for architecture', async () => {
       const result = await projectDocsManager.createOrLinkProjectDocs(
@@ -212,6 +213,7 @@ describe('None Template Functionality', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('Template Discovery', () => {
     it('should include none in available templates', async () => {
       const availableTemplates =

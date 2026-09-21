@@ -25,6 +25,7 @@ vi.unmock('fs/promises');
  * - Real-world usage patterns
  * - Integration between all components
  */
+
 describe('Workflow Integration', () => {
   let client: DirectServerInterface;
   let tempProject: TempProject;
@@ -369,6 +370,7 @@ describe('Workflow Integration', () => {
 });
 
 // Custom Workflow Integration tests need their own setup without start_development in beforeEach
+
 describe('Workflow Integration - Custom State Machines', () => {
   let client: DirectServerInterface;
   let tempProject: TempProject;

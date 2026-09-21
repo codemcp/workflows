@@ -25,7 +25,7 @@ describe('InstructionGenerator', () => {
   beforeEach(() => {
     testProjectPath = '/test/project';
 
-    // Mock ProjectDocsManager
+    // Mock ProjectDocsManager — now uses getVariableSubstitutions (sync, literal paths)
     mockProjectDocsManager = {
       getVariableSubstitutions: vi.fn().mockReturnValue({
         $ARCHITECTURE_DOC: join(
@@ -41,6 +41,15 @@ describe('InstructionGenerator', () => {
           'requirements.md'
         ),
         $DESIGN_DOC: join(testProjectPath, '.vibe', 'docs', 'design.md'),
+        $VIBE_DIR: join(testProjectPath, '.vibe'),
+        $BRANCH_NAME: 'main',
+        $DONE_DEFAULT:
+          'Feature work is complete. Do NOT transition to any other state — this is a terminal state. If this is a GitHub repository: create a PR. Always: present the final result to the user.',
+      }),
+      getDocumentPaths: vi.fn().mockReturnValue({
+        architecture: join(testProjectPath, '.vibe', 'docs', 'architecture.md'),
+        requirements: join(testProjectPath, '.vibe', 'docs', 'requirements.md'),
+        design: join(testProjectPath, '.vibe', 'docs', 'design.md'),
       }),
     } as unknown as Mocked<ProjectDocsManager>;
 
@@ -197,6 +206,68 @@ describe('InstructionGenerator', () => {
 
       expect(result.instructions).toContain('/test/path/doc.md');
       expect(result.instructions).not.toContain('$TEST[DOC]');
+    });
+  });
+
+  describe('instructionSource: plugin_hook suppresses whats_next reminder', () => {
+    it('should NOT include whats_next() when instructionSource is plugin_hook', async () => {
+      const baseInstructions = 'Work on design tasks.';
+      const context: InstructionContext = {
+        ...mockInstructionContext,
+        instructionSource: 'plugin_hook',
+      };
+
+      const result = await instructionGenerator.generateInstructions(
+        baseInstructions,
+        context
+      );
+
+      expect(result.instructions).not.toContain('whats_next()');
+    });
+
+    it('should include whats_next() when instructionSource is whats_next', async () => {
+      const baseInstructions = 'Work on design tasks.';
+      const context: InstructionContext = {
+        ...mockInstructionContext,
+        instructionSource: 'whats_next',
+      };
+
+      const result = await instructionGenerator.generateInstructions(
+        baseInstructions,
+        context
+      );
+
+      expect(result.instructions).toContain('whats_next()');
+    });
+
+    it('should include whats_next() when instructionSource is proceed_to_phase (backward compat)', async () => {
+      const baseInstructions = 'Work on design tasks.';
+      const context: InstructionContext = {
+        ...mockInstructionContext,
+        instructionSource: 'proceed_to_phase',
+      };
+
+      const result = await instructionGenerator.generateInstructions(
+        baseInstructions,
+        context
+      );
+
+      expect(result.instructions).toContain('whats_next()');
+    });
+
+    it('should include whats_next() when instructionSource is start_development (backward compat)', async () => {
+      const baseInstructions = 'Work on design tasks.';
+      const context: InstructionContext = {
+        ...mockInstructionContext,
+        instructionSource: 'start_development',
+      };
+
+      const result = await instructionGenerator.generateInstructions(
+        baseInstructions,
+        context
+      );
+
+      expect(result.instructions).toContain('whats_next()');
     });
   });
 

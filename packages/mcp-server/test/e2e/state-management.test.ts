@@ -24,6 +24,7 @@ vi.unmock('fs/promises');
  * - State persistence and consistency
  * - Conversation state management across sessions
  */
+
 describe('State Management', () => {
   let client: DirectServerInterface;
   let tempProject: TempProject;

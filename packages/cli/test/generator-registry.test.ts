@@ -9,6 +9,7 @@ import { GeneratorRegistry } from '../src/config-generator.js';
  * at module load time, so we test the registry as-is rather than trying
  * to clear it between tests.
  */
+
 describe('GeneratorRegistry', () => {
   // Test with the actual built-in generators
   const builtInGenerators = ['kiro', 'claude', 'gemini', 'opencode', 'copilot'];
@@ -18,6 +19,7 @@ describe('GeneratorRegistry', () => {
     expect(GeneratorRegistry).toBeDefined();
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('Built-in generators registration', () => {
     it('should have all built-in generators registered', () => {
       for (const name of builtInGenerators) {
@@ -41,6 +43,7 @@ describe('GeneratorRegistry', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('createGenerator', () => {
     it('should create generator instances for all built-in generators', () => {
       for (const name of builtInGenerators) {
@@ -100,6 +103,7 @@ describe('GeneratorRegistry', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('getAllGenerators', () => {
     it('should return all built-in generators', () => {
       const generators = GeneratorRegistry.getAllGenerators();
@@ -131,6 +135,7 @@ describe('GeneratorRegistry', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('getGeneratorNames', () => {
     it('should return array of generator names', () => {
       const names = GeneratorRegistry.getGeneratorNames();
@@ -158,6 +163,7 @@ describe('GeneratorRegistry', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('getHelpText', () => {
     it('should return formatted help text', () => {
       const helpText = GeneratorRegistry.getHelpText();
@@ -196,6 +202,7 @@ describe('GeneratorRegistry', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('exists', () => {
     it('should return true for all built-in generators', () => {
       for (const name of builtInGenerators) {

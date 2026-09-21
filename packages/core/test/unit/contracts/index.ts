@@ -2,7 +2,6 @@
  * Interface Contract Test Framework
  *
  * Central export point for the contract testing framework.
- * Use this to import all necessary components for interface contract testing.
  */
 
 // Core framework components
@@ -17,17 +16,11 @@ export {
 // Implementation registry
 export {
   ImplementationRegistry,
-  RegisterImplementation,
   discoverAndRegisterImplementations,
 } from './implementation-registry.js';
 
-// Interface-specific contracts (these contain the actual test suites)
-// Note: Import these test files directly to run the contract tests
-// (empty exports removed per linter recommendations)
-
 /**
  * Quick setup function to register all existing implementations
- * Call this at the start of your test suite to ensure coverage
  */
 export async function setupContractTesting(): Promise<void> {
   const { discoverAndRegisterImplementations: discover } =
@@ -48,20 +41,18 @@ export function validateRegistrations(): {
   missing: string[];
   registered: string[];
 } {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { ImplementationRegistry } = require('./implementation-registry.js');
   const summary = ImplementationRegistry.getRegistrationSummary();
 
-  // Define required implementations
   const requiredImplementations = {
     planManager: ['PlanManager'],
     instructionGenerator: ['InstructionGenerator'],
-    taskBackendClient: [], // No implementations required yet
   };
 
   const missing: string[] = [];
   const registered: string[] = [];
 
-  // Check plan managers
   for (const required of requiredImplementations.planManager) {
     if (summary.planManagers.includes(required)) {
       registered.push(`IPlanManager:${required}`);
@@ -70,7 +61,6 @@ export function validateRegistrations(): {
     }
   }
 
-  // Check instruction generators
   for (const required of requiredImplementations.instructionGenerator) {
     if (summary.instructionGenerators.includes(required)) {
       registered.push(`IInstructionGenerator:${required}`);
@@ -94,16 +84,16 @@ export function getContractMetrics(): {
   interfacesCovered: number;
   implementationsByInterface: Record<string, number>;
 } {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { ImplementationRegistry } = require('./implementation-registry.js');
   const summary = ImplementationRegistry.getRegistrationSummary();
 
   return {
     totalImplementations: summary.total,
-    interfacesCovered: 3, // IPlanManager, IInstructionGenerator, ITaskBackendClient
+    interfacesCovered: 2, // IPlanManager, IInstructionGenerator
     implementationsByInterface: {
       IPlanManager: summary.planManagers.length,
       IInstructionGenerator: summary.instructionGenerators.length,
-      ITaskBackendClient: summary.taskBackendClients.length,
     },
   };
 }

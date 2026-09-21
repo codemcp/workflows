@@ -15,7 +15,12 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "resources/**", "tsconfig.tsbuildinfo"]
+      "outputs": [
+        "dist/**",
+        "resources/**",
+        "tsconfig.tsbuildinfo",
+        ".vitepress/dist/**"
+      ]
     },
     "clean:build": {
       "dependsOn": ["build"]

@@ -14,9 +14,7 @@ import { ResumeWorkflowHandler } from './resume-workflow.js';
 import { ResetDevelopmentHandler } from './reset-development.js';
 
 import { ListWorkflowsHandler } from './list-workflows.js';
-import { GetToolInfoHandler } from './get-tool-info.js';
 import { SetupProjectDocsHandler } from './setup-project-docs.js';
-import { NoIdeaHandler } from './no-idea.js';
 import { ToolHandler, ToolRegistry } from '../types.js';
 
 const logger = createLogger('ToolRegistry');
@@ -58,9 +56,7 @@ export function createToolRegistry(): ToolRegistry {
   registry.register('resume_workflow', new ResumeWorkflowHandler());
   registry.register('reset_development', new ResetDevelopmentHandler());
   registry.register('list_workflows', new ListWorkflowsHandler());
-  registry.register('get_tool_info', new GetToolInfoHandler());
   registry.register('setup_project_docs', new SetupProjectDocsHandler());
-  registry.register('no_idea', new NoIdeaHandler());
 
   logger.info('Tool registry created with handlers', {
     handlers: registry.list(),
@@ -77,9 +73,7 @@ export { StartDevelopmentHandler } from './start-development.js';
 export { ResumeWorkflowHandler } from './resume-workflow.js';
 export { ResetDevelopmentHandler } from './reset-development.js';
 export { ListWorkflowsHandler } from './list-workflows.js';
-export { GetToolInfoHandler } from './get-tool-info.js';
 export { SetupProjectDocsHandler } from './setup-project-docs.js';
-export { NoIdeaHandler } from './no-idea.js';
 export {
   BaseToolHandler,
   ConversationRequiredToolHandler,
@@ -107,9 +101,7 @@ export type {
   ResetDevelopmentArgs,
   ResetDevelopmentResult,
 } from './reset-development.js';
-export type { GetToolInfoArgs, GetToolInfoResponse } from './get-tool-info.js';
 export type {
   SetupProjectDocsArgs,
   SetupProjectDocsResult,
 } from './setup-project-docs.js';
-export type { NoIdeaArgs, NoIdeaResponse } from './no-idea.js';

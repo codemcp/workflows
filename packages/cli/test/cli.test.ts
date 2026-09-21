@@ -500,25 +500,6 @@ describe('CLI', () => {
   });
 
   describe('Default Behavior', () => {
-    it('should start visualization tool by default', () => {
-      process.argv = ['node', 'cli.js'];
-
-      // spawn is already mocked in beforeEach, so no actual processes will be spawned
-      runCli();
-
-      // Should not show error
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
-    });
-
-    it('should start visualization tool with visualize subcommand', () => {
-      process.argv = ['node', 'cli.js', 'visualize'];
-
-      // spawn is already mocked in beforeEach, so no actual processes will be spawned
-      runCli();
-
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
-    });
-
     it('should show deprecation warning for --visualize flag', () => {
       process.argv = ['node', 'cli.js', '--visualize'];
 

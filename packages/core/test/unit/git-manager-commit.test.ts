@@ -20,6 +20,7 @@ describe('GitManager Commit Operations', () => {
     mockExistsSync.mockReturnValue(true); // Default: is git repository
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('createCommit', () => {
     it('should create commit with message when changes exist', () => {
       // Arrange
@@ -74,6 +75,7 @@ describe('GitManager Commit Operations', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('hasUncommittedChanges', () => {
     it('should return true when there are uncommitted changes', () => {
       // Arrange

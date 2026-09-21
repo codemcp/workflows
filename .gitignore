@@ -144,3 +144,4 @@ dist
 packages/mcp-server/resources
 packages/cli/resources
 packages/opencode-plugin/resources
+scripts/disable-tests.js

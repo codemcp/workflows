@@ -27,10 +27,15 @@ describe('InstructionGenerator - Core Functionality', () => {
   beforeEach(() => {
     testProjectPath = '/test/project';
 
-    // Mock ProjectDocsManager
+    // Mock ProjectDocsManager — uses getVariableSubstitutions (sync) now
     mockProjectDocsManager = {
       getVariableSubstitutions: vi.fn().mockReturnValue({
         $DESIGN_DOC: join(testProjectPath, '.vibe', 'docs', 'design.md'),
+      }),
+      getDocumentPaths: vi.fn().mockReturnValue({
+        architecture: join(testProjectPath, '.vibe', 'docs', 'architecture.md'),
+        requirements: join(testProjectPath, '.vibe', 'docs', 'requirements.md'),
+        design: join(testProjectPath, '.vibe', 'docs', 'design.md'),
       }),
     };
 

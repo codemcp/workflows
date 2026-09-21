@@ -12,6 +12,16 @@ import type { ConversationState } from './types.js';
 
 const defaultLogger = createLogger('TransitionEngine');
 
+/**
+ * Minimal interface for reading conversation state, used by TransitionEngine.
+ */
+export interface ConversationStateReader {
+  hasInteractions: (conversationId: string) => Promise<boolean>;
+  getConversationState: (
+    conversationId: string
+  ) => Promise<ConversationState | null>;
+}
+
 export interface TransitionContext {
   currentPhase: string;
   projectPath: string;
@@ -32,12 +42,7 @@ export interface TransitionResult {
 export class TransitionEngine {
   private workflowManager: WorkflowManager;
   private logger: ILogger;
-  private conversationManager?: {
-    hasInteractions: (conversationId: string) => Promise<boolean>;
-    getConversationState: (
-      conversationId: string
-    ) => Promise<ConversationState | null>;
-  };
+  private conversationManager?: ConversationStateReader;
 
   constructor(projectPath: string, logger: ILogger = defaultLogger) {
     this.workflowManager = new WorkflowManager();
@@ -49,12 +54,7 @@ export class TransitionEngine {
   /**
    * Set the conversation manager (dependency injection)
    */
-  setConversationManager(conversationManager: {
-    hasInteractions: (conversationId: string) => Promise<boolean>;
-    getConversationState: (
-      conversationId: string
-    ) => Promise<ConversationState | null>;
-  }) {
+  setConversationManager(conversationManager: ConversationStateReader) {
     this.conversationManager = conversationManager;
   }
 
@@ -297,22 +297,5 @@ export class TransitionEngine {
       transitionReason: reason || transitionInfo.transitionReason,
       isModeled: transitionInfo.isModeled,
     };
-  }
-
-  /**
-   * Filter transitions based on agent role (for crowd workflows)
-   * Returns transitions applicable to the current agent
-   */
-  filterTransitionsByRole<T extends { role?: string }>(
-    transitions: T[],
-    agentRole?: string
-  ): T[] {
-    // If no role specified, return all transitions (single-agent mode)
-    if (!agentRole) {
-      return transitions;
-    }
-
-    // Filter transitions: include if no role specified OR role matches
-    return transitions.filter(t => !t.role || t.role === agentRole);
   }
 }

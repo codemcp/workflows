@@ -15,7 +15,6 @@ import {
 import type { ServerContext } from '../../src/types';
 import type { StartDevelopmentResult } from '../../src/tool-handlers/start-development.js';
 import { TempProject } from './temp-files.js';
-import { PluginRegistry } from '../../src/plugin-system/plugin-registry.js';
 
 /**
  * Mock project documents content
@@ -115,7 +114,6 @@ export class MockContextFactory {
   ) {
     return {
       projectPath,
-      pluginRegistry: new PluginRegistry(),
       workflowManager: {
         validateWorkflowName: vi.fn().mockReturnValue(true),
         getWorkflowNames: vi
@@ -150,6 +148,11 @@ export class MockContextFactory {
       planManager: {
         setStateMachine: vi.fn(),
         ensurePlanFile: vi.fn(),
+        generateWorkflowDocumentationUrl: vi
+          .fn()
+          .mockReturnValue(
+            'https://codemcp.github.io/workflows/workflows/epcc'
+          ),
         getInitialPlanGuidance: vi
           .fn()
           .mockReturnValue(

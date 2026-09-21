@@ -178,13 +178,10 @@ describe('Markdown Backend Protection Tests', () => {
         mockInstructionContext
       );
 
-      // Should contain substituted paths
-      expect(result.instructions).toContain(
-        '/test/project/.vibe/docs/design.md'
-      );
-      expect(result.instructions).toContain(
-        '/test/project/.vibe/docs/architecture.md'
-      );
+      // Variables are substituted: when files don't exist they become empty string,
+      // so the raw $VAR token must not survive as-is in the output.
+      expect(result.instructions).not.toContain('$DESIGN_DOC');
+      expect(result.instructions).not.toContain('$ARCHITECTURE_DOC');
 
       // Should still be in markdown format
       expect(result.instructions).not.toContain('bd CLI');

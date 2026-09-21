@@ -6,7 +6,6 @@
  */
 
 import type { ServerContext, HandlerResult } from '@codemcp/workflows-server';
-import { PluginRegistry, BeadsPlugin } from '@codemcp/workflows-server';
 
 // Re-export the ServerContext type for convenience
 export type { ServerContext } from '@codemcp/workflows-server';
@@ -16,8 +15,8 @@ import {
   WorkflowManager,
   FileStorage,
   InteractionLogger,
-  type IPlanManager,
-  type IInstructionGenerator,
+  PlanManager,
+  InstructionGenerator,
   type LoggerFactory,
 } from '@codemcp/workflows-core';
 import type { SessionMetadata } from '@codemcp/workflows-server';
@@ -25,8 +24,8 @@ import * as path from 'node:path';
 
 export interface ServerContextOptions {
   projectDir: string;
-  planManager: IPlanManager;
-  instructionGenerator: IInstructionGenerator;
+  planManager: PlanManager;
+  instructionGenerator: InstructionGenerator;
   /** Optional logger factory - if provided, handlers will use this instead of global createLogger */
   loggerFactory?: LoggerFactory;
   /** Optional session metadata to link workflow state to external context */
@@ -74,14 +73,6 @@ export function createServerContext(
   const transitionEngine = new TransitionEngine(projectDir);
   transitionEngine.setConversationManager(conversationManager);
 
-  // Initialize plugin registry and register BeadsPlugin
-  // (PluginRegistry.registerPlugin checks isEnabled() internally)
-  // Pass loggerFactory so BeadsPlugin logs go through OpenCode SDK
-  const pluginRegistry = new PluginRegistry();
-  pluginRegistry.registerPlugin(
-    new BeadsPlugin({ projectPath: projectDir, loggerFactory })
-  );
-
   return {
     conversationManager,
     transitionEngine,
@@ -90,7 +81,6 @@ export function createServerContext(
     workflowManager,
     interactionLogger,
     projectPath: projectDir,
-    pluginRegistry,
     loggerFactory,
     sessionMetadata,
   };

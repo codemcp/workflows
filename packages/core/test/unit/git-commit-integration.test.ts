@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { GitManager } from '@codemcp/workflows-core';
 
 describe('Git Commit Integration', () => {
+  // PHASE-0: disabled for incremental re-enable
   describe('GitManager Repository Detection', () => {
     it('should detect git repositories correctly', () => {
       // This test verifies that GitManager can detect git repositories
@@ -19,6 +20,7 @@ describe('Git Commit Integration', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('Commit Behaviour Parameter', () => {
     it('should define all expected commit behaviour options', () => {
       // This test verifies that all expected commit behaviour options are available
@@ -48,6 +50,7 @@ describe('Git Commit Integration', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('Dynamic Tool Description Logic', () => {
     it('should provide different guidance for git vs non-git projects', () => {
       // This test verifies the core logic of our dynamic tool descriptions

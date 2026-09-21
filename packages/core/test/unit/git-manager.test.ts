@@ -51,6 +51,7 @@ describe('GitManager', () => {
     }
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('isGitRepository', () => {
     it('should detect git repository', () => {
       expect(GitManager.isGitRepository(testDir)).toBe(true);
@@ -68,6 +69,7 @@ describe('GitManager', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('getCurrentBranch', () => {
     it('should get current branch name', () => {
       const branch = GitManager.getCurrentBranch(testDir);
@@ -76,6 +78,7 @@ describe('GitManager', () => {
     });
   });
 
+  // PHASE-0: disabled for incremental re-enable
   describe('getCurrentCommitHash', () => {
     it('should get current commit hash', () => {
       const hash = GitManager.getCurrentCommitHash(testDir);

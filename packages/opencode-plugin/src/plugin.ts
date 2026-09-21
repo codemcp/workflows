@@ -436,7 +436,10 @@ export const WorkflowsPlugin: Plugin = async (
         try {
           const serverContext = await getServerContext();
           const handler = new WhatsNextHandler();
-          const handlerResult = await handler.handle({}, serverContext);
+          const handlerResult = await handler.handle(
+            { _instructionSource: 'plugin_hook' },
+            serverContext
+          );
 
           if (!handlerResult.success || !handlerResult.data) {
             logger.info(
@@ -584,7 +587,10 @@ ACTION REQUIRED: Use proceed_to_phase tool to move to a phase that allows editin
       try {
         const serverContext = await getServerContext();
         const handler = new WhatsNextHandler();
-        const handlerResult = await handler.handle({}, serverContext);
+        const handlerResult = await handler.handle(
+          { _instructionSource: 'plugin_hook' },
+          serverContext
+        );
         if (handlerResult.success && handlerResult.data) {
           phaseInstructions = stripWhatsNextReferences(
             handlerResult.data.instructions
@@ -664,7 +670,10 @@ ACTION REQUIRED: Use proceed_to_phase tool to move to a phase that allows editin
         try {
           const serverContext = await getServerContext();
           const handler = new WhatsNextHandler();
-          const handlerResult = await handler.handle({}, serverContext);
+          const handlerResult = await handler.handle(
+            { _instructionSource: 'plugin_hook' },
+            serverContext
+          );
           if (handlerResult.success && handlerResult.data) {
             const instructions = stripWhatsNextReferences(
               handlerResult.data.instructions

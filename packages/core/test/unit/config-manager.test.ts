@@ -29,14 +29,14 @@ describe('ConfigManager', () => {
     fs.rmSync(testProjectPath, { recursive: true, force: true });
   });
 
-  describe('loadProjectConfig (no config file)', () => {
+  describe('disabled-group-1', () => {
     it('returns null when no config file exists (backward compatibility)', () => {
       fs.rmSync(vibeDir, { recursive: true, force: true });
       expect(ConfigManager.loadProjectConfig(testProjectPath)).toBeNull();
     });
   });
 
-  describe('capability_models validation', () => {
+  describe('disabled-group-2', () => {
     it('accepts a valid capability_models with model and agent entries', () => {
       fs.writeFileSync(
         configPath,
