@@ -1,3 +1,9 @@
+# [6.25.0](https://github.com/codemcp/workflows/compare/v6.24.2...v6.25.0) (2026-11-25)
+
+### Features
+
+- **opencode:** support OpenCode 2.x and 1.x with one plugin ([#296](https://github.com/codemcp/workflows/issues/296)) ([416f0cb](https://github.com/codemcp/workflows/commit/416f0cbec56bab23fe5bbac1755907b6c9da07f1))
+
 ## [6.24.2](https://github.com/codemcp/workflows/compare/v6.24.1...v6.24.2) (2026-09-21)
 
 ### Bug Fixes
