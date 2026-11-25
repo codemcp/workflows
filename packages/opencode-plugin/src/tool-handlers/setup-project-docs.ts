@@ -3,7 +3,7 @@ import {
   SetupProjectDocsHandler,
   type ServerContext,
 } from '@codemcp/workflows-server';
-import type { ToolDefinition } from '../types.js';
+import type { ToolSpec } from '../runtime/tool-spec.js';
 import { tool } from './tool-helper.js';
 import { handleMcpError, unwrapResult } from '../server-context.js';
 import { createLogger, TemplateManager } from '@codemcp/workflows-core';
@@ -11,7 +11,7 @@ import { createLogger, TemplateManager } from '@codemcp/workflows-core';
 export async function createSetupProjectDocsTool(
   projectDir: string,
   getServerContext: () => Promise<ServerContext>
-): Promise<ToolDefinition> {
+): Promise<ToolSpec> {
   // Get available templates for description
   const templateManager = new TemplateManager();
   const availableTemplates = await templateManager.getAvailableTemplates();

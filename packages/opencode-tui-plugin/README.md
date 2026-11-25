@@ -6,6 +6,8 @@ OpenCode TUI sidebar plugin that displays the current [@codemcp/workflows](https
 
 Add the plugin to your OpenCode TUI config. Create or edit `~/.config/opencode/tui.json`:
 
+OpenCode 1.x:
+
 ```json
 {
   "$schema": "https://opencode.ai/tui.json",
@@ -13,7 +15,15 @@ Add the plugin to your OpenCode TUI config. Create or edit `~/.config/opencode/t
 }
 ```
 
-OpenCode will install the package automatically via Bun on next startup — no manual `npm install` needed.
+OpenCode 2.x (CLI plugin, `cli.json`, key `plugins`):
+
+```json
+{
+  "plugins": ["@codemcp/workflows-opencode-tui"]
+}
+```
+
+The package has one default export for both hosts: 1.x reads `tui`, 2.x reads `setup`. OpenCode installs the package automatically on next startup — no manual `npm install` needed.
 
 ## What it shows
 
@@ -54,6 +64,11 @@ To test the plugin locally before publishing, point `tui.json` at the absolute p
   "plugin": ["/path/to/workflows/packages/opencode-tui-plugin"]
 }
 ```
+
+## Compatibility notes
+
+- The 2.x entry is written against the `@opencode/plugin@2.1.2` typings (`context.ui.slot`, `context.data`, `context.theme`). It is covered by type checking and the state-reader unit tests, but could not be verified in a real terminal session yet.
+- Workflow state is read from `.vibe/conversations/<id>/state.json`, the same files for both hosts.
 
 ## License
 

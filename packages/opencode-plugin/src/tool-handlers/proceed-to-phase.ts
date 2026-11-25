@@ -2,21 +2,17 @@ import { z } from 'zod';
 import {
   ProceedToPhaseHandler,
   type ServerContext,
-  type WhatsNextResult,
 } from '@codemcp/workflows-server';
-import type { ToolDefinition } from '../types.js';
+import type { ToolSpec } from '../runtime/tool-spec.js';
 import { tool } from './tool-helper.js';
 import { handleMcpError, unwrapResult } from '../server-context.js';
 import { createLogger } from '@codemcp/workflows-core';
 import { stripWhatsNextReferences, requirePrimaryAgent } from '../utils.js';
-import type { OpenCodeClient } from '../opencode-logger.js';
 
 export function createProceedToPhaseTool(
   getServerContext: () => Promise<ServerContext>,
-  setBufferedInstructions: (result: WhatsNextResult) => void,
-  client: OpenCodeClient,
-  getModel: () => { providerID: string; modelID: string } | null
-): ToolDefinition {
+  compact: (sessionID: string) => Promise<void> | void
+): ToolSpec {
   return tool({
     description:
       'Move to a development phase. Args: target_phase (from plan file), reason (optional), review_state (not-required|pending|performed)',
@@ -60,36 +56,22 @@ export function createProceedToPhaseTool(
 
         const data = unwrapResult(result);
 
-        // Buffer instructions so the next chat.message hook uses them
-        // instead of re-querying WhatsNextHandler (which may read stale disk state)
-        setBufferedInstructions({
-          phase: data.phase,
-          instructions: data.instructions,
-          plan_file_path: data.plan_file_path,
-          allowed_file_patterns: data.allowed_file_patterns,
-        });
-
         // Trigger compaction to clear prior-phase context from the LLM window.
         // Skipped when WORKFLOW_AUTO_COMPACT=false; default is enabled.
         // Fire-and-forget: a failed compaction must never block the phase transition.
-        // The summarize API requires providerID + modelID; we use the last-known
-        // model from the chat.message hook (cached in the plugin closure).
+        // The host decides how to compact (V1: summarize API with the cached
+        // model, V2: session.compact).
         const autoCompact = process.env['WORKFLOW_AUTO_COMPACT']
           ?.trim()
           ?.toLowerCase();
         if (autoCompact !== 'false') {
-          const model = getModel();
-          client.session
-            .summarize({
-              path: { id: context.sessionID },
-              ...(model ? { body: model } : {}),
-            })
+          void Promise.resolve()
+            .then(() => compact(context.sessionID))
             .catch(() => {});
 
           logger.info('Triggered compaction after phase transition', {
             phase: data.phase,
             sessionID: context.sessionID,
-            hasModel: !!model,
           });
         } else {
           logger.debug('Skipped compaction: WORKFLOW_AUTO_COMPACT=false', {

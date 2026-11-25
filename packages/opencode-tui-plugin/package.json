@@ -1,13 +1,14 @@
 {
   "name": "@codemcp/workflows-opencode-tui",
   "version": "6.24.2",
-  "description": "OpenCode TUI sidebar plugin that displays the current responsible-vibe workflow phase and name",
+  "description": "OpenCode TUI sidebar plugin (OpenCode 1.x and 2.x) that displays the current workflow phase and name",
   "main": "workflows-phase.tsx",
   "exports": {
     "./tui": "./workflows-phase.tsx"
   },
   "files": [
-    "workflows-phase.tsx"
+    "workflows-phase.tsx",
+    "state-reader.ts"
   ],
   "publishConfig": {
     "access": "public",
@@ -18,13 +19,15 @@
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format:check": "prettier --check .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest --run"
   },
   "peerDependencies": {
     "@codemcp/workflows-core": "*",
     "@opencode-ai/plugin": "*",
     "@opentui/solid": "*",
-    "solid-js": "*"
+    "solid-js": "*",
+    "@opencode/plugin": "*"
   },
   "devDependencies": {
     "@codemcp/workflows-core": "workspace:*",
@@ -32,7 +35,9 @@
     "@opentui/solid": "*",
     "@types/node": "^22.0.0",
     "solid-js": "*",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@opencode/plugin": "2.1.2",
+    "vitest": "4.0.18"
   },
   "keywords": [
     "opencode",
@@ -46,5 +51,13 @@
     "type": "git",
     "url": "git+https://github.com/codemcp/workflows.git",
     "directory": "packages/opencode-tui-plugin"
+  },
+  "peerDependenciesMeta": {
+    "@opencode-ai/plugin": {
+      "optional": true
+    },
+    "@opencode/plugin": {
+      "optional": true
+    }
   }
 }

@@ -271,8 +271,7 @@ describe('OpenCode Workflows Plugin E2E', () => {
   });
 
   describe('chat.message hook', () => {
-    it('injects phase instructions when workflow is active', async () => {
-      // Setup workflow state
+    it('does NOT repeat phase instructions with every message when a workflow is active', async () => {
       await setupWorkflowState(testDir, {
         workflowName: 'epcc',
         currentPhase: 'explore',
@@ -280,67 +279,55 @@ describe('OpenCode Workflows Plugin E2E', () => {
 
       hooks = await WorkflowsPlugin(mockInput);
 
-      // Create mock input/output for the hook
-      const hookInput = {
-        sessionID: 'test-session',
-        messageID: 'msg-123',
-      };
-
-      const mockMessage: UserMessage = {
-        id: 'msg-123',
-        sessionID: 'test-session',
-        role: 'user',
-      };
-
       const output = {
-        message: mockMessage,
+        message: {
+          id: 'msg-123',
+          sessionID: 'test-session',
+          role: 'user',
+        } as UserMessage,
         parts: [] as Part[],
       };
 
-      // Call the hook
-      await hooks['chat.message']!(hookInput, output);
+      await hooks['chat.message']!(
+        { sessionID: 'test-session', messageID: 'msg-123' },
+        output
+      );
 
-      // Verify phase instructions were injected
-      expect(output.parts.length).toBeGreaterThan(0);
-
-      const injectedPart = output.parts[0];
-      expect(injectedPart.type).toBe('text');
-      expect(injectedPart.text).toContain('Explore');
+      // Instructions come with the start/proceed tool result and once after
+      // the compaction a phase change triggers, not with every user message
+      expect(output.parts.length).toBe(0);
     });
 
-    it('marks injected phase instruction parts as synthetic to prevent undo restoring them', async () => {
-      // Setup workflow state
-      await setupWorkflowState(testDir, {
-        workflowName: 'epcc',
-        currentPhase: 'explore',
-      });
+    it('marks injected notice parts as synthetic to prevent undo restoring them', async () => {
+      const original = process.env.WORKFLOW_AGENTS;
+      process.env.WORKFLOW_AGENTS = 'general';
+      try {
+        hooks = await WorkflowsPlugin(mockInput);
 
-      hooks = await WorkflowsPlugin(mockInput);
+        const output = {
+          message: {
+            id: 'msg-123',
+            sessionID: 'test-session',
+            role: 'user',
+          } as UserMessage,
+          parts: [] as Part[],
+        };
 
-      const hookInput = {
-        sessionID: 'test-session',
-        messageID: 'msg-123',
-      };
+        await hooks['chat.message']!(
+          { sessionID: 'test-session', messageID: 'msg-123', agent: 'explore' },
+          output
+        );
 
-      const mockMessage: UserMessage = {
-        id: 'msg-123',
-        sessionID: 'test-session',
-        role: 'user',
-      };
-
-      const output = {
-        message: mockMessage,
-        parts: [] as Part[],
-      };
-
-      await hooks['chat.message']!(hookInput, output);
-
-      // All injected parts must be synthetic so opencode's undo flow
-      // (extractPromptFromParts) does not restore plugin instructions
-      // as the user's message text.
-      expect(output.parts.length).toBeGreaterThan(0);
-      for (const part of output.parts) {
-        expect((part as { synthetic?: boolean }).synthetic).toBe(true);
+        // All injected parts must be synthetic so opencode's undo flow
+        // (extractPromptFromParts) does not restore plugin text as the
+        // user's message.
+        expect(output.parts.length).toBeGreaterThan(0);
+        for (const part of output.parts) {
+          expect((part as { synthetic?: boolean }).synthetic).toBe(true);
+        }
+      } finally {
+        if (original === undefined) delete process.env.WORKFLOW_AGENTS;
+        else process.env.WORKFLOW_AGENTS = original;
       }
     });
 
@@ -1362,47 +1349,65 @@ describe('event hook - post-compaction behaviour', () => {
     expect(output.parts.length).toBe(0);
   });
 
-  it('chat.message injects synthetic part normally after flag is consumed', async () => {
-    await setupWorkflowState(testDir, {
-      workflowName: 'epcc',
-      currentPhase: 'explore',
-    });
+  it('chat.message treats only the first message after compaction specially (agent filter bypass)', async () => {
+    const original = process.env.WORKFLOW_AGENTS;
+    process.env.WORKFLOW_AGENTS = 'general';
+    try {
+      await setupWorkflowState(testDir, {
+        workflowName: 'epcc',
+        currentPhase: 'explore',
+      });
 
-    const hooks = await WorkflowsPlugin(mockInput);
+      const hooks = await WorkflowsPlugin(mockInput);
 
-    // Fire compaction sequence
-    await hooks.event!({
-      event: {
-        type: 'session.compacted',
-        properties: { sessionID: 'sess-after' },
-      },
-    });
-    const idlePromise = hooks.event!({
-      event: { type: 'session.idle', properties: { sessionID: 'sess-after' } },
-    });
-    await vi.runAllTimersAsync();
-    await idlePromise;
+      await hooks.event!({
+        event: {
+          type: 'session.compacted',
+          properties: { sessionID: 'sess-after' },
+        },
+      });
+      const idlePromise = hooks.event!({
+        event: {
+          type: 'session.idle',
+          properties: { sessionID: 'sess-after' },
+        },
+      });
+      await vi.runAllTimersAsync();
+      await idlePromise;
 
-    // First chat.message: consumes the flag (no synthetic part)
-    const output1 = {
-      message: { id: 'msg-1', sessionID: 'sess-after', role: 'user' as const },
-      parts: [] as Part[],
-    };
-    await hooks['chat.message']!(
-      { sessionID: 'sess-after', messageID: 'msg-1' },
-      output1
-    );
-    expect(output1.parts.length).toBe(0);
+      // First message (OpenCode's own auto-continue, possibly under another
+      // agent): no suppression notice
+      const output1 = {
+        message: {
+          id: 'msg-1',
+          sessionID: 'sess-after',
+          role: 'user' as const,
+        },
+        parts: [] as Part[],
+      };
+      await hooks['chat.message']!(
+        { sessionID: 'sess-after', messageID: 'msg-1', agent: 'explore' },
+        output1
+      );
+      expect(output1.parts.length).toBe(0);
 
-    // Second chat.message: flag is gone, normal injection happens
-    const output2 = {
-      message: { id: 'msg-2', sessionID: 'sess-after', role: 'user' as const },
-      parts: [] as Part[],
-    };
-    await hooks['chat.message']!(
-      { sessionID: 'sess-after', messageID: 'msg-2' },
-      output2
-    );
-    expect(output2.parts.length).toBeGreaterThan(0);
+      // Second message: flag is gone, the filter applies again
+      const output2 = {
+        message: {
+          id: 'msg-2',
+          sessionID: 'sess-after',
+          role: 'user' as const,
+        },
+        parts: [] as Part[],
+      };
+      await hooks['chat.message']!(
+        { sessionID: 'sess-after', messageID: 'msg-2', agent: 'explore' },
+        output2
+      );
+      expect(output2.parts.length).toBeGreaterThan(0);
+    } finally {
+      if (original === undefined) delete process.env.WORKFLOW_AGENTS;
+      else process.env.WORKFLOW_AGENTS = original;
+    }
   });
 });

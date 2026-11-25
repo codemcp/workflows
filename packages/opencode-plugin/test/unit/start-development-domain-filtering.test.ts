@@ -59,13 +59,8 @@ describe('start_development tool - Domain Filtering', () => {
       ({
         loggerFactory: undefined,
       }) as never;
-    const updateCachedState = () => {};
 
-    const tool = createStartDevelopmentTool(
-      testDir,
-      mockGetServerContext,
-      updateCachedState
-    );
+    const tool = createStartDevelopmentTool(testDir, mockGetServerContext);
 
     // Tool description should indicate workflows from code domain
     expect(tool.description).toBeDefined();
@@ -92,13 +87,8 @@ describe('start_development tool - Domain Filtering', () => {
       ({
         loggerFactory: undefined,
       }) as never;
-    const updateCachedState = () => {};
 
-    const tool = createStartDevelopmentTool(
-      testDir,
-      mockGetServerContext,
-      updateCachedState
-    );
+    const tool = createStartDevelopmentTool(testDir, mockGetServerContext);
 
     const description = tool.description;
 
@@ -125,13 +115,8 @@ describe('start_development tool - Domain Filtering', () => {
       ({
         loggerFactory: undefined,
       }) as never;
-    const updateCachedState = () => {};
 
-    const tool = createStartDevelopmentTool(
-      testDir,
-      mockGetServerContext,
-      updateCachedState
-    );
+    const tool = createStartDevelopmentTool(testDir, mockGetServerContext);
 
     const description = tool.description;
 
@@ -158,13 +143,8 @@ describe('start_development tool - Domain Filtering', () => {
       ({
         loggerFactory: undefined,
       }) as never;
-    const updateCachedState = () => {};
 
-    const tool = createStartDevelopmentTool(
-      testDir,
-      mockGetServerContext,
-      updateCachedState
-    );
+    const tool = createStartDevelopmentTool(testDir, mockGetServerContext);
 
     const description = tool.description;
 
@@ -183,13 +163,8 @@ describe('start_development tool - Domain Filtering', () => {
       ({
         loggerFactory: undefined,
       }) as never;
-    const updateCachedState = () => {};
 
-    const tool = createStartDevelopmentTool(
-      testDir,
-      mockGetServerContext,
-      updateCachedState
-    );
+    const tool = createStartDevelopmentTool(testDir, mockGetServerContext);
 
     // Verify tool structure
     expect(tool.description).toBeDefined();
@@ -210,13 +185,8 @@ describe('start_development tool - Domain Filtering', () => {
       ({
         loggerFactory: undefined,
       }) as never;
-    const updateCachedState = () => {};
 
-    const tool = createStartDevelopmentTool(
-      testDir,
-      mockGetServerContext,
-      updateCachedState
-    );
+    const tool = createStartDevelopmentTool(testDir, mockGetServerContext);
 
     const description = tool.description;
 
@@ -241,13 +211,8 @@ describe('start_development tool - Domain Filtering', () => {
       ({
         loggerFactory: undefined,
       }) as never;
-    const updateCachedState = () => {};
 
-    const tool = createStartDevelopmentTool(
-      testDir,
-      mockGetServerContext,
-      updateCachedState
-    );
+    const tool = createStartDevelopmentTool(testDir, mockGetServerContext);
 
     const description = tool.description;
 

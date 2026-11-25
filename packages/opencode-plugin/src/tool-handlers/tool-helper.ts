@@ -1,17 +1,16 @@
 import { z } from 'zod';
-import type { ToolContext } from '../types.js';
-import type { ToolDefinition } from '@opencode-ai/plugin';
+import type { ToolCallContext, ToolSpec } from '../runtime/tool-spec.js';
 
 /**
- * Tool definition helper
+ * Tool definition helper (host-neutral, see runtime/tool-spec.ts)
  */
 export function tool<Args extends z.ZodRawShape>(input: {
   description: string;
   args: Args;
   execute(
     args: z.infer<z.ZodObject<Args>>,
-    context: ToolContext
+    context: ToolCallContext
   ): Promise<string>;
-}): ToolDefinition {
-  return input as ToolDefinition;
+}): ToolSpec {
+  return input as unknown as ToolSpec;
 }
