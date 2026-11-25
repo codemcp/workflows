@@ -14,6 +14,11 @@
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["workflows-phase.tsx"],
+  "include": [
+    "workflows-phase.tsx",
+    "state-reader.ts",
+    "test/**/*.ts",
+    "vitest.config.ts"
+  ],
   "exclude": ["node_modules"]
 }

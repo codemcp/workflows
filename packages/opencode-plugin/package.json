@@ -1,7 +1,7 @@
 {
   "name": "@codemcp/workflows-opencode",
   "version": "6.24.2",
-  "description": "OpenCode plugin for structured development workflows",
+  "description": "OpenCode plugin (OpenCode 1.x and 2.x) for structured development workflows",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -22,7 +22,8 @@
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format:check": "prettier --check .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:e2e:container": "pnpm build && vitest --run --config vitest.e2e.config.ts"
   },
   "dependencies": {
     "effect": "4.0.0-beta.48"
@@ -31,6 +32,7 @@
     "@codemcp/workflows-core": "workspace:*",
     "@codemcp/workflows-server": "workspace:*",
     "@opencode-ai/plugin": "*",
+    "@opencode/plugin": "2.1.2",
     "rimraf": "^6.0.1",
     "tsup": "^8.0.0",
     "vitest": "4.0.18"
@@ -38,17 +40,21 @@
   "peerDependencies": {
     "@anthropic-ai/sdk": "*",
     "@opencode-ai/plugin": "*",
-    "zod": ">=4.1.8"
+    "zod": ">=4.1.8",
+    "@opencode/plugin": "*"
   },
   "peerDependenciesMeta": {
     "@anthropic-ai/sdk": {
       "optional": true
     },
     "@opencode-ai/plugin": {
-      "optional": false
+      "optional": true
     },
     "zod": {
       "optional": false
+    },
+    "@opencode/plugin": {
+      "optional": true
     }
   },
   "keywords": [

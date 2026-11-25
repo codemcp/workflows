@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { ServerContext } from '@codemcp/workflows-server';
-import type { ToolDefinition } from '../types.js';
+import type { ToolSpec } from '../runtime/tool-spec.js';
 import { tool } from './tool-helper.js';
 import {
   createLogger,
@@ -16,7 +16,7 @@ const domainList = Object.entries(DOMAIN_DESCRIPTIONS)
 
 export function createLoadWorkflowsTool(
   getServerContext: () => Promise<ServerContext>
-): ToolDefinition {
+): ToolSpec {
   return tool({
     description: `Load workflows from one or more domains. Replaces the current domain set. Available domains — ${domainList}`,
     args: {

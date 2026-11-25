@@ -2,10 +2,9 @@ import { z } from 'zod';
 import {
   StartDevelopmentHandler,
   buildWorkflowEnum,
-  type WhatsNextResult,
   type ServerContext,
 } from '@codemcp/workflows-server';
-import type { ToolDefinition } from '../types.js';
+import type { ToolSpec } from '../runtime/tool-spec.js';
 import { tool } from './tool-helper.js';
 import { handleMcpError, unwrapResult } from '../server-context.js';
 import { WorkflowManager, createLogger } from '@codemcp/workflows-core';
@@ -13,9 +12,8 @@ import { stripWhatsNextReferences, requirePrimaryAgent } from '../utils.js';
 
 export function createStartDevelopmentTool(
   projectDir: string,
-  getServerContext: () => Promise<ServerContext>,
-  setBufferedInstructions: (result: WhatsNextResult) => void
-): ToolDefinition {
+  getServerContext: () => Promise<ServerContext>
+): ToolSpec {
   // Load available workflows for description
   // NOTE: Using getAvailableWorkflowsForProject() to respect:
   //   1. WORKFLOW_DOMAINS configuration (domain filtering)
@@ -78,14 +76,6 @@ export function createStartDevelopmentTool(
         logger.info('start_development: Successfully started workflow', {
           workflow: args.workflow,
           phase: data.phase,
-        });
-
-        // Buffer instructions for the next chat.message hook
-        setBufferedInstructions({
-          phase: data.phase,
-          instructions: data.instructions,
-          plan_file_path: data.plan_file_path,
-          allowed_file_patterns: data.allowed_file_patterns ?? ['**/*'],
         });
 
         // Return the instructions from the handler (strip whats_next references)

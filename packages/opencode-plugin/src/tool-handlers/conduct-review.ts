@@ -3,7 +3,7 @@ import {
   ConductReviewHandler,
   type ServerContext,
 } from '@codemcp/workflows-server';
-import type { ToolDefinition } from '../types.js';
+import type { ToolSpec } from '../runtime/tool-spec.js';
 import { tool } from './tool-helper.js';
 import { handleMcpError, unwrapResult } from '../server-context.js';
 import { createLogger } from '@codemcp/workflows-core';
@@ -11,7 +11,7 @@ import { requirePrimaryAgent } from '../utils.js';
 
 export function createConductReviewTool(
   getServerContext: () => Promise<ServerContext>
-): ToolDefinition {
+): ToolSpec {
   return tool({
     description: 'Conduct a review before phase transition. Args: target_phase',
     args: {

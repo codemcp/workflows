@@ -10,7 +10,7 @@ import {
   WorkflowManager,
   createLogger,
 } from '@codemcp/workflows-core';
-import type { ToolDefinition } from '../types.js';
+import type { ToolSpec } from '../runtime/tool-spec.js';
 import { tool } from './tool-helper.js';
 import { handleMcpError } from '../server-context.js';
 import { requirePrimaryAgent } from '../utils.js';
@@ -18,7 +18,7 @@ import { requirePrimaryAgent } from '../utils.js';
 export function createResetDevelopmentTool(
   projectDir: string,
   getServerContext: () => Promise<ServerContext>
-): ToolDefinition {
+): ToolSpec {
   return tool({
     description:
       'Reset workflow state. Args: confirm (required: true), reason (optional), delete_plan (optional: also delete plan file)',
